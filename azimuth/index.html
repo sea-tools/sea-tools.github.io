@@ -3,176 +3,1920 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SeaTools</title>
-<meta name="description" content="Free browser tools for ship's crews, starting with a DP footprint plot. Work on PC, iPad and phone, also offline.">
-<meta name="theme-color" content="#14232d">
-<link rel="icon" type="image/png" href="assets/favicon.png">
-<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="manifest" href="manifest.webmanifest">
+<title>Azimuth</title>
+<meta name="description" content="Navigation calculator for the bridge: sailings, routes, ETA, currents, wind, celestial navigation, ship and tide tools. Works offline.">
+<meta name="theme-color" content="#0a84ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Azimuth">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
 <style>
-  :root{
-    --bg:#e9eef2; --paper:#ffffff; --ink:#14232d; --muted:#586873; --line:#c9d2d9;
-    --accent:#ff5a4f; --gold:#ffd166; --steel:#8fa3b1; --navy:#14232d;
-    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+:root {
+  --bg: #f2f2f7; --surface: #ffffff; --ink: #1c1c1e; --dim: #6e6e73; --line: rgba(60, 60, 67, .14);
+  --accent: #007aff; --accent-ink: #ffffff; --ring: rgba(0, 122, 255, .32);
+  --field: rgba(118, 118, 128, .12); --thumb: #ffffff; --side: rgba(249, 249, 251, .78);
+  --hero: linear-gradient(135deg, #0a84ff 0%, #5e5ce6 100%); --hero-ink: #ffffff; --hero-dim: rgba(255, 255, 255, .72);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 8px 28px rgba(0, 0, 0, .07);
+  --lift: 0 2px 4px rgba(0, 0, 0, .06), 0 16px 40px rgba(0, 0, 0, .12);
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", Roboto, sans-serif;
+  --round: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --spring: cubic-bezier(.2, .8, .2, 1);
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #000000; --surface: #1c1c1e; --ink: #ffffff; --dim: #98989f; --line: rgba(84, 84, 88, .55);
+  --accent: #0a84ff; --ring: rgba(10, 132, 255, .4); --field: rgba(118, 118, 128, .24); --thumb: #636366; --side: rgba(22, 22, 24, .78);
+  --hero: linear-gradient(135deg, #0a6fe0 0%, #4b49c8 100%);
+  --shadow: 0 0 0 1px rgba(255, 255, 255, .05); --lift: 0 0 0 1px rgba(255, 255, 255, .12), 0 16px 40px rgba(0, 0, 0, .6);
+  color-scheme: dark;
+}
+/* Before the script picks a theme, follow the system setting */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="night"]) {
+    --bg: #000000; --surface: #1c1c1e; --ink: #ffffff; --dim: #98989f; --line: rgba(84, 84, 88, .55);
+    --accent: #0a84ff; --ring: rgba(10, 132, 255, .4); --field: rgba(118, 118, 128, .24); --thumb: #636366; --side: rgba(22, 22, 24, .78);
+    --hero: linear-gradient(135deg, #0a6fe0 0%, #4b49c8 100%);
+    --shadow: 0 0 0 1px rgba(255, 255, 255, .05); --lift: 0 0 0 1px rgba(255, 255, 255, .12), 0 16px 40px rgba(0, 0, 0, .6);
+    color-scheme: dark;
   }
-  @media (prefers-color-scheme:dark){
-    :root{--bg:#0e151a; --paper:#16222b; --ink:#e6edf2; --muted:#93a4b0; --line:#26343e}
-  }
-  *{box-sizing:border-box}
-  html{-webkit-text-size-adjust:100%}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.5;
-       padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-  a{color:inherit}
+}
+/* Night: red on black, to protect night vision on the bridge */
+:root[data-theme="night"] {
+  --bg: #000000; --surface: #0e0000; --ink: #ff453a; --dim: #a8281f; --line: rgba(255, 69, 58, .22);
+  --accent: #ff453a; --accent-ink: #000000; --ring: rgba(255, 69, 58, .4); --field: rgba(255, 69, 58, .1); --thumb: #4a0d09; --side: rgba(8, 0, 0, .9);
+  --hero: #1b0200; --hero-ink: #ff5a4f; --hero-dim: #a8281f;
+  --shadow: 0 0 0 1px rgba(255, 69, 58, .14); --lift: 0 0 0 1px rgba(255, 69, 58, .4);
+  color-scheme: dark;
+}
 
-  header{background:var(--navy);color:#fff;position:relative;overflow:hidden}
-  header .inner{max-width:1080px;margin:0 auto;padding:56px 24px 64px;position:relative;z-index:1}
-  .brand{display:flex;align-items:center;gap:14px;margin-bottom:28px}
-  .brand img{width:44px;height:44px;border-radius:11px}
-  .brand span{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel)}
-  h1{font-size:clamp(32px,5.5vw,56px);line-height:1.05;margin:0 0 16px;letter-spacing:-.02em;font-weight:700;max-width:14ch}
-  h1 em{font-style:normal;color:var(--gold)}
-  .lead{font-size:clamp(16px,2vw,19px);color:#c5d1d9;max-width:56ch;margin:0}
-  .rings{position:absolute;right:-140px;top:50%;transform:translateY(-50%);width:520px;height:520px;opacity:.16;pointer-events:none}
-  @media (max-width:700px){.rings{right:-260px}}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.45 var(--sans); -webkit-font-smoothing: antialiased; transition: background .3s, color .3s; }
+[hidden] { display: none !important; }
 
-  main{max-width:1080px;margin:0 auto;padding:40px 24px 24px}
-  .section-label{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 16px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
-  .card{display:flex;flex-direction:column;background:var(--paper);border:1px solid var(--line);border-radius:16px;
-        padding:22px;text-decoration:none;min-height:100%;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
-  .card:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(20,35,45,.12);border-color:var(--steel)}
-  .card:active{transform:translateY(0)}
-  .card:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
-  .card-top{display:flex;gap:16px;align-items:center;margin-bottom:14px}
-  .card img{width:64px;height:64px;border-radius:15px;flex:none}
-  .card h2{font-size:20px;margin:0;line-height:1.2}
-  .tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
-       color:var(--muted);margin-top:4px}
-  .card p{margin:0 0 18px;color:var(--muted);font-size:15px}
-  .open{margin-top:auto;display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:15px;
-        min-height:44px}
-  .open::after{content:"→";transition:transform .15s ease}
-  .card:hover .open::after{transform:translateX(3px)}
+/* ---------- layout ---------- */
+.app { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
+#nav { background: var(--side); -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px);
+  border-right: 1px solid var(--line); padding: 20px 12px calc(20px + env(safe-area-inset-bottom));
+  position: sticky; top: 0; height: 100vh; height: 100dvh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+.brand { display: flex; align-items: center; gap: 12px; padding: 4px 8px; color: var(--ink); text-decoration: none; border-radius: 14px; }
+.brand svg { width: 44px; height: 44px; flex: none; border-radius: 11px; box-shadow: var(--shadow); }
+.brand strong { display: block; font: 700 20px/1.1 var(--round); letter-spacing: -.01em; }
+.brand span { font-size: 12px; color: var(--dim); }
+#nav-list a { display: block; padding: 8px 10px 8px 38px; border-radius: 10px; color: var(--ink); text-decoration: none; font-size: 15px;
+  transition: background .2s, color .2s, transform .2s var(--spring); }
+#nav-list a:hover { background: var(--field); }
+#nav-list a:active { transform: scale(.98); }
+#nav-list a.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+#nav-list a.nav-home { padding-left: 12px; font-weight: 600; margin-bottom: 6px; }
+.nav-group { margin-bottom: 6px; }
+.nav-group h2 { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 10px 4px; font-size: 13px; font-weight: 600; color: var(--dim); }
+.badge { display: inline-grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: 6px;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, 0)); box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .12); }
+.badge svg { width: 72%; height: 72%; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+[data-theme="night"] .badge { background: #5c110c !important; background-image: none; }
+[data-theme="night"] .badge svg { stroke: #ff6a60; }
+[data-theme="night"] .badge circle[fill] { fill: #ff6a60; }
+.side-foot { margin: auto 6px 0; padding-top: 10px; display: grid; gap: 12px; }
+.side-foot label, .side-foot .lbl { display: grid; gap: 6px; font-size: 12px; color: var(--dim); }
+.disclaimer { margin: 0; font-size: 12px; color: var(--dim); }
+.disclaimer a { color: var(--accent); }
 
-  .info{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-top:48px}
-  .info div{border-top:2px solid var(--ink);padding-top:14px}
-  .info h3{font-size:15px;margin:0 0 6px}
-  .info p{margin:0;color:var(--muted);font-size:14px}
-  .howto{margin:8px 0 0;padding:0;list-style:none;color:var(--muted);font-size:14px}
-  .howto li{margin:0 0 6px}
-  .howto b{color:var(--ink);font-weight:600}
-  .install{margin-top:10px;min-height:44px;padding:0 18px;border:0;border-radius:10px;background:var(--navy);color:#fff;
-           font:600 15px var(--font);cursor:pointer}
-  @media (prefers-color-scheme:dark){.install{background:#e6edf2;color:#14232d}}
+main { padding-block: 28px 72px; padding-left: max(clamp(16px, 4vw, 48px), env(safe-area-inset-left, 0px));
+  padding-right: max(clamp(16px, 4vw, 48px), env(safe-area-inset-right, 0px)); max-width: 1040px; width: 100%; }
+.gpx { padding: 6px 16px 16px; display: grid; gap: 10px; }
+.gpx h3 { margin: 0; padding: 10px 0 0; font: 700 17px var(--round); }
+.gpx textarea { width: 100%; border: 0; border-radius: 12px; padding: 12px; background: var(--field); color: var(--ink); font: 13px/1.4 ui-monospace, Menlo, monospace; resize: vertical; }
+.gpx button { justify-self: start; }
+header { display: flex; align-items: center; gap: 14px; }
+#badge .badge { width: 52px; height: 52px; border-radius: 14px; box-shadow: var(--shadow), inset 0 -1px 0 rgba(0, 0, 0, .12); }
+#badge:empty { display: none; }
+#menu { display: none; flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--surface); color: var(--accent); padding: 10px; box-shadow: var(--shadow); }
+.eyebrow { margin: 0; font-size: 13px; font-weight: 600; color: var(--accent); }
+.eyebrow:empty { display: none; }
+h1 { margin: 0; font: 700 clamp(28px, 4.4vw, 40px)/1.1 var(--round); letter-spacing: -.02em; text-wrap: balance; }
+.desc { margin: 12px 0 24px; color: var(--dim); max-width: 64ch; font-size: 17px; }
 
-  .notice{margin:40px 0 0;padding:16px 20px;background:var(--paper);border:1px solid var(--line);border-left:5px solid var(--accent);
-          border-radius:12px;color:var(--muted);font-size:14px;max-width:none}
-  .notice b{color:var(--ink)}
-  footer{max-width:1080px;margin:0 auto;padding:32px 24px 48px;color:var(--muted);font-size:13px;
-         display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:48px}
-  #net{font-family:var(--mono)}
-  @media (prefers-reduced-motion:reduce){.card,.open::after{transition:none}}
+/* ---------- cards and forms ---------- */
+.card { background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); }
+.form { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px 18px; padding: 20px; }
+.field { display: grid; gap: 7px; min-width: 0; align-content: start; }
+.field > span { font-size: 13px; font-weight: 500; color: var(--dim); }
+.field em { font-style: normal; opacity: .8; }
+input[type=text], input[type=search], input[type=datetime-local], select {
+  width: 100%; min-width: 0; height: 46px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--field); color: var(--ink);
+  font: 500 17px var(--sans); font-variant-numeric: tabular-nums; transition: box-shadow .2s, background .2s; }
+select { -webkit-appearance: none; appearance: none; padding-right: 36px; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.500l5 5 5-5' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; background-size: 12px 8px; }
+input:focus, select:focus, .coord:focus-within { outline: 0; box-shadow: 0 0 0 4px var(--ring); }
+button:focus-visible, a:focus-visible, .btn:focus-within { outline: 0; box-shadow: 0 0 0 4px var(--ring); }
+::placeholder { color: var(--dim); opacity: .6; }
+
+/* degrees · minutes · hemisphere */
+.coord { display: flex; align-items: center; height: 46px; padding: 0 4px 0 14px; border-radius: 12px; background: var(--field); transition: box-shadow .2s; min-width: 0; }
+.coord input[type=text] { width: auto; height: 100%; padding: 0; background: none; border-radius: 0; box-shadow: none; text-align: right; font: 600 19px var(--round); }
+.coord .cd { flex: 0 0 auto; width: 3.2ch; }
+.coord .cd[maxlength="2"] { width: 2.3ch; }
+.coord .cm { flex: 0 1 auto; width: 6ch; min-width: 3ch; }
+.coord i { font-style: normal; font-weight: 600; color: var(--dim); margin: 0 10px 0 2px; }
+.seg, .hemi { display: flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--field); }
+.hemi { margin-left: auto; flex: none; background: rgba(118, 118, 128, .14); }
+.seg button, .hemi button { flex: 1; height: 32px; min-width: 38px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--ink);
+  font: 600 14px var(--sans); box-shadow: none; transition: background .25s var(--spring), box-shadow .25s, transform .15s var(--spring); }
+.seg button[aria-pressed="true"], .hemi button[aria-pressed="true"] { background: var(--thumb); box-shadow: 0 1px 3px rgba(0, 0, 0, .18), 0 0 0 .5px rgba(0, 0, 0, .06); }
+.seg button:active, .hemi button:active { transform: scale(.94); }
+
+button, .btn { height: 46px; padding: 0 18px; border: 0; border-radius: 12px; background: var(--field); color: var(--accent);
+  font: 600 16px var(--sans); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  transition: transform .15s var(--spring), background .2s, opacity .2s; -webkit-tap-highlight-color: transparent; }
+button:active, .btn:active { transform: scale(.96); opacity: .85; }
+button.primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 6px 16px var(--ring); }
+button.icon { width: 46px; padding: 0; font-size: 22px; color: var(--dim); border-radius: 50%; }
+
+/* ---------- results ---------- */
+#out { margin-top: 18px; display: grid; gap: 16px; }
+.hero { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 36px; padding: 24px 26px; border-radius: 24px;
+  background: var(--hero); color: var(--hero-ink); box-shadow: var(--lift); overflow: hidden; }
+.hero::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(120% 90% at 100% 0%, rgba(255, 255, 255, .22), transparent 60%); }
+[data-theme="night"] .hero::after { display: none; }
+.stat { min-width: 0; position: relative; z-index: 1; }
+.stat span { display: block; font-size: 13px; font-weight: 600; color: var(--hero-dim); }
+.stat strong { display: block; margin-top: 2px; font: 700 clamp(26px, 4.6vw, 42px)/1.15 var(--round); letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dial { position: relative; z-index: 1; width: 116px; height: 116px; margin-left: auto; flex: none; }
+.dial > circle:first-child { fill: rgba(255, 255, 255, .12); stroke: var(--hero-dim); stroke-width: 1.2; }
+.dial line { stroke: var(--hero-dim); stroke-width: 1.2; stroke-linecap: round; }
+.dial text { fill: var(--hero-ink); font: 700 11px var(--round); text-anchor: middle; opacity: .85; }
+.dial .needle path { fill: var(--hero-ink); filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .3)); }
+.dial .hub { fill: var(--hero-ink); }
+[data-theme="night"] .dial > circle:first-child { fill: rgba(255, 69, 58, .08); }
+
+.rows { margin: 0; padding: 2px 20px; }
+.rows div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.rows div:last-child { border-bottom: 0; }
+.rows dt { color: var(--dim); }
+.rows dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; white-space: pre-wrap; text-align: right; }
+.hint { margin: 0; padding: 16px 20px; border-radius: 16px; background: var(--field); color: var(--dim); }
+
+.table-wrap { overflow-x: auto; padding: 4px 6px; }
+.table-wrap h3 { margin: 0; padding: 14px 14px 4px; font: 700 17px var(--round); letter-spacing: -.01em; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { padding: 11px 14px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; font-weight: 600; color: var(--dim); }
+td { font-variant-numeric: tabular-nums; white-space: pre; }
+tbody tr:last-child td { border-bottom: 0; }
+
+/* ---------- route plan ---------- */
+.plan .wps, .plan .actions { grid-column: 1 / -1; }
+.wps { display: grid; gap: 10px; }
+.wp { display: grid; grid-template-columns: 24px minmax(110px, 1fr) auto auto 46px; gap: 10px; align-items: center; }
+.wp b { font: 700 14px var(--round); color: var(--dim); text-align: center; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.sketch { margin: 0; padding: 14px; }
+.sketch svg { display: block; width: 100%; height: auto; }
+.sketch path { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.sketch circle { fill: var(--surface); stroke: var(--accent); stroke-width: 2.5; }
+.sketch text { font: 700 12px var(--round); fill: var(--ink); }
+.sketch figcaption { margin-top: 6px; font-size: 12px; color: var(--dim); }
+
+/* ---------- home ---------- */
+.home { display: grid; gap: 26px; }
+#search { height: 48px; padding-left: 42px; font-size: 17px; border-radius: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='8.500' cy='8.500' r='5.500' fill='none' stroke='%238e8e93' stroke-width='2'/%3E%3Cpath d='M13 13l4.500 4.500' stroke='%238e8e93' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: 14px center; background-size: 18px; }
+.tile-group h2 { margin: 0 0 10px 4px; font: 700 22px var(--round); letter-spacing: -.01em; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.tile { display: grid; gap: 6px; align-content: start; padding: 16px; border-radius: 20px; background: var(--surface); color: var(--ink); text-decoration: none;
+  box-shadow: var(--shadow); transition: transform .3s var(--spring), box-shadow .3s; }
+.tile:hover { transform: translateY(-3px); box-shadow: var(--lift); }
+.tile:active { transform: scale(.97); }
+.tile .badge { width: 40px; height: 40px; border-radius: 11px; margin-bottom: 6px; }
+.tile strong { font: 600 17px var(--sans); letter-spacing: -.01em; }
+.tile p { margin: 0; font-size: 13px; color: var(--dim); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---------- motion ---------- */
+@keyframes rise { from { opacity: 0; transform: translateY(14px) scale(.985); } }
+main.enter > * { animation: rise .5s var(--spring) both; }
+main.enter > :nth-child(2) { animation-delay: .04s; }
+main.enter > :nth-child(3) { animation-delay: .08s; }
+main.enter > :nth-child(4) { animation-delay: .12s; }
+
+#scrim { display: none; }
+@media (max-width: 860px) {
+  .app { display: block; }
+  #menu { display: block; }
+  #nav { position: fixed; z-index: 20; left: 0; top: 0; width: min(300px, 86vw); transform: translateX(-102%); transition: transform .4s var(--spring);
+    padding-top: calc(20px + env(safe-area-inset-top)); box-shadow: var(--lift); }
+  .nav-open #nav { transform: none; }
+  .nav-open #scrim { display: block; position: fixed; inset: 0; z-index: 10; background: rgba(0, 0, 0, .35); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+  main { padding-top: calc(16px + env(safe-area-inset-top)); }
+  .wp { grid-template-columns: 24px minmax(0, 1fr) 46px; }
+  .wp .coord { grid-column: 2; }
+  .wp button { grid-row: 1; grid-column: 3; }
+}
+@media (max-width: 520px) {
+  .form { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  .hero { padding: 20px; border-radius: 22px; }
+  .dial { width: 92px; height: 92px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tile { padding: 14px; border-radius: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
+<link rel="manifest" href="manifest.webmanifest">
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}))}</script>
+<script src="../assets/stats.js" defer></script>
 </head>
 <body>
-<header>
-  <svg class="rings" viewBox="0 0 520 520" aria-hidden="true" fill="none" stroke="#fff" stroke-width="2">
-    <circle cx="260" cy="260" r="250"/><circle cx="260" cy="260" r="180"/><circle cx="260" cy="260" r="110"/><circle cx="260" cy="260" r="40"/>
-    <path d="M260 0v520M0 260h520"/>
-  </svg>
-  <div class="inner">
-    <div class="brand"><img src="assets/icon-192.png" alt=""><span>SeaTools</span></div>
-    <h1>Tools for the <em>bridge</em> and the <em>engine room</em></h1>
-    <p class="lead">Free browser apps for ship's crews. Nothing to install: open on a PC, tablet or phone. Once opened, they keep working offline.</p>
-  </div>
-</header>
-
-<main>
-  <p class="section-label">Apps</p>
-  <div class="grid" id="apps"></div>
-
-  <div class="info">
-    <div>
-      <h3>Works offline</h3>
-      <p>Open this page once with internet. After that all apps load from the device, even with no connection on board.</p>
+<div class="app">
+  <aside id="nav">
+    <a class="brand" href="#home">
+      <svg viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a84ff"/><stop offset="1" stop-color="#5e5ce6"/></linearGradient></defs><rect width="512" height="512" fill="url(#bg)"/><circle cx="256" cy="256" r="160" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="14"/><path d="M256 96l56 160-56 160-56-160z" fill="#fff" fill-opacity=".55"/><path d="M256 96l56 160H200z" fill="#fff"/></svg>
+      <div><strong>Azimuth</strong><span data-t="navigation calculator">navigation calculator</span></div>
+    </a>
+    <nav id="nav-list" data-t-aria="Modules" aria-label="Modules"></nav>
+    <div class="side-foot">
+      <div class="lbl"><span data-t="Appearance">Appearance</span><div id="theme" class="seg" role="group" data-t-aria="Appearance" aria-label="Appearance"></div></div>
+      <label><span data-t="Language">Language</span><select id="lang"></select></label>
+      <p class="disclaimer" data-t="An aid only. Always verify results against official publications and charts.">An aid only. Always verify results against official publications and charts.</p>
+      <p class="disclaimer" id="meta"></p>
     </div>
-    <div>
-      <h3>Your data stays on your device</h3>
-      <p>What you enter in the apps is saved in this browser only and is never sent anywhere. The site only counts anonymous visits, without cookies. Use each app's export or print to keep a copy.</p>
-    </div>
-    <div>
-      <h3>Add to your home screen</h3>
-      <p>Give an app its own icon on any tablet or phone. Open the app first, then:</p>
-      <ul class="howto">
-        <li><b>iPad / iPhone:</b> in Safari tap Share, then “Add to Home Screen”.</li>
-        <li><b>Android:</b> in Chrome tap the ⋮ menu, then “Add to Home screen” or “Install app”.</li>
-        <li><b>PC:</b> in Chrome or Edge click the install icon in the address bar.</li>
-      </ul>
-      <button id="install" class="install" hidden>Install on this device</button>
-    </div>
-  </div>
-
-  <p class="notice"><b>Aids only, not for sole reliance.</b> These apps do not replace official publications, charts, the ship's own instruments or the judgement of a qualified officer. Always verify results. Provided as is, without warranty. <a href="about/">About &amp; terms</a></p>
-</main>
-
-<footer>
-  <span>© 2026 Captain Mariusz Wasilewski · All rights reserved · <a href="about/">About &amp; terms</a></span>
-  <span id="net"></span>
-</footer>
-
+  </aside>
+  <div id="scrim"></div>
+  <main>
+    <header>
+      <button id="menu" type="button" data-t-aria="Module list" aria-label="Module list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <span id="badge"></span>
+      <div>
+        <p id="group" class="eyebrow"></p>
+        <h1 id="title"></h1>
+      </div>
+    </header>
+    <p id="desc" class="desc"></p>
+    <section id="form" class="card form" data-t-aria="Input" aria-label="Input"></section>
+    <section id="out" data-t-aria="Result" aria-label="Result" aria-live="polite"></section>
+  </main>
+</div>
+<script>window.AZ_NO_SW = true; window.AZ_SITE = true;</script>
 <script>
-  // To add a new app: put its folder next to this file and add one entry here.
-  const APPS = [
+/* Languages. English strings are the source text; other languages map from them. */
+(function () {
+  'use strict';
+  const PL = {
+    // shell
+    'navigation calculator': 'kalkulator nawigacyjny',
+    'An aid only. Always verify results against official publications and charts.':
+      'Narzędzie pomocnicze. Wyniki zawsze weryfikuj z oficjalnymi publikacjami i mapami.',
+    'Modules': 'Moduły', 'Module list': 'Lista modułów', 'Input': 'Dane', 'Result': 'Wynik', 'Language': 'Język',
+    // groups
+    'Rhumb Line': 'Loksodroma', 'Great Circle': 'Ortodroma', 'Routes': 'Trasy', 'Time & Speed': 'Czas i prędkość',
+    'Current & Drift': 'Prąd i dryf', 'Wind': 'Wiatr', 'Tools': 'Narzędzia',
+    // titles
+    'Course & Distance': 'Kurs i odległość', 'Destination Point': 'Punkt docelowy', 'Composite Sailing': 'Żegluga złożona',
+    'Route Plan': 'Plan trasy', 'Average Speed': 'Średnia prędkość', 'Course to Steer': 'Kurs do sterowania',
+    'Course Over Ground': 'Droga nad dnem', 'Find Current': 'Wyznacz prąd', 'True Wind': 'Wiatr rzeczywisty',
+    'Converter': 'Przelicznik', 'Interpolation': 'Interpolacja',
+    // descriptions
+    'Second navigation problem: constant course and distance between two points (WGS84 ellipsoid).':
+      'Drugi problem nawigacyjny: stały kurs i odległość między dwoma punktami (elipsoida WGS84).',
+    'First navigation problem: position after running a given distance on a constant course.':
+      'Pierwszy problem nawigacyjny: pozycja po przebyciu zadanej odległości stałym kursem.',
+    'Shortest track along a great circle: courses, vertex and intermediate points.':
+      'Najkrótsza droga po kole wielkim: kursy, wierzchołek i punkty pośrednie.',
+    'Position after running a given distance along a great circle on a given initial course.':
+      'Pozycja po przebyciu zadanej odległości po kole wielkim przy danym kursie początkowym.',
+    'Geodesic on the WGS84 ellipsoid (Vincenty’s method) — millimetre-level accuracy.':
+      'Linia geodezyjna na elipsoidzie WGS84 (metoda Vincenty’ego) — dokładność rzędu milimetrów.',
+    'Position after running a given distance along a geodesic on the WGS84 ellipsoid.':
+      'Pozycja po przebyciu zadanej odległości po linii geodezyjnej na elipsoidzie WGS84.',
+    'Great circle to the limiting parallel, parallel sailing along it, then great circle to the destination.':
+      'Ortodroma do równoleżnika granicznego, żegluga po równoleżniku i ortodroma do celu.',
+    'Waypoint list with courses, distances and ETA. Save and load as GPX.':
+      'Lista punktów zwrotnych z kursami, odległościami i ETA. Zapis i odczyt w formacie GPX.',
+    'Estimated time of arrival from distance and speed. Times in UTC.':
+      'Przewidywany czas przybycia z odległości i prędkości. Czasy w UTC.',
+    'Average speed from distance run and time — or the speed required to arrive at a given time.':
+      'Prędkość średnia z przebytej odległości i czasu — albo prędkość wymagana, by zdążyć na zadaną godzinę.',
+    'Heading to steer to make good a required track in a current.':
+      'Jaki kurs trzymać, żeby mimo prądu iść zadaną drogą nad dnem.',
+    'Where and how fast the vessel moves over the ground for a given heading, speed and current.':
+      'Dokąd i jak szybko statek idzie nad dnem przy danym kursie, prędkości i prądzie.',
+    'Set and drift of the current from comparing motion through the water with motion over the ground.':
+      'Kierunek i prędkość prądu z porównania ruchu po wodzie i ruchu nad dnem.',
+    'True wind from the apparent wind measured on board, with Beaufort classification.':
+      'Wiatr rzeczywisty z wiatru pozornego mierzonego na statku, z klasyfikacją Beauforta.',
+    'Units of length, speed, volume and temperature.': 'Jednostki długości, prędkości, objętości i temperatury.',
+    'Linear interpolation between two tabulated values.': 'Interpolacja liniowa między dwiema wartościami z tablicy.',
+    // fields
+    '{0} — latitude': '{0} — szerokość', '{0} — longitude': '{0} — długość',
+    'Point A': 'Punkt A', 'Point B': 'Punkt B', 'Start point': 'Punkt wyjścia',
+    'Course': 'Kurs', 'Distance': 'Odległość', 'Initial course': 'Kurs początkowy', 'Number of legs': 'Liczba odcinków',
+    'Limiting parallel': 'Równoleżnik graniczny', 'Speed': 'Prędkość', 'Departure (UTC)': 'Wyjście (UTC)',
+    'Start (UTC)': 'Początek (UTC)', 'End (UTC)': 'Koniec (UTC)', 'Required track': 'Zadana droga nad dnem',
+    'Speed through water': 'Prędkość po wodzie', 'Set of current (towards)': 'Kierunek prądu (dokąd)',
+    'Drift of current': 'Prędkość prądu', 'True heading': 'Kurs rzeczywisty', 'Speed over ground (SOG)': 'Prędkość nad dnem (SOG)',
+    'Vessel speed': 'Prędkość statku', 'Apparent wind angle off the bow (clockwise)': 'Kąt wiatru pozornego od dziobu (w prawo)',
+    'Apparent wind speed': 'Prędkość wiatru pozornego', 'Value': 'Wartość', 'Unit': 'Jednostka', 'x required': 'x szukane',
+    // results
+    'Difference of latitude': 'Różnica szerokości', 'Difference of meridional parts': 'Różnica powiększonej szerokości',
+    'Final position': 'Pozycja końcowa', 'Final course': 'Kurs końcowy', 'Vertex (northern)': 'Wierzchołek (północny)',
+    'Rhumb line for comparison': 'Loksodroma dla porównania', 'Saving on the great circle': 'Zysk na ortodromie',
+    'Position': 'Pozycja', 'Course onward': 'Kurs dalej', 'From start': 'Od startu',
+    'Course at final position': 'Kurs w punkcie końcowym', 'Distance in metres': 'Odległość w metrach',
+    'Total distance': 'Odległość całkowita', 'Great circle A → parallel': 'Ortodroma A → równoleżnik',
+    'Joining the parallel': 'Wejście na równoleżnik', 'Along the parallel (course {0})': 'Po równoleżniku (kurs {0})',
+    'Leaving the parallel': 'Zejście z równoleżnika', 'Great circle parallel → B': 'Ortodroma równoleżnik → B',
+    'Pure great circle for comparison': 'Czysta ortodroma dla porównania',
+    'Passage time': 'Czas przejścia', 'Time': 'Czas', 'Day’s run': 'Przebieg dobowy',
+    'Speed over ground': 'Prędkość nad dnem', 'Current correction': 'Poprawka na prąd',
+    'Course over ground (COG)': 'Droga nad dnem (COG)', 'Drift angle': 'Znos',
+    'Wind direction (from)': 'Kierunek wiatru (skąd)', 'Wind speed': 'Prędkość wiatru', 'Beaufort scale': 'Skala Beauforta',
+    'Angle off the bow': 'Kąt od dziobu', 'Speed in m/s': 'Prędkość w m/s',
+    // Beaufort
+    'Calm': 'Cisza', 'Light air': 'Powiew', 'Light breeze': 'Słaby wiatr', 'Gentle breeze': 'Łagodny wiatr',
+    'Moderate breeze': 'Umiarkowany wiatr', 'Fresh breeze': 'Dość silny wiatr', 'Strong breeze': 'Silny wiatr',
+    'Near gale': 'Bardzo silny wiatr', 'Gale': 'Sztorm', 'Strong gale': 'Silny sztorm', 'Storm': 'Bardzo silny sztorm',
+    'Violent storm': 'Gwałtowny sztorm', 'Hurricane': 'Huragan',
+    // units
+    'Length': 'Długość', 'Volume': 'Objętość', 'Temperature': 'Temperatura',
+    'nautical miles (NM)': 'mile morskie (NM)', 'cables': 'kable', 'kilometres': 'kilometry', 'metres': 'metry', 'feet': 'stopy',
+    'fathoms': 'sążnie', 'yards': 'jardy', 'statute miles': 'mile lądowe', 'knots': 'węzły', 'litres': 'litry',
+    'barrels (bbl)': 'baryłki (bbl)', 'US gallons': 'galony US',
+    // route plan
+    'Method': 'Metoda', 'Name': 'Nazwa', 'Name of waypoint {0}': 'Nazwa punktu {0}', 'Latitude of waypoint {0}': 'Szerokość punktu {0}',
+    'Longitude of waypoint {0}': 'Długość punktu {0}', 'Remove waypoint {0}': 'Usuń punkt {0}', 'Add waypoint': 'Dodaj punkt',
+    'Save GPX': 'Zapisz GPX', 'Load GPX': 'Wczytaj GPX', 'Waypoint': 'Punkt', 'Leg': 'Odcinek', 'Cumulative': 'Narastająco',
+    'Route sketch': 'Szkic trasy', 'Illustrative sketch on a Mercator projection — not for navigation.':
+      'Szkic poglądowy w odwzorowaniu Merkatora — nie służy do nawigacji.',
+    'Route plan': 'Plan trasy',
+    // messages
+    'Enter date and time.': 'Podaj datę i godzinę.',
+    'End must be later than start.': 'Koniec musi być późniejszy niż początek.',
+    '“{0}”: enter e.g. {1} or decimal degrees.': '„{0}”: wpisz np. {1} albo stopnie dziesiętne.',
+    '“{0}”: enter a number.': '„{0}”: wpisz liczbę.',
+    '“{0}”: value cannot be less than {1}.': '„{0}”: wartość nie może być mniejsza niż {1}.',
+    '“{0}”: value cannot be greater than {1}.': '„{0}”: wartość nie może być większa niż {1}.',
+    'Add at least two waypoints.': 'Dodaj co najmniej dwa punkty.',
+    'Waypoint {0}: check the coordinates.': 'Punkt {0}: popraw współrzędne.',
+    'The file contains no route points (rtept or wpt).': 'W pliku nie ma punktów trasy (rtept ani wpt).',
+    // home, appearance, time zones, split coordinate fields
+    'All tools': 'Wszystkie narzędzia', 'Search tools': 'Szukaj narzędzi', 'No tools match.': 'Brak pasujących narzędzi.',
+    'Navigation calculations for the bridge — offline, in one place.': 'Obliczenia nawigacyjne na mostek — offline, w jednym miejscu.',
+    'Appearance': 'Wygląd', 'Light': 'Jasny', 'Dark': 'Ciemny', 'Night': 'Nocny', 'degrees': 'stopnie', 'minutes': 'minuty',
+    '“{0}”: check the degrees and minutes.': '„{0}”: sprawdź stopnie i minuty.',
+    'Estimated time of arrival from distance and speed, with separate time zones for departure and arrival.':
+      'Przewidywany czas przybycia z odległości i prędkości, z osobnymi strefami czasowymi wyjścia i przybycia.',
+    'Departure (local time)': 'Wyjście (czas lokalny)', 'Departure time zone': 'Strefa czasowa wyjścia',
+    'Arrival time zone': 'Strefa czasowa przybycia', 'ETA (local time)': 'ETA (czas lokalny)', 'ETA (UTC)': 'ETA (UTC)',
+    'Start (local time)': 'Początek (czas lokalny)', 'Start time zone': 'Strefa czasowa początku',
+    'End (local time)': 'Koniec (czas lokalny)', 'End time zone': 'Strefa czasowa końca',
+    // ship, tides, coastal
+    'Ship': 'Statek', 'Tides': 'Pływy', 'Coastal': 'Nawigacja przybrzeżna',
+    'Draft Survey': 'Draft survey', 'Wheel Over': 'Wheel over', 'Anchorage': 'Kotwiczenie', 'Height of Tide': 'Wysokość pływu',
+    'Tidal Stream': 'Prąd pływowy', 'Distance by Vertical Angle': 'Odległość z kąta pionowego', 'Range of a Light': 'Zasięg światła',
+    'Distance Off by Two Bearings': 'Odległość z dwóch namiarów',
+    'Displacement and cargo from the six draft readings, with corrections for the position of the marks, trim, hull deflection and water density.':
+      'Wyporność i ładunek z sześciu odczytów zanurzenia, z poprawkami na położenie znaków, przegłębienie, ugięcie kadłuba i gęstość wody.',
+    'Where to put the wheel over for a constant-radius turn onto the next course, and the rate of turn to hold.':
+      'Gdzie wyłożyć ster przy zwrocie o stałym promieniu na następny kurs i jaką prędkość kątową utrzymać.',
+    'Swinging circle and anchor-watch radius from the depth and the cable paid out, with a rule-of-thumb amount of cable.':
+      'Promień łukowania i promień wachty kotwicznej z głębokości i wydanego łańcucha, z orientacyjną długością łańcucha.',
+    'Height of tide at any time between a high and a low water, the depth and under-keel clearance, and when a required height is reached.':
+      'Wysokość pływu w dowolnej chwili między wodą wysoką a niską, głębokość i zapas wody pod stępką oraz chwila osiągnięcia wymaganej wysokości.',
+    'Rate of the tidal stream for today’s range, interpolated between the neap and spring rates given on the chart or in the atlas.':
+      'Prędkość prądu pływowego dla dzisiejszego skoku, interpolowana między prędkością kwadraturową a syzygijną z mapy lub atlasu.',
+    'Distance off an object of known height from its vertical sextant angle.':
+      'Odległość od obiektu o znanej wysokości z jego kąta pionowego zmierzonego sekstantem.',
+    'Distance at which a light rises or dips on the horizon, from the height of eye and the height of the light.':
+      'Odległość, w której światło wynurza się lub chowa za widnokręgiem, z wysokości oka i wysokości światła.',
+    'Distance off from two relative bearings of the same object and the distance run between them (running fix, doubling the angle on the bow).':
+      'Odległość z dwóch kątów kursowych tego samego obiektu i drogi przebytej między nimi (podwojony kąt kursowy).',
+    'Forward draft — port': 'Zanurzenie dziób — lewa burta', 'Forward draft — starboard': 'Zanurzenie dziób — prawa burta',
+    'Midship draft — port': 'Zanurzenie śródokręcie — lewa burta', 'Midship draft — starboard': 'Zanurzenie śródokręcie — prawa burta',
+    'Aft draft — port': 'Zanurzenie rufa — lewa burta', 'Aft draft — starboard': 'Zanurzenie rufa — prawa burta',
+    'Length between perpendiculars': 'Długość między pionami', 'Forward marks aft of the forward perpendicular': 'Znaki dziobowe za pionem dziobowym',
+    'Aft marks forward of the aft perpendicular': 'Znaki rufowe przed pionem rufowym', 'Midship marks aft of midship': 'Znaki śródokręcia za owrężem',
+    'Displacement at the corrected mean draft': 'Wyporność dla poprawionego zanurzenia średniego',
+    'LCF from midship (+ aft, − forward)': 'LCF od owręża (+ rufa, − dziób)', 'MTC at draft + 0.5 m': 'MTC dla zanurzenia + 0,5 m',
+    'MTC at draft − 0.5 m': 'MTC dla zanurzenia − 0,5 m', 'Water density': 'Gęstość wody',
+    'Deductibles (ballast, fuel, fresh water, stores)': 'Odliczenia (balast, paliwo, woda słodka, zapasy)', 'Lightship': 'Statek pusty', 'Constant': 'Stała',
+    'Cargo on board': 'Ładunek na statku', 'Net displacement': 'Wyporność netto', 'Corrected drafts (fwd / mid / aft)': 'Zanurzenia poprawione (dziób / śródokręcie / rufa)',
+    'True trim': 'Przegłębienie rzeczywiste', 'by the stern': 'na rufę', 'by the head': 'na dziób', 'Mean of means of means': 'Średnia ze średnich (quarter mean)',
+    'Hull deflection': 'Ugięcie kadłuba', 'sag': 'sagging', 'hog': 'hogging', 'First trim correction': 'Pierwsza poprawka na przegłębienie',
+    'Second trim correction': 'Druga poprawka na przegłębienie', 'Displacement corrected for trim': 'Wyporność poprawiona na przegłębienie',
+    'Density correction': 'Poprawka na gęstość',
+    'Present course': 'Kurs obecny', 'Next course': 'Kurs następny', 'Turn radius': 'Promień zwrotu',
+    'Distance run before the ship answers the helm': 'Droga przebyta, zanim statek zareaguje na ster',
+    'Wheel over before the waypoint': 'Wyłożenie steru przed punktem zwrotu', 'Rate of turn': 'Prędkość kątowa zwrotu', 'Turn': 'Zwrot',
+    'to starboard': 'w prawo', 'to port': 'w lewo', 'Wheel-over line off the next track': 'Linia wheel over od następnego kursu',
+    'Length of the turn': 'Długość łuku zwrotu', 'Time in the turn': 'Czas zwrotu',
+    'Depth of water': 'Głębokość wody', 'Hawse pipe above the water': 'Kluza nad wodą', 'Cable paid out': 'Wydany łańcuch', 'Length overall': 'Długość całkowita',
+    'Bow to bridge': 'Dziób do mostka', 'Swinging circle radius': 'Promień łukowania', 'Anchor-watch radius at the bridge': 'Promień wachty kotwicznej na mostku',
+    'Cable length': 'Długość łańcucha', 'Horizontal reach of the cable': 'Zasięg poziomy łańcucha', 'Scope (cable to depth)': 'Stosunek łańcucha do głębokości',
+    'Rule-of-thumb cable for this depth': 'Orientacyjna długość łańcucha dla tej głębokości', 'shackles': 'szakle',
+    'First high/low water — time': 'Pierwsza woda wysoka/niska — czas', 'First high/low water — height': 'Pierwsza woda wysoka/niska — wysokość',
+    'Second high/low water — time': 'Druga woda wysoka/niska — czas', 'Second high/low water — height': 'Druga woda wysoka/niska — wysokość',
+    'Required time': 'Żądany czas', 'Charted depth': 'Głębokość z mapy', 'Draught': 'Zanurzenie', 'Required height of tide': 'Wymagana wysokość pływu',
+    'Height of tide': 'Wysokość pływu', 'Under-keel clearance': 'Zapas wody pod stępką', 'Range': 'Skok pływu', 'rising': 'przypływ', 'falling': 'odpływ',
+    'Required height reached at': 'Wymagana wysokość osiągnięta o',
+    'Spring rate': 'Prędkość syzygijna', 'Neap rate': 'Prędkość kwadraturowa', 'Mean spring range': 'Średni skok syzygijny', 'Mean neap range': 'Średni skok kwadraturowy',
+    'Range today': 'Skok dzisiaj', 'Rate': 'Prędkość prądu', 'Share of the spring rate': 'Udział prędkości syzygijnej',
+    'Height of the object': 'Wysokość obiektu', 'Vertical angle': 'Kąt pionowy', 'Distance off': 'Odległość', 'Height of the light': 'Wysokość światła',
+    'Rising / dipping distance': 'Odległość wynurzenia / zanurzenia światła', 'Your horizon': 'Twój widnokrąg', 'Horizon of the light': 'Widnokrąg światła',
+    'Distance run between bearings': 'Droga przebyta między namiarami', 'First relative bearing': 'Pierwszy kąt kursowy', 'Second relative bearing': 'Drugi kąt kursowy',
+    'Distance off when abeam': 'Odległość na trawersie', 'Distance off at the second bearing': 'Odległość przy drugim namiarze',
+    'Distance to run until abeam': 'Droga do trawersu', 'Distance run past abeam': 'Droga przebyta za trawersem',
+    'Check LBP and the distances of the draft marks.': 'Sprawdź LBP i odległości znaków zanurzenia.',
+    'The courses are the same — no turn.': 'Kursy są takie same — brak zwrotu.',
+    'A turn of 180° has no wheel-over point on the track.': 'Zwrot o 180° nie ma punktu wheel over na linii kursu.',
+    'The cable does not reach the seabed.': 'Łańcuch nie sięga dna.',
+    'The second high/low water must be later than the first.': 'Druga woda wysoka/niska musi być późniejsza niż pierwsza.',
+    'The required time must lie between the two tide times.': 'Żądany czas musi leżeć między obiema wodami.',
+    'Spring and neap ranges must differ.': 'Skok syzygijny i kwadraturowy muszą się różnić.',
+    'The angle must be between 0° and 90°.': 'Kąt musi być między 0° a 90°.',
+    'The second bearing must be larger than the first, both below 180°.': 'Drugi kąt kursowy musi być większy od pierwszego, oba poniżej 180°.',
+    'About & terms': 'O stronie i warunki', 'GPX route': 'Trasa GPX', 'Copy': 'Kopiuj', 'Copied': 'Skopiowano',
+    // stars
+    'Star': 'Gwiazda', 'Sun': 'Słońce', 'Azimuth & Compass Error': 'Azymut i poprawka kompasu', 'Star Finder': 'Identyfikacja gwiazd',
+    'Sun, Aries and the navigational stars for any moment, with an hourly page for that day. Against published almanac data the Sun agrees to about 0.2′ and the stars to about 0.02′.':
+      'Słońce, punkt Barana i gwiazdy nawigacyjne na dowolną chwilę, z godzinową stroną na dany dzień. Względem publikowanego almanachu Słońce zgadza się do ok. 0,2′, a gwiazdy do ok. 0,02′.',
+    'True azimuth of the Sun or a star at any moment, and the compass error and deviation from a compass bearing.':
+      'Azymut rzeczywisty Słońca lub gwiazdy na dowolną chwilę oraz całkowita poprawka i dewiacja z namiaru kompasowego.',
+    'Names the star you observed from its approximate altitude and bearing, and lists every navigational star above the horizon for planning sights.':
+      'Rozpoznaje zaobserwowaną gwiazdę po przybliżonej wysokości i namiarze oraz wypisuje wszystkie gwiazdy nawigacyjne nad horyzontem do planowania obserwacji.',
+    'Sun and Aries — hourly': 'Słońce i punkt Barana — co godzinę', 'Stars at this moment': 'Gwiazdy w tej chwili',
+    'Observed altitude': 'Wysokość obserwowana', 'Observed bearing': 'Namiar obserwowany', 'Most likely star': 'Najbardziej prawdopodobna gwiazda',
+    'Away from your observation': 'Odległość od Twojej obserwacji', 'Stars above the horizon': 'Gwiazdy nad horyzontem',
+    'No navigational stars are above the horizon.': 'Żadna gwiazda nawigacyjna nie jest nad horyzontem.',
+    // celestial
+    'Celestial': 'Astronawigacja', 'Nautical Almanac': 'Almanach', 'Sight Reduction': 'Linia pozycyjna',
+    'Fix from Two Position Lines': 'Pozycja z dwóch linii', 'Meridian Passage': 'Kulminacja', 'Amplitude': 'Amplituda',
+    'Sun Azimuth': 'Azymut Słońca', 'ABC Tables': 'Tablice ABC',
+    'Sun and Aries for any moment, with an hourly page for that day. Computed positions agree with published almanac data to about 0.2′.':
+      'Słońce i punkt Barana na dowolną chwilę, z godzinową stroną na dany dzień. Obliczone pozycje zgadzają się z publikowanym almanachem z dokładnością ok. 0,2′.',
+    'Position line by the intercept method: corrects the sextant altitude and compares it with the altitude calculated for the DR position.':
+      'Linia pozycyjna metodą wysokościową: poprawia wysokość z sekstantu i porównuje ją z wysokością obliczoną dla pozycji zliczonej.',
+    'Position from two intercepts and azimuths worked from the same DR position.':
+      'Pozycja z dwóch różnic wysokości i azymutów liczonych z tej samej pozycji zliczonej.',
+    'Time of the Sun’s meridian passage at your longitude, and latitude from the noon altitude.':
+      'Czas kulminacji Słońca na Twojej długości oraz szerokość z wysokości południowej.',
+    'True bearing of the Sun at rising or setting, and the compass error and deviation from it. Observe when the lower limb is about two-thirds of a diameter above the horizon.':
+      'Namiar rzeczywisty Słońca o wschodzie lub zachodzie oraz wynikająca z niego całkowita poprawka i dewiacja kompasu. Obserwuj, gdy dolna krawędź jest około dwóch trzecich średnicy nad horyzontem.',
+    'True azimuth of the Sun at any moment, and the compass error and deviation from a compass bearing.':
+      'Azymut rzeczywisty Słońca na dowolną chwilę oraz całkowita poprawka i dewiacja z namiaru kompasowego.',
+    'Azimuth of any body from latitude, declination and local hour angle, with the A, B and C values.':
+      'Azymut dowolnego ciała z szerokości, deklinacji i miejscowego kąta godzinnego, z wartościami A, B i C.',
+    'Time (UTC)': 'Czas (UTC)', 'Date (UTC)': 'Data (UTC)', 'Body': 'Ciało niebieskie', 'Sun — lower limb': 'Słońce — dolna krawędź',
+    'Sun — upper limb': 'Słońce — górna krawędź', 'Star (enter SHA and Dec)': 'Gwiazda (podaj SHA i deklinację)',
+    'Other body (enter GHA and Dec)': 'Inne ciało (podaj GHA i deklinację)', 'DR position': 'Pozycja zliczona', 'Position': 'Pozycja',
+    'Sextant altitude': 'Wysokość z sekstantu', 'Index correction': 'Poprawka indeksu', 'Height of eye': 'Wysokość oka',
+    'Declination': 'Deklinacja', 'Lower limb': 'Dolna krawędź', 'Upper limb': 'Górna krawędź', 'Limb': 'Krawędź',
+    'Sextant altitude at passage': 'Wysokość z sekstantu w kulminacji', 'Latitude': 'Szerokość', 'Event': 'Zjawisko',
+    'Sunrise': 'Wschód Słońca', 'Sunset': 'Zachód Słońca', 'Compass bearing': 'Namiar kompasowy',
+    'Variation (+ E, − W)': 'Deklinacja magnetyczna (+ E, − W)', 'Intercept 1 (+ towards, − away)': 'Różnica wysokości 1 (+ do, − od)',
+    'Intercept 2 (+ towards, − away)': 'Różnica wysokości 2 (+ do, − od)', 'Azimuth 1': 'Azymut 1', 'Azimuth 2': 'Azymut 2',
+    'Sun GHA': 'GHA Słońca', 'Sun declination': 'Deklinacja Słońca', 'Aries GHA': 'GHA Barana', 'Sun semi-diameter': 'Półśrednica Słońca',
+    'Sun horizontal parallax': 'Paralaksa horyzontalna Słońca', 'Equation of time': 'Równanie czasu',
+    'Meridian passage at Greenwich': 'Kulminacja w Greenwich', 'Intercept': 'Różnica wysokości', 'towards': 'do', 'away': 'od',
+    'Azimuth (Zn)': 'Azymut (Zn)', 'Observed altitude (Ho)': 'Wysokość obserwowana (Ho)', 'Calculated altitude (Hc)': 'Wysokość obliczona (Hc)',
+    'Dip': 'Obniżenie widnokręgu', 'Refraction': 'Refrakcja', 'Semi-diameter': 'Półśrednica', 'Parallax': 'Paralaksa',
+    'Fix': 'Pozycja obserwowana', 'From DR position': 'Od pozycji zliczonej', 'Meridian passage': 'Kulminacja',
+    'Declination at passage': 'Deklinacja w kulminacji', 'Expected sextant altitude': 'Spodziewana wysokość z sekstantu',
+    'Sun bears': 'Słońce w namiarze', 'South': 'Południe', 'North': 'Północ', 'True bearing': 'Namiar rzeczywisty',
+    'Compass error': 'Całkowita poprawka kompasu', 'Deviation': 'Dewiacja', 'True azimuth': 'Azymut rzeczywisty', 'Altitude': 'Wysokość',
+    '“{0}”: enter an angle, e.g. {1}.': '„{0}”: wpisz kąt, np. {1}.',
+    'Altitude is below the horizon.': 'Wysokość jest poniżej horyzontu.',
+    'The position lines are nearly parallel — no reliable fix.': 'Linie pozycyjne są niemal równoległe — brak wiarygodnej pozycji.',
+    'Body is on the meridian — azimuth is 000° or 180°.': 'Ciało jest na południku — azymut wynosi 000° lub 180°.',
+    'The body does not rise or set at this latitude.': 'Ciało nie wschodzi ani nie zachodzi na tej szerokości.',
+    // engine errors
+    'The track crosses the pole.': 'Trasa przekracza biegun.',
+    'No convergence (nearly antipodal points).': 'Brak zbieżności (punkty niemal antypodyczne).',
+    'The limiting parallel cannot be the equator.': 'Równoleżnik graniczny nie może być równikiem.',
+    'Both points must lie at a lower latitude than the limiting parallel.':
+      'Oba punkty muszą leżeć na szerokości niższej niż równoleżnik graniczny.',
+    'The great circle does not cross the limiting parallel — composite sailing is not needed.':
+      'Ortodroma nie przekracza równoleżnika granicznego — żegluga złożona nie jest potrzebna.',
+    'Current too strong — this track cannot be held.': 'Prąd zbyt silny — utrzymanie tej drogi jest niemożliwe.',
+    'Current too strong — the vessel makes no headway.': 'Prąd zbyt silny — statek nie posuwa się naprzód.',
+    'x₁ and x₂ must differ.': 'x₁ i x₂ muszą być różne.'
+  };
+
+  const LANGS = { en: 'English', pl: 'Polski' };
+  const DICT = { pl: PL };
+  let lang = 'en';
+  try { const s = localStorage.getItem('azymut:lang'); if (s && LANGS[s]) lang = s; } catch (e) { /* private mode */ }
+
+  const missing = new Set();
+  function tr(s, ...args) {
+    let out = s;
+    if (lang !== 'en') { const d = DICT[lang][s]; if (d) out = d; else missing.add(s); }
+    return out.replace(/\{(\d)\}/g, (m, i) => args[+i] ?? m);
+  }
+  function setLang(l) {
+    try { localStorage.setItem('azymut:lang', l); } catch (e) { /* private mode */ }
+    location.reload();
+  }
+  window.I18N = { lang, LANGS, tr, setLang, missing, locale: lang === 'pl' ? 'pl-PL' : 'en-GB' };
+})();
+</script>
+<script>
+/* Navigation calculation engine. Angles in degrees, distances in nautical miles (NM). */
+(function (root) {
+  'use strict';
+  const D = Math.PI / 180;
+  const A = 6378137, F = 1 / 298.257223563; // WGS84
+  const E2 = F * (2 - F), E = Math.sqrt(E2), B = A * (1 - F);
+  const NM = 1852;
+  const { sin, cos, tan, atan2, asin, acos, sqrt, abs, hypot } = Math;
+
+  const norm360 = x => ((x % 360) + 360) % 360;
+  const norm180 = x => { x = norm360(x); return x > 180 ? x - 360 : x; };
+  const clampLat = l => Math.max(-89.9999, Math.min(89.9999, l));
+
+  /* ---------- Rhumb line on the WGS84 ellipsoid ---------- */
+  // Meridional parts, in minutes of arc of the equator
+  function meridionalParts(lat) {
+    const s = sin(clampLat(lat) * D);
+    return 10800 / Math.PI * (Math.atanh(s) - E * Math.atanh(E * s));
+  }
+  // Meridian arc length from the equator [m]
+  function meridianArc(lat) {
+    const p = lat * D, e4 = E2 * E2, e6 = e4 * E2;
+    return A * ((1 - E2 / 4 - 3 * e4 / 64 - 5 * e6 / 256) * p
+      - (3 * E2 / 8 + 3 * e4 / 32 + 45 * e6 / 1024) * sin(2 * p)
+      + (15 * e4 / 256 + 45 * e6 / 1024) * sin(4 * p)
+      - (35 * e6 / 3072) * sin(6 * p));
+  }
+  function latFromMeridianArc(m) {
+    let p = m / A;
+    for (let i = 0; i < 10; i++) {
+      const rho = A * (1 - E2) / Math.pow(1 - E2 * sin(p) ** 2, 1.5);
+      p += (m - meridianArc(p / D)) / rho;
+    }
+    return p / D;
+  }
+  // Radius of the parallel [m]
+  const parallelRadius = lat => A * cos(lat * D) / sqrt(1 - E2 * sin(lat * D) ** 2);
+
+  function rhumbInverse(lat1, lon1, lat2, lon2) {
+    const dlon = norm180(lon2 - lon1);
+    const dmp = meridionalParts(lat2) - meridionalParts(lat1);
+    if (abs(lat2 - lat1) < 1e-9 && abs(dlon) < 1e-9) return { course: 0, dist: 0 };
+    const course = norm360(atan2(dlon * 60, dmp) / D);
+    let dist;
+    if (abs(lat2 - lat1) < 1e-7) dist = abs(dlon) * D * parallelRadius(lat1) / NM;
+    else dist = (meridianArc(lat2) - meridianArc(lat1)) / cos(course * D) / NM;
+    return { course, dist };
+  }
+
+  function rhumbDirect(lat1, lon1, course, dist) {
+    const c = course * D;
+    const m2 = meridianArc(lat1) + dist * NM * cos(c);
+    if (abs(m2) >= meridianArc(90)) throw new Error('The track crosses the pole.');
+    const lat2 = latFromMeridianArc(m2);
+    let dlon;
+    if (abs(lat2 - lat1) < 1e-7) dlon = dist * NM * sin(c) / parallelRadius(lat1) / D;
+    else dlon = tan(c) * (meridionalParts(lat2) - meridionalParts(lat1)) / 60;
+    return { lat: lat2, lon: norm180(lon1 + dlon) };
+  }
+
+  /* ---------- Great circle (sphere, 1' = 1 NM) ---------- */
+  function gcInverse(lat1, lon1, lat2, lon2) {
+    const p1 = lat1 * D, p2 = lat2 * D, dl = norm180(lon2 - lon1) * D;
+    const h = sin((p2 - p1) / 2) ** 2 + cos(p1) * cos(p2) * sin(dl / 2) ** 2;
+    const sig = 2 * atan2(sqrt(h), sqrt(1 - h));
+    const c1 = atan2(sin(dl) * cos(p2), cos(p1) * sin(p2) - sin(p1) * cos(p2) * cos(dl));
+    const back = atan2(-sin(dl) * cos(p1), cos(p2) * sin(p1) - sin(p2) * cos(p1) * cos(dl));
+    return { dist: sig / D * 60, course: norm360(c1 / D), finalCourse: norm360(back / D + 180) };
+  }
+
+  function gcDirect(lat1, lon1, course, dist) {
+    const p1 = lat1 * D, c = course * D, sig = dist / 60 * D;
+    const sp2 = sin(p1) * cos(sig) + cos(p1) * sin(sig) * cos(c);
+    const p2 = asin(Math.max(-1, Math.min(1, sp2)));
+    const dl = atan2(sin(c) * sin(sig) * cos(p1), cos(sig) - sin(p1) * sp2);
+    return { lat: p2 / D, lon: norm180(lon1 + dl / D) };
+  }
+
+  // Northern vertex of the great circle leaving a point on the given course
+  function gcVertex(lat1, lon1, course) {
+    const p1 = lat1 * D, c = course * D;
+    const sig = atan2(cos(p1) * cos(c), sin(p1));
+    return gcDirect(lat1, lon1, course, sig / D * 60);
+  }
+
+  // Intermediate points: n legs of equal length
+  function gcPoints(lat1, lon1, lat2, lon2, n) {
+    const g = gcInverse(lat1, lon1, lat2, lon2), out = [];
+    for (let i = 0; i <= n; i++) {
+      const d = g.dist * i / n;
+      const p = i === n ? { lat: lat2, lon: lon2 } : gcDirect(lat1, lon1, g.course, d);
+      const crs = i === n ? g.finalCourse : gcInverse(p.lat, p.lon, lat2, lon2).course;
+      out.push({ lat: p.lat, lon: p.lon, dist: d, course: crs });
+    }
+    return out;
+  }
+
+  /* ---------- WGS84 (Vincenty) ---------- */
+  function vincentyInverse(lat1, lon1, lat2, lon2) {
+    const L = norm180(lon2 - lon1) * D;
+    const U1 = Math.atan((1 - F) * tan(lat1 * D)), U2 = Math.atan((1 - F) * tan(lat2 * D));
+    const sU1 = sin(U1), cU1 = cos(U1), sU2 = sin(U2), cU2 = cos(U2);
+    let lam = L, lamP, it = 0, sinS, cosS, sig, sinA, cos2A, cos2SM;
+    do {
+      const sl = sin(lam), cl = cos(lam);
+      sinS = hypot(cU2 * sl, cU1 * sU2 - sU1 * cU2 * cl);
+      if (sinS === 0) return { dist: 0, course: 0, finalCourse: 0 };
+      cosS = sU1 * sU2 + cU1 * cU2 * cl;
+      sig = atan2(sinS, cosS);
+      sinA = cU1 * cU2 * sl / sinS;
+      cos2A = 1 - sinA * sinA;
+      cos2SM = cos2A ? cosS - 2 * sU1 * sU2 / cos2A : 0;
+      const C = F / 16 * cos2A * (4 + F * (4 - 3 * cos2A));
+      lamP = lam;
+      lam = L + (1 - C) * F * sinA * (sig + C * sinS * (cos2SM + C * cosS * (-1 + 2 * cos2SM * cos2SM)));
+    } while (abs(lam - lamP) > 1e-12 && ++it < 200);
+    if (it >= 200) throw new Error('No convergence (nearly antipodal points).');
+    const u2 = cos2A * (A * A - B * B) / (B * B);
+    const AA = 1 + u2 / 16384 * (4096 + u2 * (-768 + u2 * (320 - 175 * u2)));
+    const BB = u2 / 1024 * (256 + u2 * (-128 + u2 * (74 - 47 * u2)));
+    const dS = BB * sinS * (cos2SM + BB / 4 * (cosS * (-1 + 2 * cos2SM * cos2SM)
+      - BB / 6 * cos2SM * (-3 + 4 * sinS * sinS) * (-3 + 4 * cos2SM * cos2SM)));
+    const s = B * AA * (sig - dS);
+    const c1 = atan2(cU2 * sin(lam), cU1 * sU2 - sU1 * cU2 * cos(lam));
+    const c2 = atan2(cU1 * sin(lam), -sU1 * cU2 + cU1 * sU2 * cos(lam));
+    return { dist: s / NM, meters: s, course: norm360(c1 / D), finalCourse: norm360(c2 / D) };
+  }
+
+  function vincentyDirect(lat1, lon1, course, dist) {
+    const a1 = course * D, s = dist * NM;
+    const tU1 = (1 - F) * tan(lat1 * D), cU1 = 1 / sqrt(1 + tU1 * tU1), sU1 = tU1 * cU1;
+    const sig1 = atan2(tU1, cos(a1));
+    const sinA = cU1 * sin(a1), cos2A = 1 - sinA * sinA;
+    const u2 = cos2A * (A * A - B * B) / (B * B);
+    const AA = 1 + u2 / 16384 * (4096 + u2 * (-768 + u2 * (320 - 175 * u2)));
+    const BB = u2 / 1024 * (256 + u2 * (-128 + u2 * (74 - 47 * u2)));
+    let sig = s / (B * AA), sigP, cos2SM, it = 0;
+    do {
+      cos2SM = cos(2 * sig1 + sig);
+      const dS = BB * sin(sig) * (cos2SM + BB / 4 * (cos(sig) * (-1 + 2 * cos2SM * cos2SM)
+        - BB / 6 * cos2SM * (-3 + 4 * sin(sig) ** 2) * (-3 + 4 * cos2SM * cos2SM)));
+      sigP = sig;
+      sig = s / (B * AA) + dS;
+    } while (abs(sig - sigP) > 1e-12 && ++it < 200);
+    const tmp = sU1 * sin(sig) - cU1 * cos(sig) * cos(a1);
+    const lat2 = atan2(sU1 * cos(sig) + cU1 * sin(sig) * cos(a1), (1 - F) * hypot(sinA, tmp));
+    const lam = atan2(sin(sig) * sin(a1), cU1 * cos(sig) - sU1 * sin(sig) * cos(a1));
+    const C = F / 16 * cos2A * (4 + F * (4 - 3 * cos2A));
+    const L = lam - (1 - C) * F * sinA * (sig + C * sin(sig) * (cos2SM + C * cos(sig) * (-1 + 2 * cos2SM * cos2SM)));
+    return { lat: lat2 / D, lon: norm180(lon1 + L / D), finalCourse: norm360(atan2(sinA, -tmp) / D) };
+  }
+
+  /* ---------- Composite sailing with a limiting parallel ---------- */
+  function composite(latA, lonA, latB, lonB, latLimit) {
+    if (latLimit === 0) throw new Error('The limiting parallel cannot be the equator.');
+    if (abs(latA) >= abs(latLimit) || abs(latB) >= abs(latLimit))
+      throw new Error('Both points must lie at a lower latitude than the limiting parallel.');
+    const dl = norm180(lonB - lonA), east = dl >= 0, north = latLimit > 0;
+    const tL = tan(latLimit * D);
+    const dl1 = acos(tan(latA * D) / tL) / D, dl2 = acos(tan(latB * D) / tL) / D;
+    const rem = abs(dl) - dl1 - dl2;
+    if (rem < 0) throw new Error('The great circle does not cross the limiting parallel — composite sailing is not needed.');
+    const d1 = acos(sin(latA * D) / sin(latLimit * D)) / D * 60;
+    const d2 = acos(sin(latB * D) / sin(latLimit * D)) / D * 60;
+    const x1 = asin(cos(latLimit * D) / cos(latA * D)) / D;
+    const x2 = asin(cos(latLimit * D) / cos(latB * D)) / D;
+    const course = north ? (east ? x1 : 360 - x1) : (east ? 180 - x1 : 180 + x1);
+    const finalCourse = north ? (east ? 180 - x2 : 180 + x2) : (east ? x2 : 360 - x2);
+    const sg = east ? 1 : -1;
+    const dPar = rem * 60 * cos(latLimit * D);
+    return {
+      course, finalCourse, d1, d2, dPar, total: d1 + d2 + dPar,
+      parallelCourse: east ? 90 : 270,
+      v1: { lat: latLimit, lon: norm180(lonA + sg * dl1) },
+      v2: { lat: latLimit, lon: norm180(lonB - sg * dl2) }
+    };
+  }
+
+  /* ---------- Current and drift ---------- */
+  // Course to steer to make good the required track
+  function courseToSteer(track, stw, set, drift) {
+    const k = drift * sin((set - track) * D) / stw;
+    if (abs(k) > 1) throw new Error('Current too strong — this track cannot be held.');
+    const corr = asin(k) / D;
+    const sog = stw * cos(corr * D) + drift * cos((set - track) * D);
+    if (sog <= 0) throw new Error('Current too strong — the vessel makes no headway.');
+    return { heading: norm360(track - corr), correction: -corr, sog };
+  }
+  const vec = (dir, spd) => ({ e: spd * sin(dir * D), n: spd * cos(dir * D) });
+  const pol = v => ({ dir: norm360(atan2(v.e, v.n) / D), spd: hypot(v.e, v.n) });
+  // Course and speed over ground from heading, speed through water and current
+  function courseOverGround(heading, stw, set, drift) {
+    const a = vec(heading, stw), b = vec(set, drift);
+    const r = pol({ e: a.e + b.e, n: a.n + b.n });
+    return { cog: r.dir, sog: r.spd };
+  }
+  // Current from the difference between water track and ground track
+  function findCurrent(heading, stw, cog, sog) {
+    const a = vec(heading, stw), g = vec(cog, sog);
+    const r = pol({ e: g.e - a.e, n: g.n - a.n });
+    return { set: r.dir, drift: r.spd };
+  }
+
+  /* ---------- Wind ---------- */
+  // awa: apparent wind angle off the bow, 0–360 clockwise
+  function trueWind(heading, stw, awa, aws) {
+    const from = norm360(heading + awa);
+    const w = vec(from, -aws), s = vec(heading, stw);
+    const t = { e: w.e + s.e, n: w.n + s.n };
+    const spd = hypot(t.e, t.n);
+    const dir = spd < 1e-9 ? 0 : norm360(atan2(-t.e, -t.n) / D);
+    return { dir, spd, twa: norm360(dir - heading) };
+  }
+  const BFT = [
+    [1, 'Calm'], [4, 'Light air'], [7, 'Light breeze'], [11, 'Gentle breeze'], [17, 'Moderate breeze'],
+    [22, 'Fresh breeze'], [28, 'Strong breeze'], [34, 'Near gale'], [41, 'Gale'],
+    [48, 'Strong gale'], [56, 'Storm'], [64, 'Violent storm'], [Infinity, 'Hurricane']
+  ];
+  function beaufort(kn) {
+    const i = BFT.findIndex(b => kn < b[0]);
+    return { force: i, name: BFT[i][1] };
+  }
+
+  /* ---------- Interpolation ---------- */
+  function interpolate(x1, y1, x2, y2, x) {
+    if (x1 === x2) throw new Error('x₁ and x₂ must differ.');
+    return y1 + (y2 - y1) * (x - x1) / (x2 - x1);
+  }
+
+  /* ---------- Coordinates ---------- */
+  function parseCoord(str, isLat) {
+    const s = String(str).trim().toUpperCase().replace(/,/g, '.');
+    if (!s) return NaN;
+    const hemi = s.match(/[NSEW]/);
+    if (hemi && (isLat ? 'EW' : 'NS').includes(hemi[0])) return NaN;
+    const nums = s.match(/\d+(\.\d+)?/g);
+    if (!nums || nums.length > 3) return NaN;
+    const [d, m = 0, sec = 0] = nums.map(Number);
+    if (m >= 60 || sec >= 60) return NaN;
+    let v = d + m / 60 + sec / 3600;
+    if ((hemi && 'SW'.includes(hemi[0])) || s.startsWith('-')) v = -v;
+    return abs(v) > (isLat ? 90 : 180) ? NaN : v;
+  }
+  function formatCoord(v, isLat) {
+    const h = isLat ? (v < 0 ? 'S' : 'N') : (v < 0 ? 'W' : 'E');
+    let a = abs(v), d = Math.floor(a), m = (a - d) * 60;
+    if (m >= 59.9995) { d += 1; m = 0; }
+    return String(d).padStart(isLat ? 2 : 3, '0') + '°' + m.toFixed(3).padStart(6, '0') + '′ ' + h;
+  }
+
+  const api = {
+    norm360, norm180, meridionalParts, meridianArc, rhumbInverse, rhumbDirect,
+    gcInverse, gcDirect, gcVertex, gcPoints, vincentyInverse, vincentyDirect, composite,
+    courseToSteer, courseOverGround, findCurrent, trueWind, beaufort, interpolate,
+    parseCoord, formatCoord
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  root.NAV = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+/* Celestial navigation engine: Sun and Aries ephemeris, altitude corrections, sight reduction.
+   Angles in degrees unless noted. Sun position after Meeus, "Astronomical Algorithms", ch. 25,
+   with nutation, aberration and the main planetary/lunar perturbation terms. */
+(function (root) {
+  'use strict';
+  const D = Math.PI / 180;
+  const { sin, cos, tan, atan2, asin, sqrt, abs } = Math;
+  const norm360 = x => ((x % 360) + 360) % 360;
+  const norm180 = x => { x = norm360(x); return x > 180 ? x - 360 : x; };
+  const sd = x => sin(x * D), cd = x => cos(x * D);
+
+  const julianDay = date => date.getTime() / 86400000 + 2440587.5;
+  // TT − UT in seconds; a slow linear trend around the present is ample for the Sun (0.04″ per second)
+  const deltaT = date => 69.2 + 0.1 * (date.getUTCFullYear() - 2026);
+
+  // Nutation in longitude and obliquity, and the true obliquity of the ecliptic
+  function nutation(T) {
+    const om = 125.04452 - 1934.136261 * T, L = 280.4665 + 36000.7698 * T, Lm = 218.3165 + 481267.8813 * T;
+    const dpsi = (-17.20 * sd(om) - 1.32 * sd(2 * L) - 0.23 * sd(2 * Lm) + 0.21 * sd(2 * om)) / 3600;
+    const deps = (9.20 * cd(om) + 0.57 * cd(2 * L) + 0.10 * cd(2 * Lm) - 0.09 * cd(2 * om)) / 3600;
+    const eps0 = 23 + 26 / 60 + 21.448 / 3600 - (46.8150 * T + 0.00059 * T * T - 0.001813 * T * T * T) / 3600;
+    return { dpsi, eps: eps0 + deps };
+  }
+
+  // Greenwich apparent sidereal time = GHA of Aries
+  function ghaAries(date) {
+    const d = julianDay(date) - 2451545, T = d / 36525;
+    const gmst = 280.46061837 + 360.98564736629 * d + 0.000387933 * T * T - T * T * T / 38710000;
+    const n = nutation(T);
+    return norm360(gmst + n.dpsi * cd(n.eps));
+  }
+
+  function sun(date) {
+    const jde = julianDay(date) + deltaT(date) / 86400;
+    const T = (jde - 2451545) / 36525;
+    const L0 = 280.46646 + 36000.76983 * T + 0.0003032 * T * T;
+    const M = 357.52911 + 35999.05029 * T - 0.0001537 * T * T;
+    const e = 0.016708634 - 0.000042037 * T - 0.0000001267 * T * T;
+    const C = (1.914602 - 0.004817 * T - 0.000014 * T * T) * sd(M) + (0.019993 - 0.000101 * T) * sd(2 * M) + 0.000289 * sd(3 * M);
+    // Perturbations by Venus, Jupiter and the Moon (arguments use centuries from 1900.0)
+    const T19 = (jde - 2415020) / 36525;
+    const pert = 0.00134 * cd(153.23 + 22518.7541 * T19) + 0.00154 * cd(216.57 + 45037.5082 * T19)
+      + 0.00200 * cd(312.69 + 32964.3577 * T19) + 0.00179 * sd(350.74 + 445267.1142 * T19 - 0.00144 * T19 * T19)
+      + 0.00178 * sd(231.19 + 20.20 * T19);
+    const R = 1.000001018 * (1 - e * e) / (1 + e * cd(M + C));
+    const n = nutation(T);
+    const lam = L0 + C + (api.perturb ? pert : 0) - 0.00569 / R + n.dpsi; // aberration + nutation
+    const ra = norm360(atan2(cd(n.eps) * sd(lam), cd(lam)) / D);
+    const dec = asin(sd(n.eps) * sd(lam)) / D;
+    const gha = norm360(ghaAries(date) - ra);
+    const ut = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+    return {
+      gha, dec, ra, dist: R, lonTrue: L0 + C + (api.perturb ? pert : 0), ecc: e,
+      sd: 15.9939 / R,            // semi-diameter, arcmin
+      hp: 0.14657 / R,            // horizontal parallax, arcmin
+      eot: norm180(gha - (ut * 15 - 180)) * 4 // equation of time, minutes (apparent − mean)
+    };
+  }
+
+  /* ---------- stars ---------- */
+  // Apparent place of a star from its J2000 mean place: proper motion, precession, nutation, annual aberration.
+  // star = { ra, dec (degrees, J2000), pmRa, pmDec (degrees per year; pmRa is the rate of the RA coordinate) }
+  function starApparent(star, date) {
+    const jde = julianDay(date) + deltaT(date) / 86400, T = (jde - 2451545) / 36525, y = T * 100;
+    const a0 = (star.ra + (star.pmRa || 0) * y) * D, d0 = (star.dec + (star.pmDec || 0) * y) * D;
+    // precession from J2000 to the date
+    const zeta = (2306.2181 * T + 0.30188 * T * T + 0.017998 * T * T * T) / 3600 * D;
+    const z = (2306.2181 * T + 1.09468 * T * T + 0.018203 * T * T * T) / 3600 * D;
+    const th = (2004.3109 * T - 0.42665 * T * T - 0.041833 * T * T * T) / 3600 * D;
+    const A = cos(d0) * sin(a0 + zeta), B = cos(th) * cos(d0) * cos(a0 + zeta) - sin(th) * sin(d0);
+    const C = sin(th) * cos(d0) * cos(a0 + zeta) + cos(th) * sin(d0);
+    const a = atan2(A, B) + z, d = asin(C);
+    // nutation
+    const n = nutation(T), eps = n.eps * D;
+    const dpsi = n.dpsi, deps = n.eps - (23 + 26 / 60 + 21.448 / 3600 - (46.8150 * T + 0.00059 * T * T - 0.001813 * T * T * T) / 3600);
+    let da = (cos(eps) + sin(eps) * sin(a) * tan(d)) * dpsi - cos(a) * tan(d) * deps;
+    let dd = sin(eps) * cos(a) * dpsi + sin(a) * deps;
+    // annual aberration
+    const s = sun(date), lon = s.lonTrue * D, e = s.ecc, peri = (102.93735 + 1.71946 * T + 0.00046 * T * T) * D, k = 20.49552 / 3600;
+    da += (-k * (cos(a) * cos(lon) * cos(eps) + sin(a) * sin(lon)) + e * k * (cos(a) * cos(peri) * cos(eps) + sin(a) * sin(peri))) / cos(d);
+    const q = tan(eps) * cos(d) - sin(a) * sin(d);
+    dd += -k * (cos(lon) * cos(eps) * q + cos(a) * sin(d) * sin(lon)) + e * k * (cos(peri) * cos(eps) * q + cos(a) * sin(d) * sin(peri));
+    const ra = norm360(a / D + da), dec = d / D + dd;
+    return { ra, dec, sha: norm360(360 - ra), gha: norm360(ghaAries(date) - ra) };
+  }
+  // Inverse: the mean J2000 place (at the epoch of the date, no proper motion) that gives the observed apparent place
+  function starMeanFromApparent(ra, dec, date) {
+    let g = { ra, dec };
+    for (let i = 0; i < 8; i++) { const f = starApparent(g, date); g = { ra: norm360(g.ra - norm180(f.ra - ra)), dec: g.dec - (f.dec - dec) }; }
+    return g;
+  }
+
+  // UTC of the Sun's upper meridian passage at a longitude (east positive) on the given UTC date
+  function meridianPassage(date, lon) {
+    let t = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 12) - lon / 15 * 36e5;
+    for (let i = 0; i < 4; i++) t -= norm180(sun(new Date(t)).gha + lon) / 15 * 36e5;
+    return new Date(t);
+  }
+
+  /* ---------- altitude corrections ---------- */
+  const dip = hoe => 1.76 * sqrt(Math.max(0, hoe));                         // arcmin, height of eye in metres
+  const refraction = ha => 1 / tan((ha + 7.31 / (ha + 4.4)) * D);           // arcmin, Bennett, standard atmosphere
+  // limb: 'LL', 'UL' or null (centre / star); sdMin and hpMin in arcmin
+  function correctAltitude(hs, icMin, hoe, limb, sdMin, hpMin) {
+    const d = dip(hoe), ha = hs + icMin / 60 - d / 60;
+    if (ha < -1) throw new Error('Altitude is below the horizon.');
+    const r = refraction(ha);
+    const semi = limb === 'LL' ? sdMin : limb === 'UL' ? -sdMin : 0;
+    const pa = (hpMin || 0) * cd(ha);
+    return { dip: d, ha, refraction: r, sd: semi, parallax: pa, ho: ha - r / 60 + semi / 60 + pa / 60 };
+  }
+
+  /* ---------- sight reduction ---------- */
+  function altAz(lat, dec, lha) {
+    const hc = asin(sd(lat) * sd(dec) + cd(lat) * cd(dec) * cd(lha)) / D;
+    const zn = norm360(atan2(-cd(dec) * sd(lha), sd(dec) * cd(lat) - cd(dec) * sd(lat) * cd(lha)) / D);
+    return { hc, zn };
+  }
+
+  // Fix from two position lines given as intercept (NM, + towards) and azimuth, from a common DR
+  function fixTwoLops(lat, lon, i1, z1, i2, z2) {
+    const det = sd(z1) * cd(z2) - cd(z1) * sd(z2);
+    if (abs(det) < 0.09) throw new Error('The position lines are nearly parallel — no reliable fix.');
+    const e = (i1 * cd(z2) - i2 * cd(z1)) / det, n = (sd(z1) * i2 - sd(z2) * i1) / det;
+    return { lat: lat + n / 60, lon: norm180(lon + e / 60 / cd(lat)), east: e, north: n };
+  }
+
+  // ABC tables. Signs: north positive. Returns signed A, B, C and the true azimuth.
+  function abc(lat, dec, lha) {
+    lha = norm360(lha);
+    const p = lha <= 180 ? lha : 360 - lha;
+    if (p < 1e-6 || abs(p - 180) < 1e-6) throw new Error('Body is on the meridian — azimuth is 000° or 180°.');
+    const a = -tan(lat * D) / tan(p * D), b = tan(dec * D) / sin(p * D), c = a + b;
+    if (abs(c) < 1e-12) return { a, b, c, zn: lha < 180 ? 270 : 90 };
+    const z = Math.atan(1 / (abs(c) * cd(lat))) / D;
+    const west = lha < 180;
+    const zn = c > 0 ? (west ? 360 - z : z) : (west ? 180 + z : 180 - z);
+    return { a, b, c, zn: norm360(zn) };
+  }
+
+  // Amplitude of a body on the celestial horizon: degrees N (+) or S (−) of the prime vertical
+  function amplitude(lat, dec) {
+    const s = sd(dec) / cd(lat);
+    if (abs(s) > 1) throw new Error('The body does not rise or set at this latitude.');
+    return asin(s) / D;
+  }
+
+  // "35°12.4", "35 12.4", "35.2" or "-0 02.5" → degrees
+  function parseAngle(str) {
+    const s = String(str).trim().replace(/,/g, '.');
+    const nums = s.match(/\d+(\.\d+)?/g);
+    if (!nums || nums.length > 3 || /[^\d\s.°'′"″+\-−]/.test(s)) return NaN;
+    const [d, m = 0, sec = 0] = nums.map(Number);
+    if (m >= 60 || sec >= 60) return NaN;
+    const v = d + m / 60 + sec / 3600;
+    return /^[-−]/.test(s) ? -v : v;
+  }
+
+  const api = { perturb: true, julianDay, ghaAries, sun, starApparent, starMeanFromApparent, meridianPassage, dip, refraction, correctAltitude,
+    altAz, fixTwoLops, abc, amplitude, parseAngle, norm360, norm180 };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  root.ASTRO = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+/* Ship, tide and coastal calculations. Metres and tonnes unless noted. */
+(function (root) {
+  'use strict';
+  const D = Math.PI / 180;
+  const { sin, cos, tan, sqrt, abs, acos, PI } = Math;
+  const SHACKLE = 27.5; // metres
+
+  /* Draft survey. Drafts in metres; marks' distances: df = fwd marks aft of FP, da = aft marks forward of AP,
+     dm = midship marks aft of midship; lcf = LCF from midship (+ aft); mtcHi / mtcLo = MTC at draft +0.5 m / −0.5 m. */
+  function draftSurvey(i) {
+    const fwd = (i.fp + i.fs) / 2, mid = (i.mp + i.ms) / 2, aft = (i.ap + i.as) / 2;
+    const lbm = i.lbp - i.df - i.da;
+    if (lbm <= 0) throw new Error('Check LBP and the distances of the draft marks.');
+    const app = aft - fwd;
+    const fc = fwd - app * i.df / lbm, ac = aft + app * i.da / lbm, mc = mid - app * i.dm / lbm;
+    const trim = ac - fc;
+    const qm = (fc + 6 * mc + ac) / 8;
+    const ftc = trim * i.lcf * i.tpc * 100 / i.lbp;
+    const stc = trim * trim * 50 * (i.mtcHi - i.mtcLo) / i.lbp;
+    const dispTrim = i.disp + ftc + stc;
+    const densCorr = dispTrim * (i.dens - 1.025) / 1.025;
+    const net = dispTrim + densCorr;
+    return { fwd, mid, aft, fc, mc, ac, trim, qm, deflection: mc - (fc + ac) / 2, ftc, stc, dispTrim, densCorr, net,
+      cargo: net - i.ded - i.light - i.constant };
+  }
+
+  // Wheel-over position for a constant-radius turn. radius in NM, reach (distance run before the ship answers) in metres.
+  function wheelOver(oldCourse, newCourse, radius, reachM, speed) {
+    const d = ((newCourse - oldCourse) % 360 + 540) % 360 - 180;
+    const a = abs(d);
+    if (a < 0.5) throw new Error('The courses are the same — no turn.');
+    if (a > 179) throw new Error('A turn of 180° has no wheel-over point on the track.');
+    const f = reachM / 1852;
+    const arc = radius * a * D;
+    return { angle: a, side: d > 0 ? 'starboard' : 'port',
+      before: radius * tan(a * D / 2) + f,                 // along the old track, before the waypoint
+      offNew: radius * (1 - cos(a * D)) + f * sin(a * D),  // perpendicular distance from the new track
+      rot: speed > 0 ? speed / radius / D / 60 : 0,        // degrees per minute
+      arc, time: speed > 0 ? arc / speed * 60 : 0 };       // minutes
+  }
+
+  function anchorage(depth, hawse, shackles, loa, bowToBridge) {
+    const cable = shackles * SHACKLE, vert = depth + hawse;
+    if (cable <= vert) throw new Error('The cable does not reach the seabed.');
+    const reach = sqrt(cable * cable - vert * vert);
+    return { cable, reach, swing: reach + loa, bridge: reach + bowToBridge, scope: cable / depth, advised: 1.5 * sqrt(depth) };
+  }
+
+  // Height of tide between two turning points on a cosine curve; times in milliseconds
+  function tideHeight(t1, h1, t2, h2, t) {
+    if (t2 <= t1) throw new Error('The second high/low water must be later than the first.');
+    if (t < t1 || t > t2) throw new Error('The required time must lie between the two tide times.');
+    return h1 + (h2 - h1) * (1 - cos(PI * (t - t1) / (t2 - t1))) / 2;
+  }
+  function tideTime(t1, h1, t2, h2, h) {
+    const k = (h - h1) / (h2 - h1);
+    if (!(k >= 0 && k <= 1)) return null;
+    return t1 + (t2 - t1) * acos(1 - 2 * k) / PI;
+  }
+
+  // Tidal stream rate for the day's range, interpolated between the neap and spring rates
+  function streamRate(spring, neap, springRange, neapRange, range) {
+    if (springRange === neapRange) throw new Error('Spring and neap ranges must differ.');
+    return neap + (spring - neap) * (range - neapRange) / (springRange - neapRange);
+  }
+
+  // Distance off by vertical sextant angle: object height in metres → NM
+  function vertAngle(height, angle) {
+    if (angle <= 0 || angle >= 90) throw new Error('The angle must be between 0° and 90°.');
+    return height / tan(angle * D) / 1852;
+  }
+  const horizon = h => 2.08 * sqrt(Math.max(0, h)); // NM, height in metres
+
+  // Distance off from two relative bearings of the same object and the distance run between them
+  function twoBearings(run, b1, b2) {
+    if (!(b1 > 0 && b2 > b1 && b2 < 180)) throw new Error('The second bearing must be larger than the first, both below 180°.');
+    const d2 = run * sin(b1 * D) / sin((b2 - b1) * D);
+    return { d2, abeam: d2 * sin(b2 * D), toAbeam: d2 * cos(b2 * D) };
+  }
+
+  const api = { SHACKLE, draftSurvey, wheelOver, anchorage, tideHeight, tideTime, streamRate, vertAngle, horizon, twoBearings };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  root.SHIP = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+/* The 57 navigational stars and Polaris: mean places for J2000.0 and proper motions.
+   Columns: name, almanac number, RA (deg), Dec (deg), proper motion in RA and in Dec (deg/year; RA as coordinate rate).
+   Derived by reducing apparent places from the US Naval Observatory celestial navigation data service
+   (epochs 2005 and 2045) back to J2000; checked against the same service on five other dates, 2026–2033. */
+window.STARS = [
+["Polaris",0,37.950976,89.264103,0.00097576,-0.0000036954],
+["Alpheratz",1,2.096903,29.090441,0.00004333,-0.000045657],
+["Ankaa",2,6.571054,-42.305963,0.000087155,-0.00009915],
+["Schedar",3,10.126817,56.537343,0.000025835,-0.0000094019],
+["Diphda",4,10.897384,-17.986591,0.000067876,0.0000083748],
+["Achernar",5,24.428535,-57.236738,0.000045082,-0.000012027],
+["Hamal",6,31.793351,23.462435,0.000058164,-0.00004097],
+["Acamar",7,44.565308,-40.304652,-0.000019223,0.000006296],
+["Menkar",8,45.569883,4.089752,-0.0000031997,-0.000022572],
+["Mirfak",9,51.08071,49.861198,0.000010264,-0.0000078629],
+["Aldebaran",10,68.980148,16.509317,0.000018745,-0.000053137],
+["Rigel",11,78.634467,-8.201624,6.5177e-7,-7.1623e-7],
+["Capella",12,79.172303,45.998006,0.000031214,-0.00011905],
+["Bellatrix",13,81.282761,6.349718,-0.000002298,-0.0000042224],
+["Elnath",14,81.57297,28.607465,0.0000074917,-0.000048881],
+["Alnilam",15,84.05339,-1.201904,4.8354e-7,-8.1522e-7],
+["Betelgeuse",16,88.792939,7.407077,0.0000077054,0.0000025751],
+["Canopus",17,95.987937,-52.695648,0.000010219,0.0000061725],
+["Sirius",18,101.287025,-16.716125,-0.00015305,-0.00033947],
+["Adhara",19,104.656442,-28.972073,0.00000134,3.2085e-7],
+["Procyon",20,114.825414,5.224999,-0.00019658,-0.00028758],
+["Pollux",21,116.32894,28.026213,-0.00019597,-0.000013183],
+["Avior",22,125.62845,-59.509478,-0.000012456,0.0000062682],
+["Suhail",23,136.998975,-43.432588,-0.0000080714,0.0000040717],
+["Miaplacidus",24,138.299834,-69.717213,-0.00012358,0.000030645],
+["Alphard",25,141.896841,-8.658604,-0.0000038067,0.0000093946],
+["Regulus",26,152.09296,11.967205,-0.000070743,0.0000015796],
+["Dubhe",27,165.931982,61.751031,-0.000080863,-0.0000096461],
+["Denebola",28,177.264913,14.572053,-0.00014332,-0.000031101],
+["Gienah",29,183.951538,-17.541943,-0.000046265,0.0000067091],
+["Acrux",30,186.64954,-63.099107,-0.00002093,-0.0000033692],
+["Gacrux",31,187.791483,-57.113235,0.00001475,-0.000072394],
+["Alioth",32,193.507312,55.959814,0.000054866,-0.000002257],
+["Spica",33,201.298246,-11.161338,-0.000011903,-0.000008177],
+["Alkaid",34,206.885171,49.313253,-0.000051991,-0.0000039135],
+["Hadar",35,210.95584,-60.373057,-0.000018918,-0.0000061951],
+["Menkent",36,211.670626,-36.369981,-0.00017955,-0.00014279],
+["Arcturus",37,213.915323,19.182401,-0.00032225,-0.00055498],
+["Rigil Kentaurus",38,219.902458,-60.834151,-0.0021126,0.00014212],
+["Zubenelgenubi",39,222.719647,-16.041799,-0.000030913,-0.000018394],
+["Kochab",40,222.676379,74.15549,-0.000033212,0.0000037531],
+["Alphecca",41,233.671962,26.714677,0.000037042,-0.000024333],
+["Antares",42,247.351922,-26.43202,-0.0000033299,-0.0000058425],
+["Atria",43,252.166248,-69.027732,0.000012594,-0.0000085101],
+["Sabik",44,257.594544,-15.724927,0.000011253,0.000027657],
+["Shaula",45,263.402173,-37.103837,-0.0000035334,-0.0000078214],
+["Rasalhague",46,263.733647,12.560018,0.000030516,-0.000061359],
+["Eltanin",47,269.151535,51.488881,-0.0000035536,-0.0000060321],
+["Kaus Australis",48,276.043007,-34.384629,-0.000014058,-0.000034107],
+["Vega",49,279.234776,38.783669,0.000069979,0.000080489],
+["Nunki",50,283.816366,-26.296733,0.0000038069,-0.000014373],
+["Altair",51,297.695877,8.868305,0.00014885,0.00010755],
+["Peacock",52,306.411938,-56.735093,0.0000025097,-0.000024005],
+["Deneb",53,310.357958,45.280337,0.0000012758,3.2808e-7],
+["Enif",54,326.046485,9.875015,0.0000085881,8.9314e-8],
+["Alnair",55,332.058294,-46.960968,0.000050987,-0.000041612],
+["Fomalhaut",56,344.412708,-29.622215,0.00010451,-0.000046742],
+["Markab",57,346.190219,15.205278,0.000017662,-0.000012344]
+].map(([name, num, ra, dec, pmRa, pmDec]) => ({ name, num, ra, dec, pmRa, pmDec }));
+</script>
+<script>
+/* Interface: module definitions + a generic form renderer. */
+(function () {
+  'use strict';
+  const N = window.NAV, A = window.ASTRO, S = window.SHIP, I = window.I18N, t = I.tr;
+  const VERSION = '1.0'; // keep in step with the version table on the SeaTools "About & terms" page
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  /* ---------- formatting ---------- */
+  const crs = x => (N.norm360(x).toFixed(1) === '360.0' ? '0.0' : N.norm360(x).toFixed(1)).padStart(5, '0') + '°';
+  const nm = x => x.toFixed(Math.abs(x) < 1000 ? 2 : 1) + ' NM';
+  const kn = x => x.toFixed(2) + ' kn';
+  const pos = p => N.formatCoord(p.lat, true) + '   ' + N.formatCoord(p.lon, false);
+  const dur = h => {
+    const m = Math.round(h * 60), d = Math.floor(m / 1440), hh = Math.floor(m % 1440 / 60), mm = m % 60;
+    return (d ? d + ' d ' : '') + String(hh).padStart(2, '0') + ' h ' + String(mm).padStart(2, '0') + ' min';
+  };
+  const utc = d => d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+  const parseTime = s => { const d = new Date(s + (s.length === 16 ? ':00' : '') + 'Z'); if (!s || isNaN(d)) throw new Error(t('Enter date and time.')); return d; };
+  const signed = x => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(1) + '°';
+  // Celestial formats: arc as DDD°MM.m′, declination with N/S, small corrections in arcminutes
+  const arc = (x, w = 3) => { let d = Math.floor(Math.abs(x)), m = (Math.abs(x) - d) * 60; if (m >= 59.95) { d += 1; m = 0; }
+    return (x < 0 ? '−' : '') + String(d).padStart(w, '0') + '°' + m.toFixed(1).padStart(4, '0') + '′'; };
+  const decl = x => (x < 0 ? 'S ' : 'N ') + arc(Math.abs(x), 2);
+  const amin = x => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(1) + '′';
+  const utcs = d => d.toISOString().slice(0, 19).replace('T', ' ') + ' UTC';
+  const ew = x => Math.abs(x).toFixed(1) + '° ' + (x >= 0 ? 'E' : 'W');
+
+  /* ---------- time zones ---------- */
+  const TZ_OFFSETS = [...Array(53)].map((_, i) => -12 + i * 0.5).concat([5.75, 8.75, 12.75]).sort((a, b) => a - b);
+  const tzLabel = off => 'UTC' + (off < 0 ? '−' : '+') + String(Math.floor(Math.abs(off))).padStart(2, '0') + ':' + String(Math.round(Math.abs(off) % 1 * 60)).padStart(2, '0');
+  const TZ_OPTIONS = TZ_OFFSETS.map(o => [String(o), tzLabel(o)]);
+  const deviceTz = (() => { const o = -new Date().getTimezoneOffset() / 60; return TZ_OFFSETS.includes(o) ? String(o) : '0'; })();
+  // Local wall-clock time in a zone → UTC instant, and back to a readable local time
+  const fromLocal = (s, off) => new Date(parseTime(s).getTime() - Number(off) * 36e5);
+  const toLocal = (d, off) => new Date(d.getTime() + Number(off) * 36e5).toISOString().slice(0, 16).replace('T', ' ') + '  ' + tzLabel(Number(off));
+
+  /* ---------- split coordinate / angle input: degrees, minutes, hemisphere ---------- */
+  function splitCoord(val, type) {
+    const x = type === 'ang' ? A.parseAngle(val) : N.parseCoord(val, type === 'lat');
+    const h0 = (String(val || '').toUpperCase().match(/[NSEW]/) || [])[0] || (type === 'lat' ? 'N' : 'E');
+    if (isNaN(x) || val === '' || val == null) return { d: '', m: '', h: h0 };
+    const a = Math.abs(x);
+    let d = Math.floor(a + 1e-9), m = (a - d) * 60;
+    if (m >= 59.9995) { d += 1; m = 0; }
+    const ms = m.toFixed(3).replace(/0{1,2}$/, '');
+    return { d: String(d).padStart(type === 'lon' ? 3 : 2, '0'), m: (m < 10 ? '0' : '') + ms, h: type === 'lat' ? (x < 0 ? 'S' : 'N') : (x < 0 ? 'W' : 'E') };
+  }
+  function coordHtml(attrs, type, val, label) {
+    const p = splitCoord(val, type), len = type === 'lat' ? 2 : 3;
+    const hemi = type === 'ang' ? '' : '<span class="hemi">' + (type === 'lat' ? 'NS' : 'EW').split('').map(h =>
+      `<button type="button" data-h="${h}" aria-pressed="${h === p.h}">${h}</button>`).join('') + '</span>';
+    return `<div class="coord" ${attrs} data-type="${type}" role="group" aria-label="${esc(label)}">` +
+      `<input class="cd" type="text" inputmode="numeric" maxlength="${len}" size="${len}" placeholder="${'0'.repeat(len)}" aria-label="${t('degrees')}" autocomplete="off" value="${esc(p.d)}"><i>°</i>` +
+      `<input class="cm" type="text" inputmode="decimal" maxlength="6" size="6" placeholder="00.0" aria-label="${t('minutes')}" autocomplete="off" value="${esc(p.m)}"><i>′</i>${hemi}</div>`;
+  }
+  // Value of any form control; a coordinate control yields "DD MM.m H"
+  function getVal(el) {
+    if (!el.classList.contains('coord')) return el.value;
+    const d = $('.cd', el).value.trim(), m = $('.cm', el).value.trim(), hb = $('[aria-pressed="true"]', el);
+    return d === '' && m === '' ? '' : `${d || 0} ${m || 0} ${hb ? hb.dataset.h : ''}`.trim();
+  }
+  const setHemi = btn => btn.parentNode.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b === btn));
+  // Jump to minutes once the degrees field is full
+  const coordAdvance = e => { const el = e && e.target;
+    if (el && el.classList.contains('cd') && el.value.length >= el.maxLength) $('.cm', el.parentNode).focus(); };
+
+  const dialSvg = a => '<svg class="dial" viewBox="-60 -60 120 120" aria-hidden="true"><circle r="52"/>' +
+    [...Array(36)].map((_, i) => `<line y1="-52" y2="${i % 9 === 0 ? -41 : i % 3 === 0 ? -45 : -48}" transform="rotate(${i * 10})"/>`).join('') +
+    '<text y="-27">N</text><text x="33" y="4.5">E</text><text y="36">S</text><text x="-33" y="4.5">W</text>' +
+    `<g class="needle" transform="rotate(${a})"><path d="M0 -44 L7 8 L0 1 L-7 8 Z"/></g><circle class="hub" r="2.5"/></svg>`;
+
+  /* ---------- field memory ---------- */
+  const store = {
+    get(k, def) { try { return JSON.parse(localStorage.getItem('azymut:' + k)) ?? def; } catch (e) { return def; } },
+    set(k, v) { try { localStorage.setItem('azymut:' + k, JSON.stringify(v)); } catch (e) { /* private mode */ } }
+  };
+
+  /* ---------- field definition helpers ---------- */
+  const P = (k, label, lat, lon) => [
+    { k: k + 'Lat', label: t('{0} — latitude', t(label)), type: 'lat', def: lat },
+    { k: k + 'Lon', label: t('{0} — longitude', t(label)), type: 'lon', def: lon }
+  ];
+  const num = (k, label, def, unit, min, max) => ({ k, label: t(label), type: 'num', def, unit, min, max });
+  const deg = (k, label, def) => num(k, label, def, '°', 0, 360);
+  const time = (k, label, off) => ({ k, label: t(label), type: 'time', off });
+  const ltime = (k, label, off) => ({ k, label: t(label), type: 'time', off, local: true });
+  const tz = (k, label) => ({ k, label: t(label), type: 'select', options: TZ_OPTIONS, def: deviceTz });
+  const tsec = (k, def) => ({ k, label: t('Time (UTC)'), type: 'time', sec: true, def });
+  const ang = (k, label, def, cond) => ({ k, label: t(label), type: 'ang', def, if: cond });
+  const sel = (k, label, options, def) => ({ k, label: t(label), type: 'select', def, options: options.map(o => [o[0], t(o[1])]) });
+  const LIMBS = [['LL', 'Lower limb'], ['UL', 'Upper limb']];
+  // Navigational stars: pick by name; positions come from the built-in catalogue
+  const STARS = window.STARS;
+  const STAR_OPTIONS = STARS.map(s => [s.name, s.name + (s.num ? ' (' + s.num + ')' : '')]).sort((a, b) => a[0].localeCompare(b[0]));
+  const starSel = cond => ({ k: 'star', label: t('Star'), type: 'select', options: STAR_OPTIONS, def: 'Vega', if: cond });
+  const findStar = name => STARS.find(s => s.name === name) || STARS[0];
+  // Altitude and azimuth of every catalogue star for a moment and position
+  const skyStars = (d, lat, lon) => STARS.map(s => { const ap = A.starApparent(s, d), r = A.altAz(lat, ap.dec, N.norm360(ap.gha + lon));
+    return { star: s, ap, hc: r.hc, zn: r.zn }; });
+  // Compass error and deviation from a true and a compass bearing
+  const compassRows = (trueBrg, v) => {
+    const err = N.norm180(trueBrg - v.cb);
+    return [[t('Compass error'), ew(err), 1], [t('Deviation'), ew(N.norm180(err - v.vr))]];
+  };
+
+  /* ---------- unit converter ---------- */
+  const lin = (name, f) => ({ name: t(name), to: v => v * f, from: b => b / f });
+  const UNITS = {
+    len: { label: t('Length'), units: [lin('nautical miles (NM)', 1852), lin('cables', 185.2), lin('kilometres', 1000), lin('metres', 1),
+      lin('feet', 0.3048), lin('fathoms', 1.8288), lin('yards', 0.9144), lin('statute miles', 1609.344)] },
+    spd: { label: t('Speed'), units: [lin('knots', 1852 / 3600), lin('km/h', 1 / 3.6), lin('m/s', 1), lin('mph', 0.44704)] },
+    vol: { label: t('Volume'), units: [lin('m³', 1), lin('litres', 0.001), lin('barrels (bbl)', 0.158987295), lin('US gallons', 0.003785412)] },
+    tmp: { label: t('Temperature'), units: [{ name: '°C', to: v => v, from: b => b }, { name: '°F', to: v => (v - 32) / 1.8, from: b => b * 1.8 + 32 },
+      { name: 'K', to: v => v - 273.15, from: b => b + 273.15 }] }
+  };
+  ['km/h', 'm/s', 'mph', 'm³'].forEach(u => I.missing.delete(u)); // symbols, same in every language
+  const unitOptions = Object.entries(UNITS).flatMap(([cat, c]) => c.units.map((u, i) => [cat + ':' + i, c.label + ' — ' + u.name]));
+
+  /* ---------- modules ---------- */
+  const MODULES = [
     {
-      href: "dp-footprint/",
-      icon: "dp-footprint/icon.png",
-      name: "DP Footprint Plot",
-      tag: "Bridge · DP",
-      text: "Plot DP position footprints with heading, wind, current and waves. Run a 30-minute capture, save plots and print them to PDF."
+      id: 'rl-route', group: 'Rhumb Line', title: 'Course & Distance',
+      desc: 'Second navigation problem: constant course and distance between two points (WGS84 ellipsoid).',
+      fields: [...P('a', 'Point A', '54°24.0 N', '018°40.0 E'), ...P('b', 'Point B', '57°42.0 N', '011°56.0 E')],
+      calc: v => {
+        const r = N.rhumbInverse(v.aLat, v.aLon, v.bLat, v.bLon);
+        return { rows: [[t('Course'), crs(r.course), 1], [t('Distance'), nm(r.dist), 1],
+          [t('Difference of latitude'), (Math.abs(v.bLat - v.aLat) * 60).toFixed(2) + '′'],
+          [t('Difference of meridional parts'), Math.abs(N.meridionalParts(v.bLat) - N.meridionalParts(v.aLat)).toFixed(2) + '′']] };
+      }
     },
     {
-      href: "azimuth/",
-      icon: "azimuth/icon.png",
-      name: "Azimuth",
-      tag: "Bridge · Navigation",
-      text: "Navigation calculator: rhumb line and great circle sailings, route plan with ETA, currents and wind, celestial navigation with almanac, draft survey, tides and coastal tools."
+      id: 'rl-point', group: 'Rhumb Line', title: 'Destination Point',
+      desc: 'First navigation problem: position after running a given distance on a constant course.',
+      fields: [...P('a', 'Start point', '54°24.0 N', '018°40.0 E'), deg('c', 'Course', '315'), num('d', 'Distance', '120', 'NM', 0)],
+      calc: v => ({ rows: [[t('Final position'), pos(N.rhumbDirect(v.aLat, v.aLon, v.c, v.d)), 1]] })
+    },
+    {
+      id: 'gc-route', group: 'Great Circle', title: 'Course & Distance',
+      desc: 'Shortest track along a great circle: courses, vertex and intermediate points.',
+      fields: [...P('a', 'Point A', '50°04.0 N', '005°43.0 W'), ...P('b', 'Point B', '40°28.0 N', '073°50.0 W'),
+        num('n', 'Number of legs', '6', '', 1, 60)],
+      calc: v => {
+        const g = N.gcInverse(v.aLat, v.aLon, v.bLat, v.bLon), rl = N.rhumbInverse(v.aLat, v.aLon, v.bLat, v.bLon);
+        const vx = N.gcVertex(v.aLat, v.aLon, g.course);
+        const pts = N.gcPoints(v.aLat, v.aLon, v.bLat, v.bLon, Math.round(v.n));
+        return {
+          rows: [[t('Initial course'), crs(g.course), 1], [t('Distance'), nm(g.dist), 1], [t('Final course'), crs(g.finalCourse)],
+            [t('Vertex (northern)'), pos(vx)], [t('Rhumb line for comparison'), nm(rl.dist) + '  ·  ' + crs(rl.course)],
+            [t('Saving on the great circle'), nm(rl.dist - g.dist)]],
+          table: { head: ['#', t('Position'), t('Course onward'), t('From start')],
+            rows: pts.map((p, i) => [i, pos(p), i === pts.length - 1 ? '—' : crs(p.course), nm(p.dist)]) }
+        };
+      }
+    },
+    {
+      id: 'gc-point', group: 'Great Circle', title: 'Destination Point',
+      desc: 'Position after running a given distance along a great circle on a given initial course.',
+      fields: [...P('a', 'Start point', '50°04.0 N', '005°43.0 W'), deg('c', 'Initial course', '285'), num('d', 'Distance', '600', 'NM', 0, 10800)],
+      calc: v => {
+        const p = N.gcDirect(v.aLat, v.aLon, v.c, v.d);
+        const back = N.gcInverse(p.lat, p.lon, v.aLat, v.aLon).course;
+        return { rows: [[t('Final position'), pos(p), 1], [t('Course at final position'), crs(back + 180)]] };
+      }
+    },
+    {
+      id: 'wgs-route', group: 'WGS84', title: 'Course & Distance',
+      desc: 'Geodesic on the WGS84 ellipsoid (Vincenty’s method) — millimetre-level accuracy.',
+      fields: [...P('a', 'Point A', '50°04.0 N', '005°43.0 W'), ...P('b', 'Point B', '40°28.0 N', '073°50.0 W')],
+      calc: v => {
+        const r = N.vincentyInverse(v.aLat, v.aLon, v.bLat, v.bLon);
+        return { rows: [[t('Initial course'), crs(r.course), 1], [t('Distance'), nm(r.dist), 1], [t('Final course'), crs(r.finalCourse)],
+          [t('Distance in metres'), (r.meters || 0).toFixed(1) + ' m']] };
+      }
+    },
+    {
+      id: 'wgs-point', group: 'WGS84', title: 'Destination Point',
+      desc: 'Position after running a given distance along a geodesic on the WGS84 ellipsoid.',
+      fields: [...P('a', 'Start point', '50°04.0 N', '005°43.0 W'), deg('c', 'Initial course', '285'), num('d', 'Distance', '600', 'NM', 0, 10000)],
+      calc: v => {
+        const p = N.vincentyDirect(v.aLat, v.aLon, v.c, v.d);
+        return { rows: [[t('Final position'), pos(p), 1], [t('Course at final position'), crs(p.finalCourse)]] };
+      }
+    },
+    {
+      id: 'composite', group: 'Routes', title: 'Composite Sailing',
+      desc: 'Great circle to the limiting parallel, parallel sailing along it, then great circle to the destination.',
+      fields: [...P('a', 'Point A', '35°40.0 N', '141°00.0 E'), ...P('b', 'Point B', '37°48.0 N', '122°40.0 W'),
+        { k: 'lim', label: t('Limiting parallel'), type: 'lat', def: '45°00.0 N' }],
+      calc: v => {
+        const c = N.composite(v.aLat, v.aLon, v.bLat, v.bLon, v.lim), g = N.gcInverse(v.aLat, v.aLon, v.bLat, v.bLon);
+        return { rows: [[t('Initial course'), crs(c.course), 1], [t('Total distance'), nm(c.total), 1],
+          [t('Great circle A → parallel'), nm(c.d1)], [t('Joining the parallel'), pos(c.v1)],
+          [t('Along the parallel (course {0})', crs(c.parallelCourse)), nm(c.dPar)], [t('Leaving the parallel'), pos(c.v2)],
+          [t('Great circle parallel → B'), nm(c.d2)], [t('Final course'), crs(c.finalCourse)],
+          [t('Pure great circle for comparison'), nm(g.dist)]] };
+      }
+    },
+    { id: 'plan', group: 'Routes', title: 'Route Plan', custom: true,
+      desc: 'Waypoint list with courses, distances and ETA. Save and load as GPX.' },
+    {
+      id: 'eta', group: 'Time & Speed', title: 'ETA',
+      desc: 'Estimated time of arrival from distance and speed, with separate time zones for departure and arrival.',
+      fields: [num('d', 'Distance', '480', 'NM', 0), num('s', 'Speed', '12', 'kn', 0.01),
+        ltime('t', 'Departure (local time)'), tz('tzd', 'Departure time zone'), tz('tza', 'Arrival time zone')],
+      calc: v => {
+        const h = v.d / v.s, dep = fromLocal(v.t, v.tzd), eta = new Date(dep.getTime() + h * 36e5);
+        return { rows: [[t('ETA (local time)'), toLocal(eta, v.tza), 1], [t('Passage time'), dur(h), 1],
+          [t('ETA (UTC)'), utc(eta)], [t('Departure (UTC)'), utc(dep)]] };
+      }
+    },
+    {
+      id: 'avg', group: 'Time & Speed', title: 'Average Speed',
+      desc: 'Average speed from distance run and time — or the speed required to arrive at a given time.',
+      fields: [num('d', 'Distance', '480', 'NM', 0), ltime('t1', 'Start (local time)'), tz('tz1', 'Start time zone'),
+        ltime('t2', 'End (local time)', 40), tz('tz2', 'End time zone')],
+      calc: v => {
+        const h = (fromLocal(v.t2, v.tz2) - fromLocal(v.t1, v.tz1)) / 36e5;
+        if (h <= 0) throw new Error(t('End must be later than start.'));
+        return { rows: [[t('Speed'), kn(v.d / h), 1], [t('Time'), dur(h), 1], [t('Day’s run'), nm(v.d / h * 24)]] };
+      }
+    },
+    {
+      id: 'cts', group: 'Current & Drift', title: 'Course to Steer',
+      desc: 'Heading to steer to make good a required track in a current.',
+      fields: [deg('trk', 'Required track', '090'), num('stw', 'Speed through water', '12', 'kn', 0.01),
+        deg('set', 'Set of current (towards)', '180'), num('drift', 'Drift of current', '2', 'kn', 0)],
+      calc: v => {
+        const r = N.courseToSteer(v.trk, v.stw, v.set, v.drift);
+        return { rows: [[t('Course to Steer'), crs(r.heading), 1], [t('Speed over ground'), kn(r.sog), 1],
+          [t('Current correction'), signed(r.correction)]] };
+      }
+    },
+    {
+      id: 'cog', group: 'Current & Drift', title: 'Course Over Ground',
+      desc: 'Where and how fast the vessel moves over the ground for a given heading, speed and current.',
+      fields: [deg('hdg', 'True heading', '090'), num('stw', 'Speed through water', '12', 'kn', 0),
+        deg('set', 'Set of current (towards)', '180'), num('drift', 'Drift of current', '2', 'kn', 0)],
+      calc: v => {
+        const r = N.courseOverGround(v.hdg, v.stw, v.set, v.drift);
+        return { rows: [[t('Course over ground (COG)'), crs(r.cog), 1], [t('Speed over ground (SOG)'), kn(r.sog), 1],
+          [t('Drift angle'), signed(N.norm180(r.cog - v.hdg))]] };
+      }
+    },
+    {
+      id: 'cur', group: 'Current & Drift', title: 'Find Current',
+      desc: 'Set and drift of the current from comparing motion through the water with motion over the ground.',
+      fields: [deg('hdg', 'True heading', '090'), num('stw', 'Speed through water', '12', 'kn', 0),
+        deg('cog', 'Course over ground (COG)', '099'), num('sog', 'Speed over ground (SOG)', '12.2', 'kn', 0)],
+      calc: v => {
+        const r = N.findCurrent(v.hdg, v.stw, v.cog, v.sog);
+        return { rows: [[t('Set of current (towards)'), crs(r.set), 1], [t('Drift of current'), kn(r.drift), 1]] };
+      }
+    },
+    {
+      id: 'wind', group: 'Wind', title: 'True Wind',
+      desc: 'True wind from the apparent wind measured on board, with Beaufort classification.',
+      fields: [deg('hdg', 'True heading', '045'), num('stw', 'Vessel speed', '12', 'kn', 0),
+        deg('awa', 'Apparent wind angle off the bow (clockwise)', '040'), num('aws', 'Apparent wind speed', '25', 'kn', 0)],
+      calc: v => {
+        const r = N.trueWind(v.hdg, v.stw, v.awa, v.aws), b = N.beaufort(r.spd);
+        return { rows: [[t('Wind direction (from)'), crs(r.dir), 1], [t('Wind speed'), kn(r.spd), 1],
+          [t('Beaufort scale'), b.force + ' Bft — ' + t(b.name)], [t('Angle off the bow'), crs(r.twa)],
+          [t('Speed in m/s'), (r.spd * 1852 / 3600).toFixed(1) + ' m/s']] };
+      }
+    },
+    {
+      id: 'almanac', group: 'Celestial', title: 'Nautical Almanac',
+      desc: 'Sun, Aries and the navigational stars for any moment, with an hourly page for that day. Against published almanac data the Sun agrees to about 0.2′ and the stars to about 0.02′.',
+      fields: [tsec('t')],
+      calc: v => {
+        const d = parseTime(v.t), s = A.sun(d);
+        const day = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+        const hours = [...Array(24)].map((_, h) => { const x = new Date(day + h * 36e5), q = A.sun(x);
+          return [String(h).padStart(2, '0'), arc(q.gha), decl(q.dec), arc(A.ghaAries(x))]; });
+        return {
+          rows: [[t('Sun GHA'), arc(s.gha), 1], [t('Sun declination'), decl(s.dec), 1], [t('Aries GHA'), arc(A.ghaAries(d))],
+            [t('Sun semi-diameter'), s.sd.toFixed(1) + '′'], [t('Sun horizontal parallax'), s.hp.toFixed(2) + '′'],
+            [t('Equation of time'), (s.eot >= 0 ? '+' : '−') + Math.floor(Math.round(Math.abs(s.eot) * 60) / 60) + ' min ' + String(Math.round(Math.abs(s.eot) * 60) % 60).padStart(2, '0') + ' s'],
+            [t('Meridian passage at Greenwich'), utcs(A.meridianPassage(d, 0))]],
+          tables: [{ title: t('Sun and Aries — hourly'), head: ['UT', t('Sun GHA'), t('Sun declination'), t('Aries GHA')], rows: hours },
+            { title: t('Stars at this moment'), head: ['#', t('Star'), 'SHA', t('Declination'), 'GHA'],
+              rows: STARS.map(st => { const ap = A.starApparent(st, d); return [st.num || '—', st.name, arc(ap.sha), decl(ap.dec), arc(ap.gha)]; }) }]
+        };
+      }
+    },
+    {
+      id: 'sight', group: 'Celestial', title: 'Sight Reduction',
+      desc: 'Position line by the intercept method: corrects the sextant altitude and compares it with the altitude calculated for the DR position.',
+      fields: [sel('body', 'Body', [['LL', 'Sun — lower limb'], ['UL', 'Sun — upper limb'], ['star', 'Star'], ['other', 'Other body (enter GHA and Dec)']], 'LL'),
+        tsec('t', '2026-06-21T10:00:00'), ...P('a', 'DR position', '54°24.0 N', '018°40.0 E'),
+        ang('hs', 'Sextant altitude', '57°42.0'), num('ic', 'Index correction', '0', '′'), num('hoe', 'Height of eye', '12', 'm', 0),
+        starSel(r => r.body === 'star'), ang('gha', 'GHA', '330°00.0', r => r.body === 'other'),
+        { k: 'dec', label: t('Declination'), type: 'lat', def: '38°48.0 N', if: r => r.body === 'other' }],
+      calc: v => {
+        const d = parseTime(v.t), isSun = v.body === 'LL' || v.body === 'UL', s = A.sun(d);
+        const st = v.body === 'star' ? A.starApparent(findStar(v.star), d) : null;
+        const gha = isSun ? s.gha : st ? st.gha : v.gha;
+        const dec = isSun ? s.dec : st ? st.dec : v.dec;
+        const lha = N.norm360(gha + v.aLon);
+        const c = A.correctAltitude(v.hs, v.ic, v.hoe, isSun ? v.body : null, s.sd, isSun ? s.hp : 0);
+        const r = A.altAz(v.aLat, dec, lha), icpt = (c.ho - r.hc) * 60;
+        const rows = [[t('Intercept'), Math.abs(icpt).toFixed(1) + ' NM ' + t(icpt >= 0 ? 'towards' : 'away'), 1], [t('Azimuth (Zn)'), crs(r.zn), 1],
+          [t('Observed altitude (Ho)'), arc(c.ho, 2)], [t('Calculated altitude (Hc)'), arc(r.hc, 2)],
+          ['GHA', arc(gha)], [t('Declination'), decl(dec)], ['LHA', arc(lha)],
+          [t('Dip'), amin(-c.dip)], [t('Refraction'), amin(-c.refraction)]];
+        if (isSun) rows.push([t('Semi-diameter'), amin(c.sd)], [t('Parallax'), amin(c.parallax)]);
+        return { rows };
+      }
+    },
+    {
+      id: 'fix', group: 'Celestial', title: 'Fix from Two Position Lines',
+      desc: 'Position from two intercepts and azimuths worked from the same DR position.',
+      fields: [...P('a', 'DR position', '54°24.0 N', '018°40.0 E'), num('i1', 'Intercept 1 (+ towards, − away)', '3.2', 'NM'), deg('z1', 'Azimuth 1', '135'),
+        num('i2', 'Intercept 2 (+ towards, − away)', '-1.5', 'NM'), deg('z2', 'Azimuth 2', '230')],
+      calc: v => {
+        const f = A.fixTwoLops(v.aLat, v.aLon, v.i1, v.z1, v.i2, v.z2), back = N.rhumbInverse(v.aLat, v.aLon, f.lat, f.lon);
+        return { rows: [[t('Fix'), pos(f), 1], [t('From DR position'), nm(back.dist) + '  ·  ' + crs(back.course)]] };
+      }
+    },
+    {
+      id: 'starfinder', group: 'Celestial', title: 'Star Finder',
+      desc: 'Names the star you observed from its approximate altitude and bearing, and lists every navigational star above the horizon for planning sights.',
+      fields: [tsec('t', '2026-11-14T16:30:00'), ...P('a', 'DR position', '54°24.0 N', '018°40.0 E'), ang('alt', 'Observed altitude', '58°00.0'), deg('brg', 'Observed bearing', '255')],
+      calc: v => {
+        const d = parseTime(v.t), R = Math.PI / 180;
+        const sky = skyStars(d, v.aLat, v.aLon).filter(x => x.hc > 0);
+        if (!sky.length) throw new Error(t('No navigational stars are above the horizon.'));
+        const sep = x => Math.acos(Math.min(1, Math.sin(v.alt * R) * Math.sin(x.hc * R) + Math.cos(v.alt * R) * Math.cos(x.hc * R) * Math.cos((x.zn - v.brg) * R))) / R;
+        const best = sky.reduce((a, b) => sep(b) < sep(a) ? b : a);
+        return { rows: [[t('Most likely star'), best.star.name, 1], [t('Away from your observation'), sep(best).toFixed(1) + '°', 1],
+            [t('Calculated altitude (Hc)'), arc(best.hc, 2)], [t('Azimuth (Zn)'), crs(best.zn)], ['SHA', arc(best.ap.sha)], [t('Declination'), decl(best.ap.dec)]],
+          tables: [{ title: t('Stars above the horizon'), head: [t('Star'), t('Altitude'), t('Azimuth (Zn)')],
+            rows: sky.sort((a, b) => a.zn - b.zn).map(x => [x.star.name, arc(x.hc, 2), crs(x.zn)]) }] };
+      }
+    },
+    {
+      id: 'merpass', group: 'Celestial', title: 'Meridian Passage',
+      desc: 'Time of the Sun’s meridian passage at your longitude, and latitude from the noon altitude.',
+      fields: [{ ...time('t', 'Date (UTC)'), def: '2026-06-21T08:00' }, ...P('a', 'DR position', '54°24.0 N', '018°40.0 E'),
+        ang('hs', 'Sextant altitude at passage', '58°53.0'), sel('limb', 'Limb', LIMBS, 'LL'), num('ic', 'Index correction', '0', '′'), num('hoe', 'Height of eye', '12', 'm', 0)],
+      calc: v => {
+        const mp = A.meridianPassage(parseTime(v.t), v.aLon), s = A.sun(mp);
+        const c = A.correctAltitude(v.hs, v.ic, v.hoe, v.limb, s.sd, s.hp), zd = 90 - c.ho;
+        const lat = v.aLat >= s.dec ? s.dec + zd : s.dec - zd;
+        return { rows: [[t('Meridian passage'), utcs(mp), 1], [t('Latitude'), N.formatCoord(lat, true), 1],
+          [t('Declination at passage'), decl(s.dec)], [t('Observed altitude (Ho)'), arc(c.ho, 2)],
+          [t('Expected sextant altitude'), arc(90 - Math.abs(v.aLat - s.dec) - (c.ho - v.hs), 2)], [t('Sun bears'), t(v.aLat >= s.dec ? 'South' : 'North')]] };
+      }
+    },
+    {
+      id: 'amplitude', group: 'Celestial', title: 'Amplitude',
+      desc: 'True bearing of the Sun at rising or setting, and the compass error and deviation from it. Observe when the lower limb is about two-thirds of a diameter above the horizon.',
+      fields: [tsec('t', '2026-06-21T02:10:00'), { k: 'lat', label: t('Latitude'), type: 'lat', def: '54°24.0 N' }, sel('ev', 'Event', [['rise', 'Sunrise'], ['set', 'Sunset']], 'rise'),
+        deg('cb', 'Compass bearing', '045'), num('vr', 'Variation (+ E, − W)', '5', '°', -180, 180)],
+      calc: v => {
+        const s = A.sun(parseTime(v.t)), a = A.amplitude(v.lat, s.dec), brg = v.ev === 'rise' ? 90 - a : 270 + a;
+        return { rows: [[t('True bearing'), crs(brg), 1], ...compassRows(brg, v),
+          [t('Amplitude'), (v.ev === 'rise' ? 'E ' : 'W ') + Math.abs(a).toFixed(1) + '° ' + (a >= 0 ? 'N' : 'S')], [t('Declination'), decl(s.dec)]] };
+      }
+    },
+    {
+      id: 'azimuth', group: 'Celestial', title: 'Azimuth & Compass Error',
+      desc: 'True azimuth of the Sun or a star at any moment, and the compass error and deviation from a compass bearing.',
+      fields: [sel('body', 'Body', [['sun', 'Sun'], ['star', 'Star']], 'sun'), starSel(r => r.body === 'star'), tsec('t', '2026-06-21T10:00:00'), ...P('a', 'Position', '54°24.0 N', '018°40.0 E'), deg('cb', 'Compass bearing', '160'), num('vr', 'Variation (+ E, − W)', '5', '°', -180, 180)],
+      calc: v => {
+        const d = parseTime(v.t), s = v.body === 'star' ? A.starApparent(findStar(v.star), d) : A.sun(d);
+        const lha = N.norm360(s.gha + v.aLon), r = A.altAz(v.aLat, s.dec, lha);
+        return { rows: [[t('True azimuth'), crs(r.zn), 1], ...compassRows(r.zn, v),
+          [t('Altitude'), arc(r.hc, 2)], ['LHA', arc(lha)], [t('Declination'), decl(s.dec)]] };
+      }
+    },
+    {
+      id: 'abc', group: 'Celestial', title: 'ABC Tables',
+      desc: 'Azimuth of any body from latitude, declination and local hour angle, with the A, B and C values.',
+      fields: [{ k: 'lat', label: t('Latitude'), type: 'lat', def: '54°24.0 N' }, { k: 'dec', label: t('Declination'), type: 'lat', def: '16°40.0 S' }, ang('lha', 'LHA', '312°30.0')],
+      calc: v => {
+        const r = A.abc(v.lat, v.dec, v.lha), ns = x => Math.abs(x).toFixed(3) + ' ' + (x >= 0 ? 'N' : 'S');
+        return { rows: [[t('True azimuth'), crs(r.zn), 1], ['A', ns(r.a)], ['B', ns(r.b)], ['C', ns(r.c)]] };
+      }
+    },
+    {
+      id: 'draft', group: 'Ship', title: 'Draft Survey',
+      desc: 'Displacement and cargo from the six draft readings, with corrections for the position of the marks, trim, hull deflection and water density.',
+      fields: [num('fp', 'Forward draft — port', '10.42', 'm', 0), num('fs', 'Forward draft — starboard', '10.44', 'm', 0),
+        num('mp', 'Midship draft — port', '10.58', 'm', 0), num('ms', 'Midship draft — starboard', '10.62', 'm', 0),
+        num('ap', 'Aft draft — port', '10.80', 'm', 0), num('as', 'Aft draft — starboard', '10.84', 'm', 0),
+        num('lbp', 'Length between perpendiculars', '180', 'm', 1),
+        num('df', 'Forward marks aft of the forward perpendicular', '2.5', 'm'), num('da', 'Aft marks forward of the aft perpendicular', '6.0', 'm'),
+        num('dm', 'Midship marks aft of midship', '0', 'm'),
+        num('disp', 'Displacement at the corrected mean draft', '48250', 't', 0), num('tpc', 'TPC', '52.4', 't/cm', 0),
+        num('lcf', 'LCF from midship (+ aft, − forward)', '3.5', 'm'), num('mtcHi', 'MTC at draft + 0.5 m', '640', 't·m/cm', 0),
+        num('mtcLo', 'MTC at draft − 0.5 m', '610', 't·m/cm', 0), num('dens', 'Water density', '1.018', 't/m³', 0.9, 1.1),
+        num('ded', 'Deductibles (ballast, fuel, fresh water, stores)', '2450', 't', 0), num('light', 'Lightship', '9800', 't', 0), num('constant', 'Constant', '250', 't')],
+      calc: v => {
+        const r = S.draftSurvey(v), m3 = x => x.toFixed(3) + ' m', tn = x => (x < 0 ? '−' : '') + Math.abs(x).toLocaleString(I.locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' t';
+        return { rows: [[t('Cargo on board'), tn(r.cargo), 1], [t('Net displacement'), tn(r.net), 1],
+          [t('Corrected drafts (fwd / mid / aft)'), [r.fc, r.mc, r.ac].map(x => x.toFixed(3)).join(' / ') + ' m'],
+          [t('True trim'), m3(Math.abs(r.trim)) + ' ' + t(r.trim >= 0 ? 'by the stern' : 'by the head')],
+          [t('Mean of means of means'), m3(r.qm)], [t('Hull deflection'), m3(Math.abs(r.deflection)) + ' ' + t(r.deflection >= 0 ? 'sag' : 'hog')],
+          [t('First trim correction'), tn(r.ftc)], [t('Second trim correction'), tn(r.stc)],
+          [t('Displacement corrected for trim'), tn(r.dispTrim)], [t('Density correction'), tn(r.densCorr)]] };
+      }
+    },
+    {
+      id: 'wheel', group: 'Ship', title: 'Wheel Over',
+      desc: 'Where to put the wheel over for a constant-radius turn onto the next course, and the rate of turn to hold.',
+      fields: [deg('c1', 'Present course', '045'), deg('c2', 'Next course', '110'), num('r', 'Turn radius', '0.5', 'NM', 0.01),
+        num('f', 'Distance run before the ship answers the helm', '180', 'm', 0), num('spd', 'Speed', '12', 'kn', 0)],
+      calc: v => {
+        const r = S.wheelOver(v.c1, v.c2, v.r, v.f, v.spd), cab = x => (x * 10).toFixed(2) + ' ' + t('cables');
+        return { rows: [[t('Wheel over before the waypoint'), nm(r.before), 1], [t('Rate of turn'), r.rot.toFixed(1) + ' °/min', 1],
+          [t('Turn'), r.angle.toFixed(1) + '° ' + t(r.side === 'starboard' ? 'to starboard' : 'to port')],
+          [t('Wheel over before the waypoint'), cab(r.before)], [t('Wheel-over line off the next track'), nm(r.offNew) + '  ·  ' + cab(r.offNew)],
+          [t('Length of the turn'), nm(r.arc)], [t('Time in the turn'), r.time.toFixed(1) + ' min']] };
+      }
+    },
+    {
+      id: 'anchor', group: 'Ship', title: 'Anchorage',
+      desc: 'Swinging circle and anchor-watch radius from the depth and the cable paid out, with a rule-of-thumb amount of cable.',
+      fields: [num('depth', 'Depth of water', '25', 'm', 0.1), num('hawse', 'Hawse pipe above the water', '8', 'm', 0), num('sh', 'Cable paid out', '6', t('shackles'), 0),
+        num('loa', 'Length overall', '190', 'm', 0), num('bb', 'Bow to bridge', '160', 'm', 0)],
+      calc: v => {
+        const r = S.anchorage(v.depth, v.hawse, v.sh, v.loa, v.bb), mc = x => x.toFixed(0) + ' m  ·  ' + (x / 185.2).toFixed(2) + ' ' + t('cables');
+        return { rows: [[t('Swinging circle radius'), mc(r.swing), 1], [t('Anchor-watch radius at the bridge'), mc(r.bridge)],
+          [t('Cable length'), r.cable.toFixed(1) + ' m'], [t('Horizontal reach of the cable'), r.reach.toFixed(0) + ' m'],
+          [t('Scope (cable to depth)'), r.scope.toFixed(1) + ' : 1'], [t('Rule-of-thumb cable for this depth'), r.advised.toFixed(1) + ' ' + t('shackles')]] };
+      }
+    },
+    {
+      id: 'tide', group: 'Tides', title: 'Height of Tide',
+      desc: 'Height of tide at any time between a high and a low water, the depth and under-keel clearance, and when a required height is reached.',
+      fields: [{ ...ltime('t1', 'First high/low water — time'), def: '2026-11-14T06:10' }, num('h1', 'First high/low water — height', '4.2', 'm'),
+        { ...ltime('t2', 'Second high/low water — time'), def: '2026-11-14T12:25' }, num('h2', 'Second high/low water — height', '0.8', 'm'),
+        { ...ltime('t', 'Required time'), def: '2026-11-14T09:00' }, num('cd', 'Charted depth', '9.5', 'm'), num('dr', 'Draught', '10.2', 'm', 0),
+        num('hreq', 'Required height of tide', '2.0', 'm')],
+      calc: v => {
+        const a = parseTime(v.t1).getTime(), b = parseTime(v.t2).getTime(), h = S.tideHeight(a, v.h1, b, v.h2, parseTime(v.t).getTime());
+        const at = S.tideTime(a, v.h1, b, v.h2, v.hreq), m2 = x => x.toFixed(2) + ' m';
+        return { rows: [[t('Height of tide'), m2(h), 1], [t('Under-keel clearance'), (v.cd + h - v.dr < 0 ? '−' : '') + m2(Math.abs(v.cd + h - v.dr)), 1],
+          [t('Depth of water'), m2(v.cd + h)], [t('Range'), m2(Math.abs(v.h2 - v.h1)) + ' ' + t(v.h2 > v.h1 ? 'rising' : 'falling')],
+          [t('Required height reached at'), at == null ? '—' : new Date(at).toISOString().slice(0, 16).replace('T', ' ')]] };
+      }
+    },
+    {
+      id: 'stream', group: 'Tides', title: 'Tidal Stream',
+      desc: 'Rate of the tidal stream for today’s range, interpolated between the neap and spring rates given on the chart or in the atlas.',
+      fields: [num('sp', 'Spring rate', '3.2', 'kn', 0), num('np', 'Neap rate', '1.6', 'kn', 0), num('sr', 'Mean spring range', '5.4', 'm', 0),
+        num('nr', 'Mean neap range', '2.6', 'm', 0), num('r', 'Range today', '4.1', 'm', 0)],
+      calc: v => ({ rows: [[t('Rate'), kn(Math.max(0, S.streamRate(v.sp, v.np, v.sr, v.nr, v.r))), 1],
+        [t('Share of the spring rate'), (Math.max(0, S.streamRate(v.sp, v.np, v.sr, v.nr, v.r)) / v.sp * 100).toFixed(0) + ' %']] })
+    },
+    {
+      id: 'vert', group: 'Coastal', title: 'Distance by Vertical Angle',
+      desc: 'Distance off an object of known height from its vertical sextant angle.',
+      fields: [num('h', 'Height of the object', '45', 'm', 0.1), ang('a', 'Vertical angle', '00°38.0')],
+      calc: v => { const d = S.vertAngle(v.h, v.a); return { rows: [[t('Distance off'), nm(d), 1], [t('Distance in metres'), (d * 1852).toFixed(0) + ' m']] }; }
+    },
+    {
+      id: 'light', group: 'Coastal', title: 'Range of a Light',
+      desc: 'Distance at which a light rises or dips on the horizon, from the height of eye and the height of the light.',
+      fields: [num('e', 'Height of eye', '18', 'm', 0), num('h', 'Height of the light', '42', 'm', 0)],
+      calc: v => ({ rows: [[t('Rising / dipping distance'), nm(S.horizon(v.e) + S.horizon(v.h)), 1],
+        [t('Your horizon'), nm(S.horizon(v.e))], [t('Horizon of the light'), nm(S.horizon(v.h))]] })
+    },
+    {
+      id: 'twobrg', group: 'Coastal', title: 'Distance Off by Two Bearings',
+      desc: 'Distance off from two relative bearings of the same object and the distance run between them (running fix, doubling the angle on the bow).',
+      fields: [num('run', 'Distance run between bearings', '4.0', 'NM', 0), num('b1', 'First relative bearing', '30', '°', 0, 180), num('b2', 'Second relative bearing', '60', '°', 0, 180)],
+      calc: v => { const r = S.twoBearings(v.run, v.b1, v.b2);
+        return { rows: [[t('Distance off when abeam'), nm(r.abeam), 1], [t('Distance off at the second bearing'), nm(r.d2), 1],
+          [t(r.toAbeam >= 0 ? 'Distance to run until abeam' : 'Distance run past abeam'), nm(Math.abs(r.toAbeam))]] }; }
+    },
+    {
+      id: 'conv', group: 'Tools', title: 'Converter',
+      desc: 'Units of length, speed, volume and temperature.',
+      fields: [num('x', 'Value', '1'), { k: 'u', label: t('Unit'), type: 'select', options: unitOptions, def: 'len:0' }],
+      calc: v => {
+        const [cat, i] = v.u.split(':'), us = UNITS[cat].units, base = us[+i].to(v.x);
+        return { rows: us.filter((u, j) => j !== +i).map(u => [u.name, Number(u.from(base).toPrecision(8)).toLocaleString(I.locale, { maximumFractionDigits: 6 })]) };
+      }
+    },
+    {
+      id: 'interp', group: 'Tools', title: 'Interpolation',
+      desc: 'Linear interpolation between two tabulated values.',
+      fields: [num('x1', 'x₁', '10'), num('y1', 'y₁', '2.4'), num('x2', 'x₂', '20'), num('y2', 'y₂', '3.1'), num('x', 'x required', '13.5')],
+      calc: v => ({ rows: [['y', Number(N.interpolate(v.x1, v.y1, v.x2, v.y2, v.x).toPrecision(10)).toString(), 1]] })
     }
   ];
+  ['x₁', 'y₁', 'x₂', 'y₂', 'ETA', 'WGS84', 'SHA', 'GHA', 'LHA', 'TPC'].forEach(s => I.missing.delete(s));
 
-  const grid = document.getElementById("apps");
-  for (const a of APPS) {
-    const el = document.createElement("a");
-    el.className = "card";
-    el.href = a.href;
-    el.innerHTML =
-      '<div class="card-top"><img alt="" width="64" height="64"><div><h2></h2><span class="tag"></span></div></div>' +
-      '<p></p><span class="open">Open app</span>';
-    el.querySelector("img").src = a.icon;
-    el.querySelector("h2").textContent = a.name;
-    el.querySelector(".tag").textContent = a.tag;
-    el.querySelector("p").textContent = a.text;
-    grid.appendChild(el);
+  /* ---------- rendering ---------- */
+  const navEl = $('#nav-list'), formEl = $('#form'), outEl = $('#out');
+
+  // Each group has its own colour and glyph, used in the menu, on the home screen and in page headers
+  const GROUPS = {
+    'Rhumb Line': ['#0a84ff', '<path d="M5 19 19 5"/><circle cx="5" cy="19" r="1.6" fill="#fff"/><circle cx="19" cy="5" r="1.6" fill="#fff"/>'],
+    'Great Circle': ['#5e5ce6', '<path d="M4 18C7 6 17 6 20 18"/><circle cx="4" cy="18" r="1.6" fill="#fff"/><circle cx="20" cy="18" r="1.6" fill="#fff"/>'],
+    'WGS84': ['#30b0c7', '<circle cx="12" cy="12" r="8"/><ellipse cx="12" cy="12" rx="3.5" ry="8"/><path d="M4 12h16"/>'],
+    'Routes': ['#ff375f', '<path d="M4 18l5-8 5 4 6-9"/>'],
+    'Time & Speed': ['#34c759', '<circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/>'],
+    'Current & Drift': ['#32ade6', '<path d="M3 9c3-3 6 3 9 0s6 3 9 0M3 15c3-3 6 3 9 0s6 3 9 0"/>'],
+    'Wind': ['#64d2ff', '<path d="M3 9h11a3 3 0 1 0-3-3M3 15h15a3 3 0 1 1-3 3"/>'],
+    'Celestial': ['#ff9f0a', '<circle cx="12" cy="12" r="3.6"/><path d="M12 3v2.5M12 18.500v2.500M3 12h2.500M18.500 12H21M5.600 5.600l1.800 1.800M16.600 16.600l1.800 1.800M5.600 18.400l1.800-1.800M16.600 7.400l1.800-1.800"/>'],
+    'Ship': ['#bf5af2', '<path d="M3 15l2.500 4h13L21 15zM7 15V9.500h10V15M12 9.500V5"/>'],
+    'Tides': ['#00c7be', '<path d="M3 17c3-3 6 3 9 0s6 3 9 0M12 4v8M8.500 7.500 12 4l3.500 3.500"/>'],
+    'Coastal': ['#a2845e', '<path d="M10 20l1-12h2l1 12zM8.500 20h7M9.500 8h5M12 4.500V8M5.500 5.500l2.500 1M18.500 5.500 16 6.500"/>'],
+    'Tools': ['#8e8e93', '<path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/>']
+  };
+  const badge = g => `<span class="badge" style="background:${GROUPS[g][0]}"><svg viewBox="0 0 24 24" aria-hidden="true">${GROUPS[g][1]}</svg></span>`;
+  const gt = g => g === 'WGS84' ? g : t(g);
+  const mt = m => m.id === 'eta' ? m.title : t(m.title);
+  // Replay the entrance animation whenever the view changes
+  const animate = () => { const m = $('main'); m.classList.remove('enter'); void m.offsetWidth; m.classList.add('enter'); };
+
+  function renderHome() {
+    $('#title').textContent = 'Azimuth';
+    $('#group').textContent = '';
+    $('#badge').innerHTML = '';
+    $('#desc').textContent = t('Navigation calculations for the bridge — offline, in one place.');
+    outEl.innerHTML = '';
+    formEl.className = 'home';
+    const groups = [...new Set(MODULES.map(m => m.group))];
+    formEl.innerHTML = `<input id="search" type="search" placeholder="${t('Search tools')}" aria-label="${t('Search tools')}" autocomplete="off">` +
+      groups.map(g => `<section class="tile-group"><h2>${gt(g)}</h2><div class="tiles">` +
+        MODULES.filter(m => m.group === g).map(m => `<a class="tile" href="#${m.id}" data-find="${esc((gt(g) + ' ' + mt(m) + ' ' + t(m.desc)).toLowerCase())}">` +
+          `${badge(g)}<strong>${mt(m)}</strong><p>${t(m.desc)}</p></a>`).join('') + '</div></section>').join('') +
+      `<p class="hint" id="none" hidden>${t('No tools match.')}</p>`;
+    formEl.oninput = e => {
+      if (e.target.id !== 'search') return;
+      const q = e.target.value.trim().toLowerCase();
+      let any = false;
+      formEl.querySelectorAll('.tile-group').forEach(sec => {
+        let n = 0;
+        sec.querySelectorAll('.tile').forEach(a => { const ok = a.dataset.find.includes(q); a.hidden = !ok; if (ok) n++; });
+        sec.hidden = !n; any = any || n > 0;
+      });
+      $('#none').hidden = any;
+    };
   }
 
-  const net = document.getElementById("net");
-  const showNet = () => { net.textContent = navigator.onLine ? "● online" : "○ offline – using saved copy"; };
-  addEventListener("online", showNet); addEventListener("offline", showNet); showNet();
-
-  // Android / Chrome / Edge: show a one-tap install button when the browser allows it.
-  let installEvt = null;
-  const installBtn = document.getElementById("install");
-  addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; installBtn.hidden = false; });
-  installBtn.addEventListener("click", async () => {
-    if (!installEvt) return;
-    installEvt.prompt(); await installEvt.userChoice; installEvt = null; installBtn.hidden = true;
-  });
-  addEventListener("appinstalled", () => { installBtn.hidden = true; });
-
-  if ("serviceWorker" in navigator) {
-    addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  function buildShell() {
+    document.documentElement.lang = I.lang;
+    document.title = 'Azimuth — ' + t('navigation calculator');
+    document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
+    document.querySelectorAll('[data-t-aria]').forEach(el => { el.setAttribute('aria-label', t(el.dataset.tAria)); });
+    const groups = [...new Set(MODULES.map(m => m.group))];
+    navEl.innerHTML = `<a class="nav-home" href="#home" data-id="home">${t('All tools')}</a>` +
+      groups.map(g => `<div class="nav-group"><h2>${badge(g)}${gt(g)}</h2>` +
+      MODULES.filter(m => m.group === g).map(m => `<a href="#${m.id}" data-id="${m.id}">${mt(m)}</a>`).join('') + '</div>').join('');
+    // Appearance: light, dark, or red night mode that preserves night vision
+    const themes = [['light', 'Light'], ['dark', 'Dark'], ['night', 'Night']];
+    const applyTheme = th => { document.documentElement.dataset.theme = th;
+      document.querySelectorAll('#theme button').forEach(b => b.setAttribute('aria-pressed', b.dataset.th === th)); };
+    $('#theme').innerHTML = themes.map(x => `<button type="button" data-th="${x[0]}">${t(x[1])}</button>`).join('');
+    $('#theme').onclick = e => { const b = e.target.closest('[data-th]'); if (b) { store.set('theme', b.dataset.th); applyTheme(b.dataset.th); } };
+    // Saved choice first, then a theme set by the hosting page, then the system setting
+    const hostTheme = document.documentElement.dataset.theme;
+    applyTheme(store.get('theme', null) || (themes.some(x => x[0] === hostTheme) ? hostTheme : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    const sel = $('#lang');
+    sel.innerHTML = Object.entries(I.LANGS).map(([k, n]) => `<option value="${k}"${k === I.lang ? ' selected' : ''}>${n}</option>`).join('');
+    sel.onchange = () => I.setLang(sel.value);
+    // Version and copyright; the terms page exists only on the SeaTools site
+    $('#meta').innerHTML = 'Azimuth ' + VERSION + ' · © 2026 SeaTools' +
+      (window.AZ_SITE ? ` · <a href="../about/">${t('About & terms')}</a>` : '');
   }
+
+  function fieldHtml(f, val) {
+    const id = 'f-' + f.k;
+    if (f.type === 'lat' || f.type === 'lon' || f.type === 'ang')
+      return `<div class="field"><span>${f.label}</span>${coordHtml(`data-k="${f.k}"`, f.type, val, f.label)}</div>`;
+    let input;
+    if (f.type === 'select') {
+      input = `<select id="${id}" data-k="${f.k}">` + f.options.map(o => `<option value="${o[0]}"${o[0] === val ? ' selected' : ''}>${o[1]}</option>`).join('') + '</select>';
+    } else if (f.type === 'time') {
+      input = `<input id="${id}" data-k="${f.k}" type="datetime-local" step="${f.sec ? 1 : 60}" value="${esc(val)}">`;
+    } else {
+      const ph = f.type === 'lat' ? '54°24.0 N' : f.type === 'lon' ? '018°40.0 E' : f.type === 'ang' ? '35°12.4' : '';
+      input = `<input id="${id}" data-k="${f.k}" type="text" inputmode="${f.type === 'num' ? 'decimal' : 'text'}" autocomplete="off" spellcheck="false" placeholder="${ph}" value="${esc(val)}">`;
+    }
+    return `<label class="field" for="${id}"><span>${f.label}${f.unit ? ` <em>${f.unit}</em>` : ''}</span>${input}</label>`;
+  }
+
+  function readValues(mod, raw) {
+    const v = {};
+    for (const f of mod.fields) {
+      if (f.if && !f.if(raw)) continue;
+      const s = (raw[f.k] ?? '').toString().trim();
+      if (f.type === 'ang') {
+        const x = A.parseAngle(s);
+        if (isNaN(x)) throw new Error(t('“{0}”: check the degrees and minutes.', f.label));
+        v[f.k] = x;
+      } else if (f.type === 'lat' || f.type === 'lon') {
+        const x = N.parseCoord(s, f.type === 'lat');
+        if (isNaN(x)) throw new Error(t('“{0}”: check the degrees and minutes.', f.label));
+        v[f.k] = x;
+      } else if (f.type === 'num') {
+        const x = s === '' ? NaN : Number(s.replace(',', '.'));
+        if (isNaN(x)) throw new Error(t('“{0}”: enter a number.', f.label));
+        if (f.min != null && x < f.min) throw new Error(t('“{0}”: value cannot be less than {1}.', f.label, f.min));
+        if (f.max != null && x > f.max) throw new Error(t('“{0}”: value cannot be greater than {1}.', f.label, f.max));
+        v[f.k] = x;
+      } else v[f.k] = s;
+    }
+    return v;
+  }
+
+  function resultHtml(res) {
+    const big = res.rows.filter(r => r[2]), rest = res.rows.filter(r => !r[2]);
+    let h = '';
+    // A course-like headline value (e.g. "311.2°") also drives the compass dial
+    const brg = big.map(r => /^(\d{3}\.\d)°$/.exec(r[1])).find(Boolean);
+    if (big.length) h += '<div class="hero">' + big.map(r => `<div class="stat"><span>${r[0]}</span><strong>${r[1]}</strong></div>`).join('') +
+      (brg ? dialSvg(+brg[1]) : '') + '</div>';
+    if (rest.length) h += '<dl class="rows card">' + rest.map(r => `<div><dt>${r[0]}</dt><dd>${r[1]}</dd></div>`).join('') + '</dl>';
+    (res.tables || (res.table ? [res.table] : [])).forEach(tb => { h += tableHtml(tb); });
+    return h;
+  }
+  const tableHtml = tb => '<div class="card table-wrap">' + (tb.title ? `<h3>${tb.title}</h3>` : '') + '<table><thead><tr>' + tb.head.map(x => `<th>${x}</th>`).join('') +
+    '</tr></thead><tbody>' + tb.rows.map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('') + '</tbody></table></div>';
+  // Engine errors arrive in English; messages built here are already translated
+  const errorHtml = e => `<p class="hint">${esc(I.lang === 'en' || e.local ? e.message : t(e.message))}</p>`;
+  const localError = msg => Object.assign(new Error(msg), { local: true });
+
+  function show(id) {
+    const mod = MODULES.find(m => m.id === id);
+    document.querySelectorAll('#nav-list a').forEach(a => a.classList.toggle('active', a.dataset.id === (mod ? mod.id : 'home')));
+    document.body.classList.remove('nav-open');
+    document.body.classList.toggle('is-home', !mod);
+    window.scrollTo(0, 0);
+    animate();
+    if (!mod) return renderHome();
+    $('#title').textContent = mt(mod);
+    $('#group').textContent = gt(mod.group);
+    $('#badge').innerHTML = badge(mod.group);
+    $('#desc').textContent = t(mod.desc);
+    if (mod.custom) return renderPlan();
+    const stamp = (h, sec) => new Date(Date.now() + h * 36e5).toISOString().slice(0, sec ? 19 : 16);
+    const raw = store.get(mod.id, {});
+    mod.fields.forEach(f => {
+      if (raw[f.k] == null) raw[f.k] = f.def ?? (f.type === 'time' ? stamp((f.off || 0) + (f.local ? Number(deviceTz) : 0), f.sec) : '');
+      if (f.type === 'select' && !f.options.some(o => o[0] === raw[f.k])) raw[f.k] = f.def;
+    });
+    formEl.className = 'card form';
+    const drawForm = () => { formEl.innerHTML = mod.fields.filter(f => !f.if || f.if(raw)).map(f => fieldHtml(f, raw[f.k])).join(''); };
+    drawForm();
+    const update = e => {
+      coordAdvance(e);
+      formEl.querySelectorAll('[data-k]').forEach(el => { raw[el.dataset.k] = getVal(el); });
+      store.set(mod.id, raw);
+      // A select can switch which fields apply (e.g. Sun vs. star)
+      if (e && e.target.tagName === 'SELECT' && mod.fields.some(f => f.if)) drawForm();
+      try { outEl.innerHTML = resultHtml(mod.calc(readValues(mod, raw))); }
+      catch (e) { outEl.innerHTML = errorHtml(e); }
+    };
+    formEl.oninput = update;
+    formEl.onclick = e => { const b = e.target.closest('[data-h]'); if (b) { setHemi(b); update(); } };
+    update();
+  }
+
+  /* ---------- route plan ---------- */
+  const METHODS = [['rl', t('Rhumb Line')], ['gc', t('Great Circle')], ['wgs', 'WGS84']];
+  const legFn = { rl: N.rhumbInverse, gc: N.gcInverse, wgs: N.vincentyInverse };
+
+  function renderPlan() {
+    const plan = store.get('plan', {
+      method: 'rl', speed: '12', dep: new Date().toISOString().slice(0, 16),
+      wps: [{ name: 'Gdańsk', lat: '54°24.0 N', lon: '018°42.0 E' }, { name: 'Bornholm N', lat: '55°20.0 N', lon: '014°45.0 E' },
+        { name: 'Skagen', lat: '57°46.0 N', lon: '010°40.0 E' }, { name: 'Aberdeen', lat: '57°09.0 N', lon: '002°00.0 W' }]
+    });
+    const save = () => store.set('plan', plan);
+    plan.tzd ??= deviceTz;
+    plan.tza ??= deviceTz;
+    const tzSelect = (key, label) => `<label class="field"><span>${t(label)}</span><select data-p="${key}">` +
+      TZ_OPTIONS.map(o => `<option value="${o[0]}"${o[0] === plan[key] ? ' selected' : ''}>${o[1]}</option>`).join('') + '</select></label>';
+
+    function draw() {
+      formEl.className = 'card form plan';
+      formEl.innerHTML =
+        `<label class="field"><span>${t('Method')}</span><select data-p="method">${METHODS.map(m => `<option value="${m[0]}"${m[0] === plan.method ? ' selected' : ''}>${m[1]}</option>`).join('')}</select></label>` +
+        `<label class="field"><span>${t('Speed')} <em>kn</em></span><input data-p="speed" type="text" inputmode="decimal" value="${esc(plan.speed)}"></label>` +
+        `<label class="field"><span>${t('Departure (local time)')}</span><input data-p="dep" type="datetime-local" value="${esc(plan.dep)}"></label>` +
+        tzSelect('tzd', 'Departure time zone') + tzSelect('tza', 'Arrival time zone') +
+        '<div class="wps">' + plan.wps.map((w, i) =>
+          `<div class="wp"><b>${i + 1}</b>` +
+          `<input data-i="${i}" data-w="name" type="text" placeholder="${t('Name')}" aria-label="${t('Name of waypoint {0}', i + 1)}" value="${esc(w.name)}">` +
+          coordHtml(`data-i="${i}" data-w="lat"`, 'lat', w.lat, t('Latitude of waypoint {0}', i + 1)) +
+          coordHtml(`data-i="${i}" data-w="lon"`, 'lon', w.lon, t('Longitude of waypoint {0}', i + 1)) +
+          `<button type="button" class="icon" data-del="${i}" aria-label="${t('Remove waypoint {0}', i + 1)}">×</button></div>`).join('') + '</div>' +
+        `<div class="actions"><button type="button" id="wp-add" class="primary">${t('Add waypoint')}</button>` +
+        `<button type="button" id="gpx-out">${t('Save GPX')}</button>` +
+        `<label class="btn">${t('Load GPX')}<input type="file" id="gpx-in" accept=".gpx,application/gpx+xml" hidden></label></div>`;
+      compute();
+    }
+
+    function compute() {
+      save();
+      try {
+        if (plan.wps.length < 2) throw localError(t('Add at least two waypoints.'));
+        const pts = plan.wps.map((w, i) => {
+          const lat = N.parseCoord(w.lat, true), lon = N.parseCoord(w.lon, false);
+          if (isNaN(lat) || isNaN(lon)) throw localError(t('Waypoint {0}: check the coordinates.', i + 1));
+          return { lat, lon, name: w.name || 'WP' + (i + 1) };
+        });
+        const spd = Number(String(plan.speed).replace(',', '.'));
+        const dep = plan.dep ? new Date(new Date(plan.dep + ':00Z').getTime() - Number(plan.tzd) * 36e5) : null;
+        const timed = spd > 0 && dep && !isNaN(dep);
+        let cum = 0;
+        const rows = pts.map((p, i) => {
+          let c = '—', d = '—';
+          if (i > 0) { const l = legFn[plan.method](pts[i - 1].lat, pts[i - 1].lon, p.lat, p.lon); cum += l.dist; c = crs(l.course); d = nm(l.dist); }
+          return [i + 1, esc(p.name), c, d, nm(cum), timed ? toLocal(new Date(dep.getTime() + cum / spd * 36e5), plan.tza) : '—'];
+        });
+        outEl.innerHTML = '<div class="hero">' +
+          `<div class="stat"><span>${t('Total distance')}</span><strong>${nm(cum)}</strong></div>` +
+          `<div class="stat"><span>${t('Passage time')}</span><strong>${spd > 0 ? dur(cum / spd) : '—'}</strong></div></div>` +
+          tableHtml({ head: ['#', t('Waypoint'), t('Course'), t('Leg'), t('Cumulative'), 'ETA'], rows }) + sketch(pts);
+      } catch (e) { outEl.innerHTML = errorHtml(e); }
+    }
+
+    // Mercator sketch: rhumb lines plot as straight segments
+    function sketch(pts) {
+      const line = [];
+      pts.forEach((p, i) => {
+        if (i && plan.method !== 'rl') N.gcPoints(pts[i - 1].lat, pts[i - 1].lon, p.lat, p.lon, 24).slice(1).forEach(q => line.push(q));
+        else line.push(p);
+      });
+      let prev = null;
+      const xy = line.map(p => {
+        let lon = p.lon;
+        if (prev != null) while (lon - prev > 180) lon -= 360;
+        if (prev != null) while (lon - prev < -180) lon += 360;
+        prev = lon;
+        return { x: lon * 60, y: -N.meridionalParts(p.lat), wp: pts.indexOf(p) };
+      });
+      const xs = xy.map(q => q.x), ys = xy.map(q => q.y);
+      const x0 = Math.min(...xs), y0 = Math.min(...ys), w = Math.max(...xs) - x0 || 1, h = Math.max(...ys) - y0 || 1;
+      const W = 640, H = 300, pad = 28, k = Math.min((W - 2 * pad) / w, (H - 2 * pad) / h);
+      const ox = (W - w * k) / 2, oy = (H - h * k) / 2;
+      const T = q => [(q.x - x0) * k + ox, (q.y - y0) * k + oy];
+      const path = xy.map((q, i) => (i ? 'L' : 'M') + T(q).map(n => n.toFixed(1)).join(' ')).join(' ');
+      const dots = xy.filter(q => q.wp >= 0).map(q => { const [x, y] = T(q);
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"/><text x="${(x + 8).toFixed(1)}" y="${(y - 8).toFixed(1)}">${q.wp + 1}</text>`; }).join('');
+      return `<figure class="card sketch"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t('Route sketch')}"><path d="${path}"/>${dots}</svg>` +
+        `<figcaption>${t('Illustrative sketch on a Mercator projection — not for navigation.')}</figcaption></figure>`;
+    }
+
+    function gpxOut() {
+      const pts = plan.wps.map(w => ({ n: w.name, lat: N.parseCoord(w.lat, true), lon: N.parseCoord(w.lon, false) })).filter(p => !isNaN(p.lat) && !isNaN(p.lon));
+      const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Azimuth" xmlns="http://www.topografix.com/GPX/1/1">\n<rte><name>' + t('Route plan') + '</name>\n' +
+        pts.map(p => `<rtept lat="${p.lat.toFixed(6)}" lon="${p.lon.toFixed(6)}"><name>${esc(p.n)}</name></rtept>`).join('\n') + '\n</rte>\n</gpx>\n';
+      // Where the page cannot start a download (a published, sandboxed copy), show the GPX text to copy instead
+      if (window.AZ_NO_DOWNLOAD) {
+        if (!$('#gpx-text')) outEl.insertAdjacentHTML('afterbegin', `<div class="card gpx"><h3>${t('GPX route')}</h3>` +
+          `<textarea id="gpx-text" readonly rows="8" aria-label="${t('GPX route')}"></textarea><button type="button" id="gpx-copy">${t('Copy')}</button></div>`);
+        const box = $('#gpx-text');
+        box.value = xml;
+        box.select();
+        $('#gpx-copy').onclick = e => navigator.clipboard.writeText(xml).then(() => { e.target.textContent = t('Copied'); }).catch(() => box.select());
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([xml], { type: 'application/gpx+xml' }));
+      a.download = 'route.gpx';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+
+    function gpxIn(file) {
+      const rd = new FileReader();
+      rd.onload = () => {
+        const doc = new DOMParser().parseFromString(rd.result, 'application/xml');
+        let els = [...doc.getElementsByTagName('rtept')];
+        if (!els.length) els = [...doc.getElementsByTagName('wpt')];
+        const wps = els.map((el, i) => ({
+          name: (el.getElementsByTagName('name')[0] || {}).textContent || 'WP' + (i + 1),
+          lat: N.formatCoord(Number(el.getAttribute('lat')), true), lon: N.formatCoord(Number(el.getAttribute('lon')), false)
+        })).filter(w => !w.lat.includes('NaN') && !w.lon.includes('NaN'));
+        if (!wps.length) { outEl.innerHTML = errorHtml(localError(t('The file contains no route points (rtept or wpt).'))); return; }
+        plan.wps = wps;
+        draw();
+      };
+      rd.readAsText(file);
+    }
+
+    formEl.oninput = e => {
+      const host = e.target.closest('[data-p],[data-w]');
+      if (!host) return;
+      coordAdvance(e);
+      if (host.dataset.p) plan[host.dataset.p] = host.value;
+      else plan.wps[+host.dataset.i][host.dataset.w] = getVal(host);
+      compute();
+    };
+    formEl.onchange = e => { if (e.target.id === 'gpx-in' && e.target.files[0]) gpxIn(e.target.files[0]); };
+    formEl.onclick = e => {
+      const el = e.target, hb = el.closest('[data-h]');
+      if (hb) { setHemi(hb); const host = hb.closest('[data-w]'); plan.wps[+host.dataset.i][host.dataset.w] = getVal(host); compute(); return; }
+      if (el.dataset.del != null) { plan.wps.splice(+el.dataset.del, 1); draw(); }
+      else if (el.id === 'wp-add') { plan.wps.push({ name: '', lat: '', lon: '' }); draw(); formEl.querySelector('.wp:last-child input').focus(); }
+      else if (el.id === 'gpx-out') gpxOut();
+    };
+    draw();
+  }
+
+  /* ---------- start ---------- */
+  buildShell();
+  const route = () => { formEl.oninput = formEl.onclick = formEl.onchange = null; show(location.hash.slice(1) || 'home'); };
+  window.addEventListener('hashchange', route);
+  $('#menu').onclick = () => document.body.classList.toggle('nav-open');
+  $('#scrim').onclick = () => document.body.classList.remove('nav-open');
+  route();
+
+  if (!window.AZ_NO_SW && 'serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
 </script>
-<script src="assets/stats.js" defer></script>
 </body>
 </html>
