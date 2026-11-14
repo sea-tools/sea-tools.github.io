@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SeaTools</title>
+<meta name="description" content="Free browser tools for ship's crews, starting with a DP footprint plot. Work on PC, iPad and phone, also offline.">
+<meta name="theme-color" content="#14232d">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root{
+    --bg:#e9eef2; --paper:#ffffff; --ink:#14232d; --muted:#586873; --line:#c9d2d9;
+    --accent:#ff5a4f; --gold:#ffd166; --steel:#8fa3b1; --navy:#14232d;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#0e151a; --paper:#16222b; --ink:#e6edf2; --muted:#93a4b0; --line:#26343e}
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.5;
+       padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  a{color:inherit}
+
+  header{background:var(--navy);color:#fff;position:relative;overflow:hidden}
+  header .inner{max-width:1080px;margin:0 auto;padding:56px 24px 64px;position:relative;z-index:1}
+  .brand{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+  .brand img{width:44px;height:44px;border-radius:11px}
+  .brand span{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel)}
+  h1{font-size:clamp(32px,5.5vw,56px);line-height:1.05;margin:0 0 16px;letter-spacing:-.02em;font-weight:700;max-width:14ch}
+  h1 em{font-style:normal;color:var(--gold)}
+  .lead{font-size:clamp(16px,2vw,19px);color:#c5d1d9;max-width:56ch;margin:0}
+  .rings{position:absolute;right:-140px;top:50%;transform:translateY(-50%);width:520px;height:520px;opacity:.16;pointer-events:none}
+  @media (max-width:700px){.rings{right:-260px}}
+
+  main{max-width:1080px;margin:0 auto;padding:40px 24px 24px}
+  .section-label{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 16px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+  .card{display:flex;flex-direction:column;background:var(--paper);border:1px solid var(--line);border-radius:16px;
+        padding:22px;text-decoration:none;min-height:100%;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+  .card:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(20,35,45,.12);border-color:var(--steel)}
+  .card:active{transform:translateY(0)}
+  .card:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+  .card-top{display:flex;gap:16px;align-items:center;margin-bottom:14px}
+  .card img{width:64px;height:64px;border-radius:15px;flex:none}
+  .card h2{font-size:20px;margin:0;line-height:1.2}
+  .tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+       color:var(--muted);margin-top:4px}
+  .card p{margin:0 0 18px;color:var(--muted);font-size:15px}
+  .open{margin-top:auto;display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:15px;
+        min-height:44px}
+  .open::after{content:"→";transition:transform .15s ease}
+  .card:hover .open::after{transform:translateX(3px)}
+
+  .info{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-top:48px}
+  .info div{border-top:2px solid var(--ink);padding-top:14px}
+  .info h3{font-size:15px;margin:0 0 6px}
+  .info p{margin:0;color:var(--muted);font-size:14px}
+  .howto{margin:8px 0 0;padding:0;list-style:none;color:var(--muted);font-size:14px}
+  .howto li{margin:0 0 6px}
+  .howto b{color:var(--ink);font-weight:600}
+  .install{margin-top:10px;min-height:44px;padding:0 18px;border:0;border-radius:10px;background:var(--navy);color:#fff;
+           font:600 15px var(--font);cursor:pointer}
+  @media (prefers-color-scheme:dark){.install{background:#e6edf2;color:#14232d}}
+
+  footer{max-width:1080px;margin:0 auto;padding:32px 24px 48px;color:var(--muted);font-size:13px;
+         display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:48px}
+  #net{font-family:var(--mono)}
+  @media (prefers-reduced-motion:reduce){.card,.open::after{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <svg class="rings" viewBox="0 0 520 520" aria-hidden="true" fill="none" stroke="#fff" stroke-width="2">
+    <circle cx="260" cy="260" r="250"/><circle cx="260" cy="260" r="180"/><circle cx="260" cy="260" r="110"/><circle cx="260" cy="260" r="40"/>
+    <path d="M260 0v520M0 260h520"/>
+  </svg>
+  <div class="inner">
+    <div class="brand"><img src="assets/icon-192.png" alt=""><span>SeaTools</span></div>
+    <h1>Tools for the <em>bridge</em> and the <em>engine room</em></h1>
+    <p class="lead">Free browser apps for ship's crews. Nothing to install: open on a PC, tablet or phone. Once opened, they keep working offline.</p>
+  </div>
+</header>
+
+<main>
+  <p class="section-label">Apps</p>
+  <div class="grid" id="apps"></div>
+
+  <div class="info">
+    <div>
+      <h3>Works offline</h3>
+      <p>Open this page once with internet. After that all apps load from the device, even with no connection on board.</p>
+    </div>
+    <div>
+      <h3>Your data stays on your device</h3>
+      <p>Entries are saved in this browser only. Nothing is sent anywhere. Use each app's export or print to keep a copy.</p>
+    </div>
+    <div>
+      <h3>Add to your home screen</h3>
+      <p>Give an app its own icon on any tablet or phone. Open the app first, then:</p>
+      <ul class="howto">
+        <li><b>iPad / iPhone:</b> in Safari tap Share, then “Add to Home Screen”.</li>
+        <li><b>Android:</b> in Chrome tap the ⋮ menu, then “Add to Home screen” or “Install app”.</li>
+        <li><b>PC:</b> in Chrome or Edge click the install icon in the address bar.</li>
+      </ul>
+      <button id="install" class="install" hidden>Install on this device</button>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>SeaTools</span>
+  <span id="net"></span>
+</footer>
+
+<script>
+  // To add a new app: put its folder next to this file and add one entry here.
+  const APPS = [
+    {
+      href: "dp-footprint/",
+      icon: "dp-footprint/icon.png",
+      name: "DP Footprint Plot",
+      tag: "Bridge · DP",
+      text: "Plot DP position footprints with heading, wind, current and waves. Run a 30-minute capture, save plots and print them to PDF."
+    }
+  ];
+
+  const grid = document.getElementById("apps");
+  for (const a of APPS) {
+    const el = document.createElement("a");
+    el.className = "card";
+    el.href = a.href;
+    el.innerHTML =
+      '<div class="card-top"><img alt="" width="64" height="64"><div><h2></h2><span class="tag"></span></div></div>' +
+      '<p></p><span class="open">Open app</span>';
+    el.querySelector("img").src = a.icon;
+    el.querySelector("h2").textContent = a.name;
+    el.querySelector(".tag").textContent = a.tag;
+    el.querySelector("p").textContent = a.text;
+    grid.appendChild(el);
+  }
+
+  const net = document.getElementById("net");
+  const showNet = () => { net.textContent = navigator.onLine ? "● online" : "○ offline – using saved copy"; };
+  addEventListener("online", showNet); addEventListener("offline", showNet); showNet();
+
+  // Android / Chrome / Edge: show a one-tap install button when the browser allows it.
+  let installEvt = null;
+  const installBtn = document.getElementById("install");
+  addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; installBtn.hidden = false; });
+  installBtn.addEventListener("click", async () => {
+    if (!installEvt) return;
+    installEvt.prompt(); await installEvt.userChoice; installEvt = null; installBtn.hidden = true;
+  });
+  addEventListener("appinstalled", () => { installBtn.hidden = true; });
+
+  if ("serviceWorker" in navigator) {
+    addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  }
+</script>
+</body>
+</html>
