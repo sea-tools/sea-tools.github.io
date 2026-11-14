@@ -9,6 +9,7 @@ index.html            strona główna (lista aplikacji)
 sw.js                 tryb offline
 manifest.webmanifest  ikona i nazwa po dodaniu do ekranu głównego
 assets/               ikony strony
+about/                O stronie, warunki korzystania, prywatność, wersje aplikacji
 dp-footprint/         DP Footprint Plot
 azimuth/              Azimuth (kalkulator nawigacyjny)
 ```
