@@ -113,13 +113,34 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   .noprint,.ghost{display:none!important}
   .sheet{grid-template-columns:1.1fr 1fr;gap:8px} .dialcol{position:static} .card{border:0;padding:4px}
   body{font-size:11px;-webkit-print-color-adjust:exact;print-color-adjust:exact} input,select,textarea{font-size:11px;padding:2px 5px}
-  @page{size:A4;margin:11mm}
   .wrap{padding:0;gap:6px;max-width:none} .chips{display:none} .formcol{gap:2px} .dialcol{gap:6px}
   h1{font-size:16px} h2{font-size:10px;margin-bottom:3px} button{min-height:0}
   .tri{padding:0 6px;font-size:12px;min-width:38px} table.t td{padding:1px 0} .grid2{gap:3px 8px}
   .thr{grid-template-columns:84px minmax(0,1fr)} textarea{min-height:34px} #dial{max-width:none}
   ::placeholder{color:transparent} .stat{font-size:10.5px}
   .card{break-inside:avoid}
+  /* Print on A4 landscape: large plot on the left, details on the right */
+  @page{size:A4 landscape;margin:9mm}
+  .sheet{display:grid;grid-template-columns:150mm minmax(0,1fr);gap:0 8mm;align-items:start}
+  .dialcol{display:block;padding:0}
+  #dial{width:100%;height:auto;max-width:150mm;max-height:158mm;margin:0 auto}
+  .dialcol .row{justify-content:center!important;gap:12px}
+  .formcol{display:grid;grid-template-columns:1fr 1fr;gap:0 6mm;align-items:start;font-size:10px}
+  .formcol>.card{display:block;margin:0 0 3mm;padding:0}
+  .formcol>.card:nth-child(1){grid-column:1;grid-row:1}
+  .formcol>.card:nth-child(3){grid-column:1;grid-row:2}
+  .formcol>.card:nth-child(5){grid-column:1;grid-row:3}
+  .formcol>.card:nth-child(2){grid-column:2;grid-row:1/span 2}
+  .formcol>.card:nth-child(4){grid-column:2;grid-row:3}
+  input,select,textarea{border:0!important;border-bottom:1px solid #bbb!important;border-radius:0!important;background:none!important;padding:0 2px!important;min-height:0!important;height:auto!important}
+  input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-calendar-picker-indicator{display:none}
+  select{-webkit-appearance:none;appearance:none}
+  textarea{resize:none}
+  .f{gap:0}
+  .formcol .grid2{grid-template-columns:1fr 1fr}
+  .thr{grid-template-columns:60px minmax(0,1fr)}
+  h1{margin:0}
+}
 }
 </style>
 
@@ -426,4 +447,28 @@ render();
 })();
 </script>
 
+<script>
+/* Print: crop the dial to its drawing so the plot fills the page width */
+(function(){
+  var full=null;
+  function crop(){
+    var d=document.getElementById('dial'); if(!d||!d.getBBox||full) return;
+    try{
+      full=d.getAttribute('viewBox');
+      var b=d.getBBox(), pad=8;
+      if(!b.width||!b.height) return;
+      d.setAttribute('viewBox',[b.x-pad,b.y-pad,b.width+2*pad,b.height+2*pad].join(' '));
+      d.style.aspectRatio=(b.width+2*pad)+' / '+(b.height+2*pad);
+    }catch(e){}
+  }
+  function restore(){
+    var d=document.getElementById('dial'); if(!d||!full) return;
+    d.setAttribute('viewBox',full); d.style.aspectRatio=''; full=null;
+  }
+  addEventListener('beforeprint',crop);
+  addEventListener('afterprint',restore);
+  if(window.matchMedia){var mq=matchMedia('print'); var h=function(e){e.matches?crop():restore()};
+    mq.addEventListener?mq.addEventListener('change',h):mq.addListener&&mq.addListener(h);}
+})();
+</script>
 </body></html>
