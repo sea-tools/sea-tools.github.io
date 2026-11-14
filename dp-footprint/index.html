@@ -76,7 +76,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .stat.good{color:var(--ok);font-weight:700}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
 .full{grid-column:1/-1}
-label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0}
+.dm{display:flex;align-items:center;gap:6px}
+.dm input{flex:1}
+.dm select{flex:none;width:76px}
+.dm b{color:var(--ink);font-size:16px}
+.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0}
 input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%;min-width:0}
 textarea{min-height:60px;resize:vertical}
 .inl{display:flex;gap:8px;align-items:flex-end}
@@ -133,7 +137,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-calendar-picker-indicator{display:none}
   select{-webkit-appearance:none;appearance:none}
   textarea{resize:none}
-  .f{gap:0}
+  .f{gap:0} .dm{gap:2px} .dm b{font-size:10px} .dm select{width:30px}
   .formcol .grid2{grid-template-columns:1fr 1fr}
   .thr{grid-template-columns:56px minmax(0,1fr)}
   h1{margin:0}
@@ -204,11 +208,19 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
           <label class="f full">Vessel<input id="vessel" data-k="vessel" autocomplete="off"></label>
           <label class="f">Date<input id="date" data-k="date" type="date"></label>
           <div class="inl"><label class="f">Time<input id="time" data-k="time" type="time"></label><button id="nowBtn" class="noprint">Now</button></div>
-          <label class="f full">Location<input id="location" data-k="location" placeholder="56°32.6'N 000°28.1'W, field / site" autocomplete="off"></label>
+          <div class="f full"><span>Latitude</span><div class="dm">
+            <input id="latD" data-k="latD" type="text" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="00" data-num="int" data-max="90" aria-label="Latitude degrees"><b>°</b>
+            <input id="latM" data-k="latM" type="text" inputmode="decimal" autocomplete="off" maxlength="7" placeholder="00.000" data-num="dec" data-max="59.9999" aria-label="Latitude minutes"><b>′</b>
+            <select id="latH" data-k="latH" aria-label="Latitude hemisphere"><option>N</option><option>S</option></select></div></div>
+          <div class="f full"><span>Longitude</span><div class="dm">
+            <input id="lonD" data-k="lonD" type="text" inputmode="numeric" autocomplete="off" maxlength="3" placeholder="000" data-num="int" data-max="180" aria-label="Longitude degrees"><b>°</b>
+            <input id="lonM" data-k="lonM" type="text" inputmode="decimal" autocomplete="off" maxlength="7" placeholder="00.000" data-num="dec" data-max="59.9999" aria-label="Longitude minutes"><b>′</b>
+            <select id="lonH" data-k="lonH" aria-label="Longitude hemisphere"><option>E</option><option>W</option></select></div></div>
+          <label class="f full">Field / site<input id="site" data-k="site" autocomplete="off"></label>
           <label class="f">DPO<input id="dpo1" data-k="dpo1" autocomplete="off"></label>
           <label class="f">DPO<input id="dpo2" data-k="dpo2" autocomplete="off"></label>
           <label class="f full">Setpoint reference point
-            <select id="refPoint" data-k="refPoint"><option>Midship</option><option>Bow</option><option>Stern</option><option>Centre of rotation</option><option>Forward moon pool centre</option><option>Aft moon pool centre</option><option>Other (see notes)</option></select></label>
+            <select id="refPoint" data-k="refPoint"><option>Midship</option><option>Bow</option><option>Stern</option><option>Center of rotation</option><option>Forward moonpool center</option><option>Aft moonpool center</option><option>Other (see notes)</option></select></label>
         </div>
       </div>
       <div class="card">
@@ -262,16 +274,21 @@ const REFS=[['dgps1','DGPS 1'],['dgps2','DGPS 2'],['cyscan','Cyscan'],['radius',
 const ENV=[['heading','Heading','°','dir'],['windDir','Wind direct.','°','dir'],['windSpd','Wind speed','kn'],['waveDir','Wave direct.','°','dir'],['waveT','Wave period','s'],['waveH','Wave height','m'],['curDir','Current direct.','°','dir'],['curSpd','Current speed','kn'],['draft','Vessel draft','m']];
 
 function blank(){const thr={};THR.forEach(t=>thr[t[0]]={st:'',load:null});
-  return {id:Date.now().toString(36),example:false,vessel:'',date:'',time:'',location:'',dpo1:'',dpo2:'',refPoint:'Midship',
+  return {id:Date.now().toString(36),example:false,vessel:'',date:'',time:'',location:'',latD:null,latM:null,latH:'N',lonD:null,lonM:null,lonH:'E',site:'',dpo1:'',dpo2:'',refPoint:'Midship',
     heading:0,headUp:false,scale:0.5,windDir:null,windSpd:null,waveDir:null,waveH:null,waveT:null,curDir:null,curSpd:null,curMode:'from',draft:null,
     refs:{dgps1:'',dgps2:'',cyscan:'',radius:'',other:''},otherName:'',thr,points:[],capStart:null,capEnd:null,notes:''};}
 function example(){const s=blank();Object.assign(s,{example:true,heading:330,scale:0.25,windDir:160,windSpd:17,waveDir:165,waveH:1.5,waveT:4,curDir:145,curSpd:0.4,draft:5,
-    location:"54°29.9'N 000°18.1'E",refs:{dgps1:'✓',dgps2:'✓',cyscan:'✗',radius:'',other:''},
+    latD:54,latM:29.9,latH:'N',lonD:0,lonM:18.1,lonH:'E',site:'Example field',refs:{dgps1:'✓',dgps2:'✓',cyscan:'✗',radius:'',other:''},
     points:[[300,.42],[322,.5],[270,.18],[250,.35],[285,.55],[236,.48],[200,.3],[335,.62],[262,.6],[310,.28],[225,.75]].map(p=>({b:p[0],d:p[1],t:0}))});
   THR.forEach(t=>s.thr[t[0]].st='✓');return s;}
 function merge(o){const s=blank();if(!o||typeof o!=='object')return s;Object.assign(s,o);
   s.refs=Object.assign(blank().refs,o.refs||{});const t=blank().thr;for(const k in t)Object.assign(t[k],(o.thr||{})[k]||{});s.thr=t;
-  if(!Array.isArray(s.points))s.points=[];return s;}
+  if(!Array.isArray(s.points))s.points=[];
+  if(s.location&&!s.site&&s.latD==null)s.site=s.location;s.location='';
+  const RP={'Centre of rotation':'Center of rotation','Forward moon pool centre':'Forward moonpool center','Aft moon pool centre':'Aft moonpool center'};if(RP[s.refPoint])s.refPoint=RP[s.refPoint];return s;}
+function locStr(x){const dm=(d,m,h,n)=>d==null&&m==null?'':String(d==null?0:d).padStart(n,'0')+'°'+(m==null?'00':(m<10?'0':'')+num4(m))+"'"+h;
+  return [dm(x.latD,x.latM,x.latH||'N',2),dm(x.lonD,x.lonM,x.lonH||'E',3),x.site||x.location||''].filter(Boolean).join(' ');}
+function num4(n){return String(+(+n).toFixed(4))}
 function lsGet(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 
@@ -367,7 +384,7 @@ function render(){
   $('#modeSet').setAttribute('aria-pressed',mode==='set');$('#modePlot').setAttribute('aria-pressed',mode==='plot');
   $('#oriN').setAttribute('aria-pressed',!S.headUp);$('#oriH').setAttribute('aria-pressed',!!S.headUp);
   dial.classList.toggle('plot',mode==='plot');
-  $('#modeHint').textContent=mode==='plot'?'Tap the dial to mark the vessel position relative to the setpoint (centre).':
+  $('#modeHint').textContent=mode==='plot'?'Tap the dial to mark the vessel position relative to the setpoint (center).':
     S.headUp?'Head up: bow fixed at the top. Drag the arrows, or tap anything to type values.':'Drag the ship to set heading. Drag the arrows for wind, current and waves. Tap any of them to type values.';
   $('#exBanner').hidden=!S.example;
   capText();lsSet(KEY,S);
@@ -384,7 +401,11 @@ setInterval(()=>{if(S.capStart&&!S.capEnd)capText()},1000);
 
 /* ---------- inputs ---------- */
 document.addEventListener('input',e=>{const el=e.target,k=el.dataset&&el.dataset.k;if(!k)return;let v=el.value;
-  if(el.type==='number'){v=v===''||isNaN(+v)?null:+v;if(v!=null&&'dir' in el.dataset)v=norm(v);
+  if(el.dataset.num){let c=v.replace(/,/g,'.').replace(el.dataset.num==='int'?/[^0-9]/g:/[^0-9.]/g,'');
+    const i=c.indexOf('.');if(i>=0)c=c.slice(0,i+1)+c.slice(i+1).replace(/\./g,'').slice(0,4);
+    if(+c>+el.dataset.max)c=c.slice(0,-1);
+    if(c!==v)el.value=c;v=c===''||isNaN(+c)?null:+c;}
+  else if(el.type==='number'){v=v===''||isNaN(+v)?null:+v;if(v!=null&&'dir' in el.dataset)v=norm(v);
     if(k==='heading'&&v==null)v=0;if(k==='scale'&&!(v>0))return;}
   set(k,v);render();});
 document.addEventListener('click',e=>{
@@ -431,7 +452,7 @@ $('#blankBtn').onclick=fresh;
 $('#saveBtn').onclick=()=>{S.example=false;const a=lsGet(KEYS)||[],i=a.findIndex(x=>x.id===S.id),c=JSON.parse(JSON.stringify(S));c.savedAt=Date.now();
   if(i>=0)a[i]=c;else a.unshift(c);lsSet(KEYS,a);render();toast(lsGet(KEYS)?'Plot saved on this device':'Could not save in this browser');};
 function drawList(){const a=lsGet(KEYS)||[];
-  $('#listBody').innerHTML=a.length?a.map(x=>`<div class="saved"><div><b>${esc(x.date||'no date')} ${esc(x.time||'')}</b> ${esc(x.vessel||'')}<br>${esc(x.location||'')} · HDG ${pad(x.heading||0)}° · ${(x.points||[]).length} pos.</div><div class="row" style="flex-wrap:nowrap"><button data-load="${esc(x.id)}">Open</button><button data-del="${esc(x.id)}">Delete</button></div></div>`).join(''):'<div class="hint">Nothing saved yet. Use Save to keep the plot on screen.</div>';}
+  $('#listBody').innerHTML=a.length?a.map(x=>`<div class="saved"><div><b>${esc(x.date||'no date')} ${esc(x.time||'')}</b> ${esc(x.vessel||'')}<br>${esc(locStr(x))} · HDG ${pad(x.heading||0)}° · ${(x.points||[]).length} pos.</div><div class="row" style="flex-wrap:nowrap"><button data-load="${esc(x.id)}">Open</button><button data-del="${esc(x.id)}">Delete</button></div></div>`).join(''):'<div class="hint">Nothing saved yet. Use Save to keep the plot on screen.</div>';}
 $('#listBtn').onclick=()=>{drawList();$('#listDlg').showModal()};
 $('#listClose').onclick=()=>$('#listDlg').close();
 $('#listBody').addEventListener('click',e=>{const l=e.target.closest('[data-load]'),d=e.target.closest('[data-del]');
