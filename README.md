@@ -19,6 +19,7 @@ dp-footprint/         DP Footprint Plot
    ```html
    <link rel="manifest" href="manifest.webmanifest">
    <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}))}</script>
+   <script src="../assets/stats.js" defer></script>
    ```
 3. W `index.html` dopisz wpis do listy `APPS`.
 4. W `sw.js` dopisz `"ballast-calc/"`, `"ballast-calc/icon.png"` i `"ballast-calc/manifest.webmanifest"` do `PRECACHE` i zmień `VERSION` (np. `v1` na `v2`).
@@ -29,3 +30,7 @@ dp-footprint/         DP Footprint Plot
 Aplikacje zapisują dane w przeglądarce (localStorage), osobno na każdym urządzeniu.
 Dane zapisane wcześniej przy otwieraniu pliku z dysku nie przeniosą się same na stronę.
 Przy nowych aplikacjach warto dodać eksport i import kopii zapasowej.
+
+## Licznik wejść
+
+Anonimowy licznik (GoatCounter, bez ciasteczek) jest w `assets/stats.js`. Kod konta wpisuje się w zmiennej `CODE`. Statystyki widzi tylko właściciel po zalogowaniu do panelu GoatCounter.
