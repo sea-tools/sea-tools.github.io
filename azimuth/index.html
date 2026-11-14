@@ -81,6 +81,7 @@ body { background: var(--bg); color: var(--ink); font: 16px/1.45 var(--sans); -w
 .side-foot { margin: auto 6px 0; padding-top: 10px; display: grid; gap: 12px; }
 .side-foot label, .side-foot .lbl { display: grid; gap: 6px; font-size: 12px; color: var(--dim); }
 .disclaimer { margin: 0; font-size: 12px; color: var(--dim); }
+.disclaimer a { color: var(--accent); }
 
 main { padding-block: 28px 72px; padding-left: max(clamp(16px, 4vw, 48px), env(safe-area-inset-left, 0px));
   padding-right: max(clamp(16px, 4vw, 48px), env(safe-area-inset-right, 0px)); max-width: 1040px; width: 100%; }
@@ -241,6 +242,7 @@ main.enter > :nth-child(4) { animation-delay: .12s; }
       <div class="lbl"><span data-t="Appearance">Appearance</span><div id="theme" class="seg" role="group" data-t-aria="Appearance" aria-label="Appearance"></div></div>
       <label><span data-t="Language">Language</span><select id="lang"></select></label>
       <p class="disclaimer" data-t="An aid only. Always verify results against official publications and charts.">An aid only. Always verify results against official publications and charts.</p>
+      <p class="disclaimer" id="meta"></p>
     </div>
   </aside>
   <div id="scrim"></div>
@@ -258,7 +260,7 @@ main.enter > :nth-child(4) { animation-delay: .12s; }
     <section id="out" data-t-aria="Result" aria-label="Result" aria-live="polite"></section>
   </main>
 </div>
-<script>window.AZ_NO_SW = true;</script>
+<script>window.AZ_NO_SW = true; window.AZ_SITE = true;</script>
 <script>
 /* Languages. English strings are the source text; other languages map from them. */
 (function () {
@@ -436,7 +438,7 @@ main.enter > :nth-child(4) { animation-delay: .12s; }
     'Spring and neap ranges must differ.': 'Skok syzygijny i kwadraturowy muszą się różnić.',
     'The angle must be between 0° and 90°.': 'Kąt musi być między 0° a 90°.',
     'The second bearing must be larger than the first, both below 180°.': 'Drugi kąt kursowy musi być większy od pierwszego, oba poniżej 180°.',
-    'GPX route': 'Trasa GPX', 'Copy': 'Kopiuj', 'Copied': 'Skopiowano',
+    'About & terms': 'O stronie i warunki', 'GPX route': 'Trasa GPX', 'Copy': 'Kopiuj', 'Copied': 'Skopiowano',
     // stars
     'Star': 'Gwiazda', 'Sun': 'Słońce', 'Azimuth & Compass Error': 'Azymut i poprawka kompasu', 'Star Finder': 'Identyfikacja gwiazd',
     'Sun, Aries and the navigational stars for any moment, with an hourly page for that day. Against published almanac data the Sun agrees to about 0.2′ and the stars to about 0.02′.':
@@ -1104,6 +1106,7 @@ window.STARS = [
 (function () {
   'use strict';
   const N = window.NAV, A = window.ASTRO, S = window.SHIP, I = window.I18N, t = I.tr;
+  const VERSION = '1.0'; // keep in step with the version table on the SeaTools "About & terms" page
   const $ = (s, el = document) => el.querySelector(s);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -1662,6 +1665,9 @@ window.STARS = [
     const sel = $('#lang');
     sel.innerHTML = Object.entries(I.LANGS).map(([k, n]) => `<option value="${k}"${k === I.lang ? ' selected' : ''}>${n}</option>`).join('');
     sel.onchange = () => I.setLang(sel.value);
+    // Version and copyright; the terms page exists only on the SeaTools site
+    $('#meta').innerHTML = 'Azimuth ' + VERSION + ' · © 2026 SeaTools' +
+      (window.AZ_SITE ? ` · <a href="../about/">${t('About & terms')}</a>` : '');
   }
 
   function fieldHtml(f, val) {
