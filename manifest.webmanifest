@@ -1,12 +1,13 @@
 {
-  "name": "Azimuth",
-  "short_name": "Azimuth",
+  "name": "SeaTools",
+  "short_name": "SeaTools",
   "start_url": "./",
   "scope": "./",
   "display": "minimal-ui",
-  "background_color": "#0a84ff",
-  "theme_color": "#0a84ff",
+  "background_color": "#14232d",
+  "theme_color": "#14232d",
   "icons": [
-    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }

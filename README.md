@@ -10,6 +10,7 @@ sw.js                 tryb offline
 manifest.webmanifest  ikona i nazwa po dodaniu do ekranu głównego
 assets/               ikony strony
 dp-footprint/         DP Footprint Plot
+azimuth/              Azimuth (kalkulator nawigacyjny)
 ```
 
 ## Jak dodać nową aplikację
