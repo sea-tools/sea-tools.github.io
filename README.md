@@ -12,6 +12,7 @@ assets/               ikony strony
 about/                O stronie, warunki korzystania, prywatność, wersje aplikacji
 dp-footprint/         DP Footprint Plot
 azimuth/              Azimuth (kalkulator nawigacyjny)
+port-clearance/       Port Clearance (FAL 1–7, Maritime Declaration of Health)
 ```
 
 ## Jak dodać nową aplikację
