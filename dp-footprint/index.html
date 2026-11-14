@@ -49,6 +49,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .chip small{font-size:10.5px;letter-spacing:.08em;color:var(--muted);font-weight:700}
 .chip b{font-family:var(--mono);font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .chip.hdg{border-left-color:var(--hdg)} .chip.wind{border-left-color:var(--wind)} .chip.cur{border-left-color:var(--cur)} .chip.wave{border-left-color:var(--wave)}
+#dialPrint{display:none}
 #dial{display:block;width:100%;max-width:640px;aspect-ratio:1;margin:0 auto;user-select:none;-webkit-user-select:none;font-family:var(--font)}
 #dial.plot{cursor:crosshair}
 #dial.plot [data-drag]{pointer-events:none}
@@ -119,26 +120,22 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   .thr{grid-template-columns:84px minmax(0,1fr)} textarea{min-height:34px} #dial{max-width:none}
   ::placeholder{color:transparent} .stat{font-size:10.5px}
   .card{break-inside:avoid}
-  /* Print on A4 landscape: large plot on the left, details on the right */
-  @page{size:A4 landscape;margin:9mm}
-  .sheet{display:grid;grid-template-columns:150mm minmax(0,1fr);gap:0 8mm;align-items:start}
+  /* Print on A4 portrait: large plot on top, details in three columns below (same on PC, iPad, Android) */
+  @page{size:A4 portrait;margin:9mm}
+  .sheet{display:block}
   .dialcol{display:block;padding:0}
-  #dial{width:100%;height:auto;max-width:150mm;max-height:158mm;margin:0 auto}
+  #dial{display:none!important}
+  #dialPrint{display:block;width:100%;height:auto;max-width:none;max-height:152mm;margin:0 auto;font-family:var(--font)}
   .dialcol .row{justify-content:center!important;gap:12px}
-  .formcol{display:grid;grid-template-columns:1fr 1fr;gap:0 6mm;align-items:start;font-size:10px}
-  .formcol>.card{display:block;margin:0 0 3mm;padding:0}
-  .formcol>.card:nth-child(1){grid-column:1;grid-row:1}
-  .formcol>.card:nth-child(3){grid-column:1;grid-row:2}
-  .formcol>.card:nth-child(5){grid-column:1;grid-row:3}
-  .formcol>.card:nth-child(2){grid-column:2;grid-row:1/span 2}
-  .formcol>.card:nth-child(4){grid-column:2;grid-row:3}
+  .formcol{display:block;column-count:3;column-gap:6mm;margin-top:2mm;font-size:10px}
+  .formcol>.card{display:block;margin:0 0 3mm;padding:0;break-inside:avoid;-webkit-column-break-inside:avoid}
   input,select,textarea{border:0!important;border-bottom:1px solid #bbb!important;border-radius:0!important;background:none!important;padding:0 2px!important;min-height:0!important;height:auto!important}
   input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-calendar-picker-indicator{display:none}
   select{-webkit-appearance:none;appearance:none}
   textarea{resize:none}
   .f{gap:0}
   .formcol .grid2{grid-template-columns:1fr 1fr}
-  .thr{grid-template-columns:60px minmax(0,1fr)}
+  .thr{grid-template-columns:56px minmax(0,1fr)}
   h1{margin:0}
 }
 }
@@ -178,7 +175,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
         <button class="chip cur" data-open="cur"><small id="cCurL">CURRENT</small><b id="cCur"></b></button>
         <button class="chip wave" data-open="wave"><small>WAVES FROM</small><b id="cWave"></b></button>
       </div>
-      <svg id="dial" viewBox="-352 -352 704 704" role="img" aria-label="DP footprint dial"></svg>
+      <svg id="dial" viewBox="-352 -352 704 704" role="img" aria-label="DP footprint dial"></svg><svg id="dialPrint" viewBox="-352 -352 704 704" aria-hidden="true"></svg>
       <div class="hint noprint" id="modeHint"></div>
       <div class="row" style="justify-content:space-between">
         <label class="f" style="flex-direction:row;align-items:center;gap:8px;font-size:13px;color:var(--ink)"><b>Concentric scale: one division =</b>
@@ -448,27 +445,26 @@ render();
 </script>
 
 <script>
-/* Print: crop the dial to its drawing so the plot fills the page width */
+/* Print copy of the plot, cropped to the drawing so it prints large on any browser (incl. Safari on iPad) */
 (function(){
-  var full=null;
-  function crop(){
-    var d=document.getElementById('dial'); if(!d||!d.getBBox||full) return;
+  var d=document.getElementById('dial'), p=document.getElementById('dialPrint'); if(!d||!p) return;
+  var queued=false;
+  function sync(){
+    queued=false;
+    p.innerHTML=d.innerHTML;
     try{
-      full=d.getAttribute('viewBox');
       var b=d.getBBox(), pad=8;
-      if(!b.width||!b.height) return;
-      d.setAttribute('viewBox',[b.x-pad,b.y-pad,b.width+2*pad,b.height+2*pad].join(' '));
-      d.style.aspectRatio=(b.width+2*pad)+' / '+(b.height+2*pad);
+      if(b.width>0&&b.height>0){
+        var w=b.width+2*pad, h=b.height+2*pad;
+        p.setAttribute('viewBox',[b.x-pad,b.y-pad,w,h].join(' '));
+        p.style.aspectRatio=w+' / '+h;
+      }
     }catch(e){}
   }
-  function restore(){
-    var d=document.getElementById('dial'); if(!d||!full) return;
-    d.setAttribute('viewBox',full); d.style.aspectRatio=''; full=null;
-  }
-  addEventListener('beforeprint',crop);
-  addEventListener('afterprint',restore);
-  if(window.matchMedia){var mq=matchMedia('print'); var h=function(e){e.matches?crop():restore()};
-    mq.addEventListener?mq.addEventListener('change',h):mq.addListener&&mq.addListener(h);}
+  function later(){ if(!queued){queued=true;(window.requestAnimationFrame||setTimeout)(sync);} }
+  new MutationObserver(later).observe(d,{childList:true,subtree:true,characterData:true,attributes:true});
+  addEventListener('beforeprint',sync);
+  sync();
 })();
 </script>
 </body></html>
