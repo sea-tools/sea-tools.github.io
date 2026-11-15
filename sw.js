@@ -2,7 +2,7 @@
 // Strategy: try the network first (so updates show up straight away),
 // fall back to the saved copy when there is no connection.
 // When you add a new app, add its files to PRECACHE and bump VERSION.
-const VERSION = "v8";
+const VERSION = "v9";
 const CACHE = "marine-apps-" + VERSION;
 const PRECACHE = [
   "./",
@@ -25,7 +25,10 @@ const PRECACHE = [
   "port-clearance/manifest.webmanifest",
   "dp-logbook/",
   "dp-logbook/icon.png",
-  "dp-logbook/manifest.webmanifest"
+  "dp-logbook/manifest.webmanifest",
+  "torque-wrench/",
+  "torque-wrench/icon.png",
+  "torque-wrench/manifest.webmanifest"
 ];
 
 self.addEventListener("install", (event) => {
