@@ -97,7 +97,6 @@ table.t td.u{width:34px;color:var(--muted);font-size:12px;padding-left:6px}
 #thr .hull{fill:var(--shipfill);stroke:var(--ship);stroke-width:2}
 #thr .strip{fill:none;stroke:var(--grid);stroke-width:1}
 #thr .tc{fill:var(--paper);stroke:var(--ship);stroke-width:1.5;cursor:pointer}
-#thr .tc.b{stroke-width:3.5}
 #thr .ok{stroke:var(--ok)} #thr .off{stroke:var(--bad)}
 #thr text{font-size:11px;fill:var(--ink);text-anchor:middle;dominant-baseline:central;pointer-events:none}
 #thr text.m{font-size:18px;font-weight:800}
@@ -395,7 +394,7 @@ function addPoint(b,d){S.points.push({b:+norm(b).toFixed(1),d:+(+d).toFixed(3),t
 
 /* ---------- thruster sketch ---------- */
 function drawThr(){
-  const T=[['bt1','BT1',80,66],['bt2','BT2',80,102],['bt3','BT3',80,138,1],['az4','4',52,292],['az3','3',108,292]];
+  const T=[['bt1','BT1',80,66],['bt2','BT2',80,102],['bt3','BT3',80,138],['az4','4',52,292],['az3','3',108,292]];
   let h=`<polygon class="hull" points="80,8 142,92 142,330 18,330 18,92"/>`;
   for(let i=0;i<4;i++)h+=`<rect class="strip" x="${46+i*18}" y="172" width="12" height="84"/>`;
   T.forEach(t=>{const st=S.thr[t[0]].st,c=st==='✓'?'ok':st==='✗'?'off':'';
