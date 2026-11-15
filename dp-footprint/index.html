@@ -361,11 +361,11 @@ function drawDial(){
   arr.forEach(a=>{a.ghost=a.d==null;a.sa=a.ghost?a.def:norm(a.d-o)});
   arr.forEach((a,i)=>a.c=i);
   for(let n=0;n<3;n++)arr.forEach(a=>arr.forEach(b=>{if(angd(a.sa,b.sa)<8)a.c=b.c=Math.min(a.c,b.c)}));
-  arr.forEach(a=>{const g=arr.filter(b=>b.c===a.c),sd=b=>((b.sa-g[0].sa+540)%360)-180;g.sort((x,y)=>sd(x)-sd(y));a.lo=(g.indexOf(a)-(g.length-1)/2)*38});
+  arr.forEach(a=>{const g=arr.filter(b=>b.c===a.c),sd=b=>((b.sa-g[0].sa+540)%360)-180;g.sort((x,y)=>sd(x)-sd(y));a.lo=0;a.ti=g.indexOf(a)});  /* same direction: arrows lie on top of each other, only the labels are stacked */
   arr.forEach(a=>{const t=a.sa*Math.PI/180,u=[Math.sin(t),-Math.cos(t)],p=[Math.cos(t),Math.sin(t)];
     const P=(r,l)=>[u[0]*r+p[0]*l,u[1]*r+p[1]*l].map(f).join(',');
     const hr=a.out?A1:A0,s=a.out?-1:1,tr=a.out?A0:A1;
-    const rot=a.sa<=180?a.sa-90:a.sa-270;const[tx,ty]=P((A0+A1)/2,a.lo+15).split(',');
+    const rot=a.sa<=180?a.sa-90:a.sa-270;const[tx,ty]=P((A0+A1)/2,15+a.ti*15).split(',');
     h+=`<g class="arr ${a.k}${a.ghost?' ghost':''}" data-drag="${a.k}"><line class="hit" x1="${P(A0-8,a.lo).split(',')[0]}" y1="${P(A0-8,a.lo).split(',')[1]}" x2="${P(A1+8,a.lo).split(',')[0]}" y2="${P(A1+8,a.lo).split(',')[1]}"/>`+
       `<polyline class="sh" points="${P(tr,a.lo)} ${P(hr+s*14,a.lo)}"/><polygon class="hd" points="${P(hr,a.lo)} ${P(hr+s*19,a.lo+9)} ${P(hr+s*19,a.lo-9)}"/>`+
       `<text x="${tx}" y="${ty}" transform="rotate(${f(rot)} ${tx} ${ty})">${a.ghost?a.lab+' · drag':a.lab+' '+pad(a.d)+'° '+a.val}</text></g>`;});
