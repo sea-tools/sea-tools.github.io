@@ -211,6 +211,9 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
 #dpTbl.crewtbl td:nth-child(3),#dpTbl.crewtbl th:nth-child(3){text-align:right;white-space:nowrap}
 #dpTbl.crewtbl td:last-child,#dpTbl.crewtbl th:last-child{text-align:center}
 .sum[hidden]{display:none}
+#loc.inh{color:var(--muted);font-style:italic}
+#locNote{font-size:12.5px;color:var(--muted);margin:-6px 2px 12px}
+#locNote[hidden]{display:none}
 #dpWhoBox label{margin-top:16px}
 .db label.chk{display:flex}
 #dpTbl td small{display:block;color:var(--muted);font-size:12px}
@@ -248,6 +251,7 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
 
 <main>
   <input id="loc" type="text" placeholder="Location / field / operation (optional)" autocomplete="off" aria-label="Location, field or operation">
+  <div id="locNote" hidden></div>
   <div id="list"></div>
 </main>
 
@@ -548,7 +552,7 @@ function normalise(s) {
     if (!/^\d{4}-\d\d-\d\d$/.test(d)) continue;
     const v = s.days[d] || {};
     days[d] = {
-      loc: typeof v.loc === "string" ? v.loc : "",
+      loc: typeof v.loc === "string" ? v.loc : "", lo: v.lo === true,
       entries: (Array.isArray(v.entries) ? v.entries : []).map((e) => ({ id: e.id || uid(), t: parseTime(e.t || "") || "", text: String(e.text || "") }))
     };
   }
@@ -602,10 +606,27 @@ function sortEntries(d) {
     return a[0].t < b[0].t ? -1 : a[0].t > b[0].t ? 1 : a[1] - b[1];
   }).map((x) => x[0]);
 }
+/* Location carries over to the next day while DP continues (DP is on at 00:00). After DP OFF it starts empty again. */
+function dpOnAtStart(date, evs) {  // DP state at 00:00 of the date; with no DP entry before it we assume the operation continues, only an explicit DP OFF stops the carry-over
+  let seen = false, on = false;
+  for (const e of evs) { if (e.date >= date) break; seen = true; on = e.on; }
+  return seen ? on : true;
+}
+function ownLoc(d) { const v = S.days[d]; return !!v && (v.loc.trim() !== "" || v.lo === true); }
+function effLoc(date, evs) {      // { text, from }  from = the earlier day it was carried over from ("" if typed on this day)
+  evs = evs || dpEvents();
+  let d = date, guard = 0;
+  while (guard++ < 4000) {
+    if (ownLoc(d)) return { text: S.days[d].loc, from: d === date ? "" : d };
+    if (!dpOnAtStart(d, evs)) break;
+    d = shiftDate(d, -1);
+  }
+  return { text: "", from: "" };
+}
 function prune(date) {           // drop blank rows / blank days
   const d = S.days[date]; if (!d) return;
   d.entries = d.entries.filter((e) => e.t || e.text.trim());
-  if (!d.entries.length && !d.loc.trim()) delete S.days[date];
+  if (!d.entries.length && !d.loc.trim() && !d.lo) delete S.days[date];
 }
 
 /* ---------- rendering ---------- */
@@ -621,7 +642,9 @@ function render() {
   document.title = "DP Logbook" + (S.vessel ? " – " + S.vessel : "");
   renderLights();
   const d = day();
-  $("loc").value = d.loc;
+  const el = effLoc(cur);
+  $("loc").value = el.text; $("loc").classList.toggle("inh", !!el.from);
+  $("locNote").hidden = !el.from; if (el.from) $("locNote").textContent = "Carried over from " + fmtDate(el.from) + " because DP continues. Edit it if the location changes (e.g. add “/ new location”).";
   const list = $("list");
   closeSug();
   if (!d.entries.length) {
@@ -777,7 +800,11 @@ list.addEventListener("keydown", (ev) => {
 });
 
 $("loc").addEventListener("focus", beginEdit);
-$("loc").addEventListener("input", (ev) => { markEdit(); day(true).loc = ev.target.value; save(); });
+$("loc").addEventListener("input", (ev) => {
+  markEdit(); const d = day(true), v = ev.target.value;
+  d.loc = v; if (v.trim() === "") d.lo = true; else delete d.lo;      // an emptied field stays empty for this day; typed text is this day's own location
+  ev.target.classList.remove("inh"); $("locNote").hidden = true; save();
+});
 
 /* ---------- status lights ---------- */
 // [label, green text, red text, logged when turning green, logged when turning red]
@@ -1030,10 +1057,10 @@ document.querySelectorAll("dialog").forEach((d) => {
 
 $("daysBtn").onclick = () => {
   prune(cur); save();
-  const ds = Object.keys(S.days).sort().reverse();
+  const evsAll = dpEvents(), ds = Object.keys(S.days).sort().reverse();
   $("dayList").innerHTML = ds.length ? ds.map((d) => {
     const v = S.days[d], n = v.entries.length, ts = v.entries.filter((e) => e.t);
-    return '<button data-d="' + d + '"><b>' + fmtDate(d) + "</b><span>" + esc(v.loc) + "</span><i>" +
+    return '<button data-d="' + d + '"><b>' + fmtDate(d) + "</b><span>" + esc(effLoc(d, evsAll).text) + "</span><i>" +
       (ts.length ? ts[0].t + "–" + ts[ts.length - 1].t + " · " : "") + n + (n === 1 ? " entry" : " entries") + "</i></button>";
   }).join("") : "<p>No days logged yet.</p>";
   $("daysDlg").showModal();
@@ -1100,7 +1127,7 @@ function watchRoster(d) {        // who keeps which watch on date d
 }
 function printDays(dates, t1, t2) {   // t1 limits the first day, t2 the last day
   const withCrew = S.crew.length > 0 && S.printCrew !== false;
-  const tz = S.tz === "device" ? "ship's local time" : tzLabel();
+  const tz = S.tz === "device" ? "ship's local time" : tzLabel(), evsAll = dpEvents();
   const one = dates.length === 1 && !t1 && !t2;
   const a = dates[0], b = dates[dates.length - 1];
   let body = "";
@@ -1109,7 +1136,7 @@ function printDays(dates, t1, t2) {   // t1 limits the first day, t2 the last da
     const rows = v.entries.filter((e) => (e.t || e.text.trim()) && !(t1 && d === a && (!e.t || e.t < t1)) && !(t2 && d === b && (!e.t || e.t > t2)));
     if (!rows.length && !one) continue;
     body += (one ? "" : "<h2>" + fmtDate(d, true) + "</h2>") +
-      '<div class="pm">' + (one ? "<span>Times: " + tz + "</span>" : "") + (v.loc ? "<span>Location / operation: " + esc(v.loc) + "</span>" : "") + "<span>On DP this day: " + fmtDur(dpMinutes(d)) + "</span></div>" + (withCrew ? watchRoster(d) : "") +
+      '<div class="pm">' + (one ? "<span>Times: " + tz + "</span>" : "") + (effLoc(d, evsAll).text ? "<span>Location / operation: " + esc(effLoc(d, evsAll).text) + "</span>" : "") + "<span>On DP this day: " + fmtDur(dpMinutes(d)) + "</span></div>" + (withCrew ? watchRoster(d) : "") +
       "<table><thead><tr><th>Time</th><th>Event</th></tr></thead><tbody>" +
       (rows.length ? rows.map((e) => "<tr><td>" + esc(e.t) + "</td><td>" + esc(e.text) + "</td></tr>").join("") : '<tr><td></td><td>No entries</td></tr>') +
       "</tbody></table>";
@@ -1157,9 +1184,9 @@ function download(name, text, type) {
 const slug = () => (S.vessel || "vessel").replace(/[^\w-]+/g, "_");
 $("csv").onclick = () => {
   const q = (s) => '"' + String(s).replace(/"/g, '""') + '"';
-  const rows = [["Date", "Time", "Event", "Location / operation"].map(q).join(",")];
+  const rows = [["Date", "Time", "Event", "Location / operation"].map(q).join(",")], evsAll = dpEvents();
   for (const d of Object.keys(S.days).sort()) for (const e of S.days[d].entries)
-    if (e.t || e.text.trim()) rows.push([d, e.t, e.text, S.days[d].loc].map(q).join(","));
+    if (e.t || e.text.trim()) rows.push([d, e.t, e.text, effLoc(d, evsAll).text].map(q).join(","));
   download("DP_Logbook_" + slug() + "_" + now().date + ".csv", "﻿" + rows.join("\r\n"), "text/csv");
 };
 $("backup").onclick = () => { prune(cur); save(); download("DP_Logbook_backup_" + slug() + "_" + now().date + ".json", JSON.stringify(S, null, 1), "application/json"); };
