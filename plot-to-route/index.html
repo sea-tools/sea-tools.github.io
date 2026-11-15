@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Plot to Route</title>
+<meta name="description" content="Convert coordinates (lat/lon in any format, Easting/Northing) from text, Word, Excel or PDF into a route file (RTZ) for ECDIS. Works offline.">
+<meta name="theme-color" content="#0a84ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Plot to Route">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+:root{
+  --bg:#f2f2f7;--surface:#fff;--ink:#1c1c1e;--dim:#6e6e73;--line:rgba(60,60,67,.14);
+  --accent:#007aff;--accent-ink:#fff;--ring:rgba(0,122,255,.32);--field:rgba(118,118,128,.12);
+  --hero:linear-gradient(135deg,#0a84ff 0%,#5e5ce6 100%);
+  --ok:#248a3d;--okbg:rgba(52,199,89,.14);--warn:#a05a00;--warnbg:rgba(255,159,10,.16);--bad:#d70015;--badbg:rgba(255,59,48,.12);
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 28px rgba(0,0,0,.07);
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Segoe UI",Roboto,sans-serif;
+  --round:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --spring:cubic-bezier(.2,.8,.2,1);color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#000;--surface:#1c1c1e;--ink:#fff;--dim:#98989f;--line:rgba(84,84,88,.55);--accent:#0a84ff;--ring:rgba(10,132,255,.4);--field:rgba(118,118,128,.24);
+  --hero:linear-gradient(135deg,#0a6fe0 0%,#4b49c8 100%);--ok:#30d158;--okbg:rgba(48,209,88,.16);--warn:#ffb340;--warnbg:rgba(255,159,10,.18);--bad:#ff6961;--badbg:rgba(255,69,58,.18);
+  --shadow:0 0 0 1px rgba(255,255,255,.05);color-scheme:dark}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#000;--surface:#1c1c1e;--ink:#fff;--dim:#98989f;--line:rgba(84,84,88,.55);--accent:#0a84ff;--ring:rgba(10,132,255,.4);--field:rgba(118,118,128,.24);
+    --hero:linear-gradient(135deg,#0a6fe0 0%,#4b49c8 100%);--ok:#30d158;--okbg:rgba(48,209,88,.16);--warn:#ffb340;--warnbg:rgba(255,159,10,.18);--bad:#ff6961;--badbg:rgba(255,69,58,.18);
+    --shadow:0 0 0 1px rgba(255,255,255,.05);color-scheme:dark}}
+
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+[hidden]{display:none!important}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:0;box-shadow:0 0 0 4px var(--ring)}
+
+.wrap{max-width:1040px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) max(clamp(14px,4vw,40px),env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(clamp(14px,4vw,40px),env(safe-area-inset-left))}
+.top{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.top .back{flex:none;width:44px;height:44px;border-radius:50%;background:var(--surface);color:var(--accent);display:grid;place-items:center;text-decoration:none;box-shadow:var(--shadow);font-size:22px;line-height:1}
+.top .badge{width:52px;height:52px;border-radius:14px;flex:none;box-shadow:var(--shadow)}
+.top h1{margin:0;font:700 clamp(26px,4.4vw,38px)/1.1 var(--round);letter-spacing:-.02em}
+.eyebrow{margin:0;font-size:13px;font-weight:600;color:var(--accent)}
+.desc{margin:10px 0 22px;color:var(--dim);max-width:66ch;font-size:17px}
+
+.card{background:var(--surface);border-radius:20px;box-shadow:var(--shadow);padding:18px;margin-bottom:16px}
+.card>h2{margin:0 0 12px;font:700 20px var(--round);letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+.step{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--hero);color:#fff;font:700 15px var(--round);flex:none}
+.sub{font-size:13px;color:var(--dim);margin:0 0 12px}
+
+/* controls */
+.field{display:grid;gap:6px;min-width:0;align-content:start}
+.field>span{font-size:13px;font-weight:500;color:var(--dim)}
+input[type=text],input[type=number],select,textarea{width:100%;min-width:0;border:0;border-radius:12px;background:var(--field);color:var(--ink);transition:box-shadow .2s}
+input[type=text],input[type=number],select{height:44px;padding:0 12px;font:500 16px var(--sans);font-variant-numeric:tabular-nums}
+select{-webkit-appearance:none;appearance:none;padding-right:34px;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;background-size:12px 8px}
+input:focus,select:focus,textarea:focus{outline:0;box-shadow:0 0 0 4px var(--ring)}
+input.bad{box-shadow:0 0 0 2px var(--bad)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px 14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border:0;border-radius:12px;background:var(--field);color:var(--accent);font:600 16px var(--sans);text-decoration:none;transition:transform .2s var(--spring),opacity .2s}
+.btn:active{transform:scale(.97)}
+.btn.pri{background:var(--accent);color:var(--accent-ink)}
+.btn.big{min-height:52px;font-size:17px;padding:0 24px;border-radius:14px}
+.btn.sm{min-height:36px;padding:0 12px;font-size:14px}
+.btn.dng{color:var(--bad)}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.seg{display:inline-flex;background:var(--field);border-radius:11px;padding:3px;gap:2px}
+.seg button{border:0;background:none;min-height:34px;padding:0 14px;border-radius:9px;font:600 14px var(--sans);color:var(--dim)}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.chk{display:flex;align-items:center;gap:10px;min-height:44px;font-size:15px;cursor:pointer}
+.chk input{width:22px;height:22px;accent-color:var(--accent)}
+
+/* drop zone */
+.drop{display:grid;justify-items:center;gap:6px;text-align:center;padding:26px 16px;border:2px dashed var(--line);border-radius:18px;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:12px}
+.drop:hover,.drop.on{border-color:var(--accent);background:var(--field)}
+.drop svg{width:40px;height:40px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.drop b{font:700 18px var(--round)}
+.drop span{color:var(--dim);font-size:14px}
+textarea{min-height:92px;padding:12px;font:14px/1.45 var(--mono);resize:vertical}
+details.adv{margin-top:12px}
+details.adv summary{cursor:pointer;color:var(--accent);font-weight:600;min-height:36px;display:flex;align-items:center}
+details.adv .grid{margin-top:8px}
+
+.note{border-radius:12px;padding:10px 12px;font-size:14px;margin-top:10px;background:var(--field)}
+.note.ok{background:var(--okbg)}.note.warn{background:var(--warnbg)}.note.bad{background:var(--badbg)}
+.note ul{margin:6px 0 0;padding-left:18px}
+.note code,.help code{font-family:var(--mono);font-size:12.5px;overflow-wrap:anywhere;word-break:break-word}
+.note details summary{cursor:pointer;font-weight:600}
+.note .btn{margin-top:6px}
+
+/* waypoint list */
+.tools{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin-bottom:12px}
+.tools .field{min-width:150px;flex:1}
+.wph,.wp{display:grid;grid-template-columns:28px minmax(110px,1.1fr) minmax(150px,1.3fr) minmax(150px,1.3fr) 108px 100px;gap:8px;align-items:center}
+.wph{padding:0 0 6px;font-size:12px;font-weight:600;color:var(--dim)}
+.wp{padding:5px 0;border-top:1px solid var(--line)}
+.wp .no{font:700 14px var(--round);color:var(--dim);text-align:center}
+.wp input{height:42px;font-size:15px}
+.wp .ca,.wp .cb{font-family:var(--mono);font-size:14px;letter-spacing:-.2px}
+.lg{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums;line-height:1.25}
+.lg b{color:var(--ink);font-weight:600}
+.act{display:flex;gap:4px;justify-content:flex-end}
+.act button{width:30px;height:36px;border:0;border-radius:9px;background:var(--field);color:var(--dim);font-size:15px;padding:0}
+.act button:hover{color:var(--ink)}
+@media (max-width:760px){
+  .wph{display:none}
+  .wp{grid-template-columns:26px 1fr 1fr;gap:6px 8px;padding:10px 0}
+  .wp .nm{grid-column:2/4}
+  .wp .ca{grid-column:2}.wp .cb{grid-column:3}
+  .wp .lg{grid-column:2}.wp .act{grid-column:3}
+  .wp .no{align-self:start;padding-top:12px}
+}
+.total{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:15px;font-variant-numeric:tabular-nums}
+.empty{padding:22px 8px;text-align:center;color:var(--dim)}
+
+#map{width:100%;height:auto;display:block;border-radius:14px;background:var(--field)}
+#map text{font:600 11px var(--sans);fill:var(--ink);paint-order:stroke;stroke:var(--surface);stroke-width:3px}
+pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);font:12px/1.45 var(--mono);overflow:auto;max-height:320px;white-space:pre}
+.help h3{margin:16px 0 6px;font:700 16px var(--round)}
+.help p,.help li{font-size:15px;color:var(--dim);margin:0 0 6px}
+.help ul,.help ol{margin:4px 0 8px;padding-left:20px}
+.help b{color:var(--ink)}
+.foot{margin-top:20px;font-size:12.5px;color:var(--dim);display:grid;gap:12px}
+.foot .row{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center}
+.foot select{width:auto;height:36px;font-size:14px}
+
+#over{position:fixed;inset:0;z-index:50;background:rgba(0,122,255,.88);color:#fff;display:grid;place-items:center;font:700 26px var(--round);text-align:center;padding:20px}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,30px);opacity:0;background:#1c1c1e;color:#fff;padding:12px 18px;border-radius:14px;font-size:15px;max-width:90vw;transition:.3s var(--spring);pointer-events:none;z-index:60}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}))}</script>
+<script src="../assets/stats.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../" aria-label="SeaTools">‹</a>
+    <svg class="badge" viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a84ff"/><stop offset="1" stop-color="#5e5ce6"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#bg)"/><g fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="6"><path d="M0 170h512M0 340h512M170 0v512M340 0v512"/></g><path d="M112 392 214 252 304 312 402 132" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 44"/><path d="M112 392 214 252 304 312 402 132" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><circle cx="214" cy="252" r="24" fill="#fff"/><circle cx="304" cy="312" r="24" fill="#fff"/><circle cx="112" cy="392" r="34" fill="#fff"/><circle cx="112" cy="392" r="20" fill="#30d158"/><circle cx="402" cy="132" r="34" fill="#fff"/><circle cx="402" cy="132" r="20" fill="#ff453a"/></svg>
+    <div><p class="eyebrow" data-i="eyebrow">Bridge · ECDIS</p><h1>Plot to Route</h1></div>
+  </div>
+  <p class="desc" data-i="desc"></p>
+
+  <!-- 1 -->
+  <section class="card" id="c1">
+    <h2><span class="step">1</span><span data-i="h1">Add coordinates</span></h2>
+    <label class="drop" id="drop" for="file">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+      <b data-i="drop">Drop a file here</b><span data-i="dropsub">Word, Excel, PDF, text, CSV, RTZ or GPX</span>
+    </label>
+    <input type="file" id="file" hidden multiple accept=".txt,.csv,.tsv,.docx,.xlsx,.pdf,.rtz,.xml,.gpx,.log,.asc,text/plain">
+    <textarea id="paste" spellcheck="false" autocomplete="off" data-ip="ph"></textarea>
+    <div class="btns">
+      <button class="btn pri" id="bRead" data-i="read">Read coordinates</button>
+      <button class="btn" id="bClip" data-i="clip">Paste from clipboard</button>
+      <button class="btn" id="bAddMan" data-i="addman">Type them in manually</button>
+    </div>
+    <div id="log"></div>
+    <details class="adv" id="opts">
+      <summary data-i="opts">Reading options</summary>
+      <div class="grid">
+        <label class="field"><span data-i="o_type">Coordinates in the source</span><select id="oMode"></select></label>
+        <label class="field"><span data-i="o_order">Order of the pair</span><select id="oOrder"></select></label>
+        <label class="field"><span data-i="o_grid">Grid (for Easting / Northing)</span><select id="oGrid"></select></label>
+        <label class="field" id="fZone"><span data-i="o_zone">UTM zone</span><input type="number" id="oZone" min="1" max="60" inputmode="numeric"></label>
+        <label class="field" id="fHem"><span data-i="o_hem">Hemisphere</span><select id="oHem"></select></label>
+        <label class="field"><span data-i="o_eno">Easting / Northing order</span><select id="oEno"></select></label>
+      </div>
+      <div class="btns"><button class="btn sm" id="bZone" data-i="b_zone">Use the zone of the first waypoint</button></div>
+    </details>
+  </section>
+
+  <!-- 2 -->
+  <section class="card" id="c2">
+    <h2><span class="step">2</span><span data-i="h2">Waypoints</span></h2>
+    <div class="tools">
+      <div class="field"><span data-i="view">Show as</span><div class="seg" id="sView"><button data-v="ll" aria-pressed="true">Lat / Lon</button><button data-v="en" aria-pressed="false">E / N</button></div></div>
+      <label class="field" style="min-width:140px"><span data-i="fmt">Format</span><select id="oFmt"></select></label>
+      <label class="field" style="flex:.6;min-width:110px"><span data-i="dec">Decimal places</span><select id="oDec"></select></label>
+      <label class="field"><span data-i="hemi">Hemisphere</span><select id="oHemi"></select></label>
+    </div>
+    <div class="tools" style="margin-top:-4px">
+      <label class="chk"><input type="checkbox" id="oSym"><span data-i="sym">Symbols ° ′ ″</span></label>
+      <label class="chk"><input type="checkbox" id="oPad"><span data-i="pad">Leading zeros</span></label>
+      <span id="gridInfo" class="sub" style="margin:0" hidden></span>
+    </div>
+    <div class="wph"><span>#</span><span data-i="c_name">Name</span><span id="hA">Latitude</span><span id="hB">Longitude</span><span data-i="c_leg">Leg</span><span></span></div>
+    <div id="list"></div>
+    <div class="total" id="total"></div>
+    <div class="btns">
+      <button class="btn" id="bAdd" data-i="add">+ Add waypoint</button>
+      <button class="btn" id="bRev" data-i="rev">Reverse route</button>
+      <button class="btn" id="bCopy" data-i="copy">Copy table</button>
+      <button class="btn dng" id="bClear" data-i="clear">Clear all</button>
+    </div>
+  </section>
+
+  <!-- check -->
+  <section class="card" id="c3">
+    <h2><span class="step" style="font-size:13px">✓</span><span data-i="h3">Route check</span></h2>
+    <div class="tools" style="margin-bottom:8px"><div class="field"><span data-i="dist">Distances and bearings</span><div class="seg" id="sGc"><button data-g="0" aria-pressed="true" data-i="rhumb">Rhumb line</button><button data-g="1" aria-pressed="false" data-i="gc">Great circle</button></div></div></div>
+    <svg id="map" viewBox="0 0 640 340" role="img" data-ia="map"></svg>
+    <div id="warns"></div>
+  </section>
+
+  <!-- 3 -->
+  <section class="card" id="c4">
+    <h2><span class="step">3</span><span data-i="h4">Route file for ECDIS (RTZ)</span></h2>
+    <div class="grid">
+      <label class="field"><span data-i="r_name">Route name</span><input type="text" id="rName" autocomplete="off"></label>
+      <label class="field"><span data-i="r_vessel">Vessel name (optional)</span><input type="text" id="rVessel" autocomplete="off"></label>
+      <label class="field"><span data-i="r_author">Author (optional)</span><input type="text" id="rAuthor" autocomplete="off"></label>
+      <label class="field"><span>IMO (<span data-i="opt">optional</span>)</span><input type="text" id="rImo" inputmode="numeric" maxlength="7" autocomplete="off"></label>
+      <label class="field"><span>MMSI (<span data-i="opt">optional</span>)</span><input type="text" id="rMmsi" inputmode="numeric" maxlength="9" autocomplete="off"></label>
+      <label class="field"><span data-i="r_ver">RTZ version</span><select id="zVer"><option value="1.0">RTZ 1.0</option><option value="1.1">RTZ 1.1</option></select></label>
+      <label class="field"><span data-i="r_rad">Turn radius (NM)</span><input type="number" id="zRad" step="0.01" min="0" inputmode="decimal"></label>
+      <label class="field"><span data-i="r_xp">XTD port (NM)</span><input type="number" id="zXp" step="0.01" min="0" inputmode="decimal"></label>
+      <label class="field"><span data-i="r_xs">XTD starboard (NM)</span><input type="number" id="zXs" step="0.01" min="0" inputmode="decimal"></label>
+      <label class="field"><span data-i="r_geom">Leg type in the file</span><select id="zGeom"><option value="Loxodrome" data-i="o_lox">Rhumb line (Loxodrome)</option><option value="Orthodrome" data-i="o_ort">Great circle (Orthodrome)</option></select></label>
+    </div>
+    <div class="btns">
+      <button class="btn pri big" id="bRtz" data-i="dl_rtz">Download RTZ</button>
+      <button class="btn big" id="bShare" hidden data-i="share">Share…</button>
+      <button class="btn" id="bGpx" data-i="dl_gpx">GPX</button>
+      <button class="btn" id="bCsv" data-i="dl_csv">CSV</button>
+    </div>
+    <div class="note warn" data-i="verify"></div>
+    <details class="adv"><summary data-i="preview">Show file contents</summary><pre id="xml"></pre></details>
+  </section>
+
+  <section class="card help" id="help">
+    <h2 data-i="hh">Help</h2>
+    <div id="helpBody"></div>
+  </section>
+
+  <div class="foot">
+    <div class="row">
+      <div class="seg" id="sTheme" role="group"></div>
+      <select id="sLang" aria-label="Language"><option value="en">English</option><option value="pl">Polski</option></select>
+    </div>
+    <p data-i="disc" style="margin:0"></p>
+    <p style="margin:0">Plot to Route · © 2026 SeaTools<span id="aboutLink"></span></p>
+  </div>
+</div>
+<div id="over" hidden></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ===== CORE:BEGIN (pure functions: geodesy, parsing, formatting, export) ===== */
+const D2R=Math.PI/180,R2D=180/Math.PI,NM_R=3440.065;
+
+/* --- datums and grids --- */
+const ELL={wgs84:{a:6378137,f:1/298.257223563},airy:{a:6377563.396,f:1/299.3249646},intl:{a:6378388,f:1/297}};
+// Helmert to WGS84: tx,ty,tz (m), scale (ppm), rx,ry,rz (arc-seconds)
+const DATUMS={
+  wgs84:{ell:"wgs84"},
+  ed50:{ell:"intl",h:[-87,-98,-121,0,0,0,0]},
+  osgb36:{ell:"airy",h:[446.448,-125.157,542.06,-20.4894,0.1502,0.247,0.8421]}
+};
+function toXYZ(lat,lon,e){const e2=e.f*(2-e.f),s=Math.sin(lat*D2R),c=Math.cos(lat*D2R),nu=e.a/Math.sqrt(1-e2*s*s);
+  return[nu*c*Math.cos(lon*D2R),nu*c*Math.sin(lon*D2R),nu*(1-e2)*s]}
+function fromXYZ(x,y,z,e){const e2=e.f*(2-e.f),p=Math.hypot(x,y);let lat=Math.atan2(z,p*(1-e2));
+  for(let i=0;i<8;i++){const s=Math.sin(lat),nu=e.a/Math.sqrt(1-e2*s*s);lat=Math.atan2(z+e2*nu*s,p)}
+  return[lat*R2D,Math.atan2(y,x)*R2D]}
+function helmert(p,h,inv){let[tx,ty,tz,s,rx,ry,rz]=h;if(inv){tx=-tx;ty=-ty;tz=-tz;s=-s;rx=-rx;ry=-ry;rz=-rz}
+  s/=1e6;const k=Math.PI/648000;rx*=k;ry*=k;rz*=k;const[x,y,z]=p;
+  return[tx+x*(1+s)-y*rz+z*ry,ty+x*rz+y*(1+s)-z*rx,tz-x*ry+y*rx+z*(1+s)]}
+function datumToWGS(lat,lon,d){const D=DATUMS[d];if(!D.h)return[lat,lon];
+  const p=helmert(toXYZ(lat,lon,ELL[D.ell]),D.h,false);return fromXYZ(p[0],p[1],p[2],ELL.wgs84)}
+function wgsToDatum(lat,lon,d){const D=DATUMS[d];if(!D.h)return[lat,lon];
+  const p=helmert(toXYZ(lat,lon,ELL.wgs84),D.h,true);return fromXYZ(p[0],p[1],p[2],ELL[D.ell])}
+function tmSetup(g){
+  if(g.type==="bng")return{ell:ELL.airy,datum:"osgb36",k0:0.9996012717,lon0:-2,lat0:49,E0:400000,N0:-100000};
+  return{ell:ELL[DATUMS[g.datum].ell],datum:g.datum,k0:0.9996,lon0:(g.zone-1)*6-177,lat0:0,E0:500000,N0:g.south?1e7:0}}
+function krK(e){const n=e.f/(2-e.f),n2=n*n,n3=n2*n,n4=n3*n;
+  return{n,A:e.a/(1+n)*(1+n2/4+n4/64),
+    al:[n/2-2*n2/3+5*n3/16+41*n4/180,13*n2/48-3*n3/5+557*n4/1440,61*n3/240-103*n4/140,49561*n4/161280],
+    be:[n/2-2*n2/3+37*n3/96-n4/360,n2/48+n3/15-437*n4/1440,17*n3/480-37*n4/840,4397*n4/161280],
+    de:[2*n-2*n2/3-2*n3+116*n4/45,7*n2/3-8*n3/5-227*n4/45,56*n3/15-136*n4/35,4279*n4/630]}}
+function tmRaw(K,phi,dl){const n=K.n,sp=Math.sin(phi),c=2*Math.sqrt(n)/(1+n);
+  const t=Math.sinh(Math.atanh(sp)-c*Math.atanh(c*sp));
+  const xp=Math.atan2(t,Math.cos(dl)),ep=Math.atanh(Math.sin(dl)/Math.hypot(1,t));let xi=xp,eta=ep;
+  for(let j=1;j<=4;j++){xi+=K.al[j-1]*Math.sin(2*j*xp)*Math.cosh(2*j*ep);eta+=K.al[j-1]*Math.cos(2*j*xp)*Math.sinh(2*j*ep)}
+  return[xi,eta]}
+function latLonToGrid(lat,lon,g){const P=tmSetup(g),K=krK(P.ell);const[la,lo]=wgsToDatum(lat,lon,P.datum);
+  let dl=(lo-P.lon0)*D2R;while(dl>Math.PI)dl-=2*Math.PI;while(dl<-Math.PI)dl+=2*Math.PI;
+  const[xi,eta]=tmRaw(K,la*D2R,dl),xi0=tmRaw(K,P.lat0*D2R,0)[0];
+  return[P.E0+P.k0*K.A*eta,P.N0+P.k0*K.A*(xi-xi0)]}
+function gridToLatLon(E,N,g){const P=tmSetup(g),K=krK(P.ell),xi0=tmRaw(K,P.lat0*D2R,0)[0];
+  const xi=(N-P.N0)/(P.k0*K.A)+xi0,eta=(E-P.E0)/(P.k0*K.A);let xp=xi,ep=eta;
+  for(let j=1;j<=4;j++){xp-=K.be[j-1]*Math.sin(2*j*xi)*Math.cosh(2*j*eta);ep-=K.be[j-1]*Math.cos(2*j*xi)*Math.sinh(2*j*eta)}
+  const chi=Math.asin(Math.sin(xp)/Math.cosh(ep));let phi=chi;
+  for(let j=1;j<=4;j++)phi+=K.de[j-1]*Math.sin(2*j*chi);
+  const lam=P.lon0*D2R+Math.atan2(Math.sinh(ep),Math.cos(xp));
+  return datumToWGS(phi*R2D,lam*R2D,P.datum)}
+function gridLabel(g){return g.type==="bng"?"British National Grid (OSGB36)":"UTM "+g.zone+(g.south?"S":"N")+" · "+(g.datum==="ed50"?"ED50":"WGS84 / ETRS89")}
+
+/* --- distance and bearing (spherical, NM; for checking only) --- */
+function legCalc(a,b,gc){
+  const p1=a.lat*D2R,p2=b.lat*D2R;let dl=(b.lon-a.lon)*D2R;while(dl>Math.PI)dl-=2*Math.PI;while(dl<-Math.PI)dl+=2*Math.PI;
+  if(gc){const h=Math.sin((p2-p1)/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2,d=2*Math.asin(Math.min(1,Math.sqrt(h)));
+    const y=Math.sin(dl)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);
+    return{d:d*NM_R,b:(Math.atan2(y,x)*R2D+360)%360}}
+  const dp=p2-p1,dpsi=Math.log(Math.tan(Math.PI/4+p2/2)/Math.tan(Math.PI/4+p1/2));
+  const q=Math.abs(dpsi)>1e-12?dp/dpsi:Math.cos(p1);
+  return{d:Math.hypot(dp,q*dl)*NM_R,b:(Math.atan2(dl,dpsi)*R2D+360)%360}}
+
+/* --- formatting --- */
+// o: {fmt:'dd'|'ddm'|'dms', dec:0-8, hemi:'suffix'|'prefix'|'sign', sym:bool, pad:bool}
+function fmtCoord(v,isLat,o){
+  const neg=v<0,a=Math.abs(v),L=isLat?(neg?"S":"N"):(neg?"W":"E"),dw=isLat?2:3,sc=Math.pow(10,o.dec);
+  const p2=(x)=>{const s=x.toFixed(o.dec);return(x<10?"0":"")+s};
+  const pd=(x)=>o.pad?String(x).padStart(dw,"0"):String(x);
+  let body,zero;
+  if(o.fmt==="dd"){const u=Math.round(a*sc);let s=(u/sc).toFixed(o.dec);const ip=s.split(".")[0];if(o.pad)s=s.padStart(s.length+dw-ip.length,"0");
+    body=s+(o.sym?"°":"");zero=u===0}
+  else if(o.fmt==="ddm"){const u=Math.round(a*60*sc),d=Math.floor(u/(60*sc)),m=(u-d*60*sc)/sc;
+    body=pd(d)+(o.sym?"° ":" ")+p2(m)+(o.sym?"′":"");zero=u===0}
+  else{const u=Math.round(a*3600*sc),d=Math.floor(u/(3600*sc)),r=u-d*3600*sc,mi=Math.floor(r/(60*sc)),s=(r-mi*60*sc)/sc;
+    body=pd(d)+(o.sym?"° ":" ")+String(mi).padStart(2,"0")+(o.sym?"′ ":" ")+p2(s)+(o.sym?"″":"");zero=u===0}
+  if(o.hemi==="sign")return(neg&&!zero?"-":"")+body;
+  return o.hemi==="prefix"?L+" "+body:body+" "+L}
+
+/* --- parsing --- */
+const NUM="\\d+(?:[.]\\d+)?",SEP="(?:\\s*[°'\"\\-:]+\\s*|\\s+)",BODY=NUM+"(?:"+SEP+NUM+"){0,2}[°'\"]*";
+const SRC_SUF="(^|[^\\d.A-Za-z])("+BODY+")\\s*[,;]?\\s*([NSEW])(?![A-Za-z])\\s*[,;/\\-]?\\s*("+BODY+")\\s*[,;]?\\s*([NSEW])(?![A-Za-z])";
+const SRC_PRE="(^|[^A-Za-z])([NSEW])\\s*("+BODY+")\\s*[,;/\\-]?\\s*([NSEW])\\s*("+BODY+")";
+const SRC_1S="(^|[^\\d.A-Za-z])("+BODY+")\\s*[,;]?\\s*([NSEW])(?![A-Za-z])";
+const SRC_1P="(^|[^A-Za-z])([NSEW])\\s*("+BODY+")";
+const numsOf=s=>s.match(/\d+(?:\.\d+)?/g)||[];
+
+function normLine(x){
+  let s=String(x).replace(/[   \t]/g," ").replace(/[°º˚⁰]/g,"°").replace(/[′’‘´`ʹ]/g,"'").replace(/[″”“]/g,'"').replace(/''/g,'"').replace(/[−–—]/g,"-");
+  if(!/\d\.\d/.test(s)&&/\d,\d/.test(s)){
+    const tok=s.match(/\d[\d,]*/g)||[];
+    if(tok.length===1)s=s.replace(/(\d),(\d)/g,"$1 $2");else s=s.replace(/(\d),(\d)/g,"$1.$2")}
+  return s}
+
+// magnitude from number strings: 1 = decimal degrees (or compact DDMM.m / DDMMSS), 2 = deg+min, 3 = deg+min+sec
+function cv(st,max,compact){
+  let d,m=0,s=0;
+  if(st.length===1){const x=st[0],ip=x.split(".")[0],fr=x.includes(".")?"."+x.split(".")[1]:"";
+    if(compact&&ip.length>=4){const dl=ip.length%2===0?2:3,rest=ip.slice(dl);d=+ip.slice(0,dl);
+      if(rest.length===2)m=+(rest+fr);else if(rest.length===4){m=+rest.slice(0,2);s=+(rest.slice(2)+fr)}else return null}
+    else d=+x}
+  else if(st.length===2){if(st[0].includes("."))return null;d=+st[0];m=+st[1]}
+  else if(st.length===3){if(st[0].includes(".")||st[1].includes("."))return null;d=+st[0];m=+st[1];s=+st[2]}
+  else return null;
+  if(m>=60||s>=60)return null;const v=d+m/60+s/3600;return v>max+1e-9?null:v}
+
+function cleanName(t){
+  let s=String(t).replace(/\b(Easting|Northing|East|North|Latitude|Longitude|Lat|Lon|Long|UTM|Zone)\b/gi," ").replace(/["'°′″|;:=]+/g," ").replace(/\s+/g," ").trim();
+  s=s.replace(/^[\s,.\-–/()\[\]]+|[\s,.\-–/()\[\]]+$/g,"").trim();
+  if(/^\d+$/.test(s))s="WP "+s;
+  return s.slice(0,40)}
+
+function scanHemi(s){
+  let best=null;
+  for(const style of["suf","pre"]){
+    const re=new RegExp(style==="suf"?SRC_SUF:SRC_PRE,"g"),pairs=[];let m;
+    while((m=re.exec(s))){
+      let n1,n2,l1,l2;
+      if(style==="suf"){n1=numsOf(m[2]);l1=m[3];n2=numsOf(m[4]);l2=m[5]}else{l1=m[2];n1=numsOf(m[3]);l2=m[4];n2=numsOf(m[5])}
+      const t1="NS".includes(l1)?"lat":"lon",t2="NS".includes(l2)?"lat":"lon";if(t1===t2)continue;
+      let lead=[];
+      if(style==="suf"){if(n1.length<n2.length)continue;lead=n1.slice(0,n1.length-n2.length);n1=n1.slice(n1.length-n2.length)}
+      else{if(n2.length<n1.length)continue;n2=n2.slice(0,n1.length)}
+      const v1=cv(n1,t1==="lat"?90:180,true),v2=cv(n2,t2==="lat"?90:180,true);if(v1==null||v2==null)continue;
+      const a1="SW".includes(l1)?-v1:v1,a2="SW".includes(l2)?-v2:v2;
+      pairs.push({lat:t1==="lat"?a1:a2,lon:t1==="lat"?a2:a1,start:m.index+m[1].length,end:m.index+m[0].length,lead})}
+    if(pairs.length&&(!best||pairs.length>best.pairs.length||(pairs.length===best.pairs.length&&pairs[0].start<best.pairs[0].start)))best={pairs}}
+  return best?best.pairs:[]}
+
+function scanSingle(s){
+  const out=[];let m,re=new RegExp(SRC_1S,"g");
+  while((m=re.exec(s))){const n=numsOf(m[2]);const l=m[3],v=cv(n,"NS".includes(l)?90:180,true);if(v!=null)out.push({type:"NS".includes(l)?"lat":"lon",val:"SW".includes(l)?-v:v})}
+  if(out.length!==1){out.length=0;re=new RegExp(SRC_1P,"g");
+    while((m=re.exec(s))){const n=numsOf(m[3]),l=m[2],v=cv(n,"NS".includes(l)?90:180,true);if(v!=null)out.push({type:"NS".includes(l)?"lat":"lon",val:"SW".includes(l)?-v:v})}}
+  return out.length===1?out[0]:null}
+
+function gridLine(s,o,hint){
+  const re=/(^|[^\d.])(\d{5,8}(?:\.\d+)?)(?!\d)/g,f=[];let m;
+  while((m=re.exec(s)))f.push({v:+m[2],i:m.index+m[1].length,e:m.index+m[0].length});
+  if(f.length<2)return null;const A=f[0],B=f[1];
+  const lab=x=>{const pre=s.slice(Math.max(0,x.i-10),x.i).match(/(easting|east|northing|north|[EXNY])\s*[:=]?\s*$/i);
+    let l=pre&&pre[1];if(!l){const post=s.slice(x.e,x.e+12).match(/^\s*m?\s*([EN])(?![A-Za-z])/);l=post&&post[1]}
+    if(!l)return null;l=l[0].toUpperCase();return l==="X"||l==="E"?"E":"N"};
+  const la=lab(A),lb=lab(B);let order;
+  if(la&&lb&&la!==lb)order=la==="E"?"en":"ne";
+  else if(o.enOrder&&o.enOrder!=="auto")order=o.enOrder;
+  else if(hint.en)order=hint.en;
+  else if(A.v>=1e6&&B.v<1e6)order="ne";else if(B.v>=1e6&&A.v<1e6)order="en";else order="en";
+  let E=order==="en"?A.v:B.v,N=order==="en"?B.v:A.v,g=Object.assign({},o.grid);
+  if(g.type==="utm"){const z=s.slice(0,A.i).match(/(^|[^\d])(\d{1,2})\s?([C-HJ-NP-X])(?![A-Za-z\d])/);
+    if(z&&+z[2]>=1&&+z[2]<=60){g.zone=+z[2];g.south=z[3]<"N"}}
+  let ll;try{ll=gridToLatLon(E,N,g)}catch(e){return null}
+  if(!isFinite(ll[0])||!isFinite(ll[1])||Math.abs(ll[0])>90)return null;
+  const rest=(s.slice(0,Math.min(A.i,B.i))+" "+s.slice(Math.max(A.e,B.e))).replace(/\b\d{1,2}\s?[C-HJ-NP-X]\b/g," ").replace(/\b[EN]\b\s*[:=]?/g," ");
+  return{pts:[{name:cleanName(rest),lat:ll[0],lon:ll[1]}],grid:true}}
+
+function orderFix(a,b,o,hint,flags){
+  let sw=o.order==="lonlat"||(o.order!=="latlon"&&hint.order==="lonlat");
+  if(sw){const t=a;a=b;b=t}
+  else if(o.order==="auto"||!o.order){if(Math.abs(a)>90&&Math.abs(b)<=90){const t=a;a=b;b=t;flags.swapped=true}}
+  return Math.abs(a)<=90&&Math.abs(b)<=180?[a,b]:null}
+
+function parseLine(raw,o,hint){
+  const s=normLine(raw);if(!/\d/.test(s))return null;const flags={};
+  if(o.mode==="en"){const g=gridLine(s,o,hint);if(g)return g}
+  if(o.mode!=="en"){
+    const hp=scanHemi(s);
+    if(hp.length){const first=hp[0],name=cleanName(s.slice(0,first.start)+" "+first.lead.join(" "))||(hp.length===1?cleanName(s.slice(first.end)):"");
+      return{pts:hp.map((p,i)=>({name:i===0?name:"",lat:p.lat,lon:p.lon})),flags}}}
+  if(o.mode!=="ll"){const g=gridLine(s,o,hint);if(g)return g}
+  // degree / minute marks without hemisphere letters
+  let mk=[...s.matchAll(/(-?\d+(?:\.\d+)?)(?:\s*°\s*|\s+)(\d+(?:\.\d+)?)\s*'\s*(?:(\d+(?:\.\d+)?)\s*"?)?/g)];
+  if(mk.length<2)mk=[...s.matchAll(/(-?\d+(?:\.\d+)?)\s*°(?:\s*(\d+(?:\.\d+)?)\s*'\s*(?:(\d+(?:\.\d+)?)\s*"?)?)?/g)];
+  if(mk.length>=2){
+    const val=m=>{const neg=m[1].startsWith("-"),st=[m[1].replace("-",""),m[2],m[3]].filter(x=>x!=null),v=cv(st,180,false);return v==null?null:neg?-v:v};
+    const pts=[];
+    for(let i=0;i+1<mk.length;i+=2){const a=val(mk[i]),b=val(mk[i+1]);if(a==null||b==null)continue;const ab=orderFix(a,b,o,hint,flags);if(!ab)continue;
+      pts.push({name:i===0?cleanName(s.slice(0,mk[0].index)):"",lat:ab[0],lon:ab[1]})}
+    if(pts.length)return{pts,flags}}
+  // bare numbers
+  const nums=[...s.matchAll(/(^|[^\w.])(-?\d+(?:\.\d+)?)(?!\w)/g)].map(m=>({t:m[2],v:+m[2],i:m.index+m[1].length,e:m.index+m[0].length,dec:m[2].includes(".")}));
+  const n=nums.length;if(n<2)return null;
+  const nameBefore=(i)=>cleanName(s.slice(0,nums[i].i));
+  const isInt=x=>!x.dec;
+  const tryDM=(k)=>{ // last 4 numbers => deg min deg min
+    const q=nums.slice(k,k+4);
+    if(q.length===4&&isInt(q[0])&&isInt(q[2])&&q[1].v<60&&q[3].v<60&&q[0].v>=0&&q[2].v>=0&&(q[1].dec||q[3].dec)&&!q[0].t.startsWith("-")&&!q[2].t.startsWith("-")){
+      const a=cv([q[0].t,q[1].t],90),b=cv([q[2].t,q[3].t],180);if(a!=null&&b!=null)return{lat:a,lon:b,i:k}}return null};
+  const tryDMS=(k)=>{const q=nums.slice(k,k+6);
+    if(q.length===6&&isInt(q[0])&&isInt(q[1])&&isInt(q[3])&&isInt(q[4])&&q[0].v>=0&&q[3].v>=0&&q[5].dec!==undefined&&(q[2].dec||q[5].dec)){
+      const a=cv([q[0].t,q[1].t,q[2].t],90),b=cv([q[3].t,q[4].t,q[5].t],180);if(a!=null&&b!=null)return{lat:a,lon:b,i:k}}return null};
+  let r=null;
+  if(n>=6&&n<=7)r=tryDMS(n-6);
+  if(!r&&n>=4&&n<=5)r=tryDM(n-4);
+  if(r){const ab=orderFix(r.lat,r.lon,o,hint,flags);if(ab)return{pts:[{name:nameBefore(r.i),lat:ab[0],lon:ab[1]}],flags}}
+  const dn=nums.filter(x=>x.dec);if(dn.length<2)return null;
+  const pts=[];let first=null;
+  for(let i=0;i+1<dn.length;i+=2){const ab=orderFix(dn[i].v,dn[i+1].v,o,hint,flags);if(!ab)continue;
+    if(first&&(Math.abs(ab[0]-first[0])>10||Math.abs(ab[1]-first[1])>20))break;
+    if(!first)first=ab;pts.push({name:i===0?nameBefore(nums.indexOf(dn[0])):"",lat:ab[0],lon:ab[1]});if(dn.length===3)break}
+  return pts.length?{pts,flags}:null}
+
+function parseText(text,o){
+  const lines=String(text).split(/\r?\n|[\u2028\u2029]/),pts=[],bad=[],hint={},notes={swapped:0,grid:0};let pend=null;
+  const opt=Object.assign({mode:"auto",order:"auto",enOrder:"auto",grid:{type:"utm",datum:"wgs84",zone:31,south:false}},o);
+  for(const raw of lines){const t=raw.trim();if(!t)continue;
+    const r=parseLine(t,opt,hint);
+    if(r){pend=null;for(const p of r.pts)pts.push(p);if(r.flags&&r.flags.swapped)notes.swapped++;if(r.grid)notes.grid++;continue}
+    const lw=t.toLowerCase(),ie=lw.search(/\beasting\b/),inn=lw.search(/\bnorthing\b/);
+    if(ie>=0&&inn>=0)hint.en=ie<inn?"en":"ne";
+    const il=lw.search(/\blon(?:g|gitude)?\b/),ia=lw.search(/\blat(?:itude)?\b/);
+    if(il>=0&&ia>=0)hint.order=il<ia?"lonlat":"latlon";
+    const sg=opt.mode==="en"?null:scanSingle(normLine(t));
+    if(sg){if(pend&&pend.type!==sg.type){const lat=sg.type==="lat"?sg.val:pend.val,lon=sg.type==="lon"?sg.val:pend.val;pts.push({name:"",lat,lon});pend=null}else pend=sg;continue}
+    const nn=(normLine(t).match(/\d+(?:\.\d+)?/g)||[]).length;
+    if(nn>=2&&/[°'"NSEW]|\d\.\d|\d{5}/.test(t))bad.push(t.slice(0,120))}
+  return{pts,bad,notes}}
+
+/* --- single coordinate typed into a table cell: returns number or null --- */
+function parseCell(text,wantLat,o){
+  const s=normLine(String(text)).trim();if(!s)return null;const max=wantLat?90:180;
+  let m,neg=false,body,L=null;
+  if((m=s.match(/^([NSEWnsew])\s*(.+)$/)))[L,body]=[m[1].toUpperCase(),m[2]];
+  else if((m=s.match(/^(.+?)\s*([NSEWnsew])$/)))[body,L]=[m[1],m[2].toUpperCase()];else body=s;
+  if(L&&("NS".includes(L)!==wantLat))return null;
+  body=body.trim();if(body[0]==="-"){neg=true;body=body.slice(1)}else if(body[0]==="+")body=body.slice(1);
+  if(!/^[\d\s.°'"\-:′″]+$/.test(body))return null;
+  const v=cv(numsOf(body),max,!!L);if(v==null)return null;
+  return(neg||L==="S"||L==="W")?-v:v}
+
+/* --- export builders --- */
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const f7=v=>v.toFixed(7),f3=v=>(+v).toFixed(3);
+function wpName(w,i){return(w.name&&w.name.trim())||"WP "+(i+1)}
+function buildRTZ(wps,r,o){
+  const ns=o.ver==="1.1"?"http://www.cirm.org/RTZ/1/1":"http://www.cirm.org/RTZ/1/0";
+  const leg=`<leg starboardXTD="${f3(o.xtdS)}" portsideXTD="${f3(o.xtdP)}" geometryType="${o.geom}"/>`;
+  let a=`routeName="${esc(r.name||"Route")}"`;
+  if(r.author)a+=` routeAuthor="${esc(r.author)}"`;
+  if(r.vessel)a+=` vesselName="${esc(r.vessel)}"`;
+  if(/^\d{7}$/.test(r.imo||""))a+=` vesselIMO="${r.imo}"`;
+  if(/^\d{9}$/.test(r.mmsi||""))a+=` vesselMMSI="${r.mmsi}"`;
+  let x=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<route xmlns="${ns}" version="${o.ver}">\n  <routeInfo ${a}/>\n  <waypoints>\n`;
+  x+=`    <defaultWaypoint radius="${f3(o.radius)}">\n      ${leg}\n    </defaultWaypoint>\n`;
+  wps.forEach((w,i)=>{x+=`    <waypoint id="${i+1}" name="${esc(wpName(w,i))}" radius="${f3(o.radius)}">\n      <position lat="${f7(w.lat)}" lon="${f7(w.lon)}"/>\n`+(i>0?`      ${leg}\n`:"")+`    </waypoint>\n`});
+  return x+"  </waypoints>\n</route>\n"}
+function buildGPX(wps,r){
+  let x=`<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Plot to Route" xmlns="http://www.topografix.com/GPX/1/1">\n  <rte>\n    <name>${esc(r.name||"Route")}</name>\n`;
+  wps.forEach((w,i)=>{x+=`    <rtept lat="${f7(w.lat)}" lon="${f7(w.lon)}"><name>${esc(wpName(w,i))}</name></rtept>\n`});
+  return x+"  </rte>\n</gpx>\n"}
+function buildCSV(wps,fo,grid){
+  const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
+  let x="No,Name,Latitude,Longitude,Lat_decimal,Lon_decimal,Easting,Northing,Grid\r\n";
+  wps.forEach((w,i)=>{const[e,n]=latLonToGrid(w.lat,w.lon,grid);
+    x+=[i+1,q(wpName(w,i)),q(fmtCoord(w.lat,true,fo)),q(fmtCoord(w.lon,false,fo)),w.lat.toFixed(7),w.lon.toFixed(7),e.toFixed(2),n.toFixed(2),q(gridLabel(grid))].join(",")+"\r\n"});
+  return x}
+function buildTSV(wps,fo){return wps.map((w,i)=>[i+1,wpName(w,i),fmtCoord(w.lat,true,fo),fmtCoord(w.lon,false,fo)].join("\t")).join("\n")}
+/* ===== CORE:END ===== */
+
+
+/* ================= application ================= */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const LS="plottoroute.v1",uid=()=>Math.random().toString(36).slice(2,9);
+const TX={
+en:{
+eyebrow:"Bridge · ECDIS",
+desc:"Turn coordinates into a route file for ECDIS. Type them, paste them or drop a Word, Excel, PDF or text file. Latitude / Longitude in any format, or Easting / Northing.",
+h1:"Add coordinates",drop:"Drop a file here",dropsub:"Word, Excel, PDF, text, CSV, RTZ or GPX",
+ph:"…or paste text with coordinates here (from Word, Excel, PDF, e-mail). One waypoint per line, a name in front is optional.",
+read:"Read coordinates",clip:"Paste from clipboard",addman:"Type them in manually",opts:"Reading options",
+o_type:"Coordinates in the source",o_order:"Order of the pair",o_grid:"Grid (for Easting / Northing)",o_zone:"UTM zone",o_hem:"Hemisphere",o_eno:"Easting / Northing order",
+b_zone:"Use the zone of the first waypoint",
+m_auto:"Detect automatically",m_ll:"Latitude / Longitude",m_en:"Easting / Northing (grid)",
+or_auto:"Lat, Lon (fixes a swapped pair)",or_latlon:"Always Lat, Lon",or_lonlat:"Always Lon, Lat",
+g_utm:"UTM · WGS84 / ETRS89",g_ed50:"UTM · ED50 (approximate)",g_bng:"British National Grid",hN:"North",hS:"South",
+eo_auto:"Automatic",eo_en:"Easting first",eo_ne:"Northing first",
+h2:"Waypoints",view:"Show as",fmt:"Format",dec:"Decimal places",hemi:"Hemisphere",sym:"Symbols ° ′ ″",pad:"Leading zeros",
+f_dd:"DD · 54.12340°",f_ddm:"DM · 54° 07.404′",f_dms:"DMS · 54° 07′ 24.2″",
+hm_suffix:"54° N (letter after)",hm_prefix:"N 54° (letter before)",hm_sign:"+ / − (sign)",
+c_name:"Name",c_leg:"Leg",lat:"Latitude",lon:"Longitude",east:"Easting (m)",north:"Northing (m)",
+add:"+ Add waypoint",rev:"Reverse route",copy:"Copy table",clear:"Clear all",
+h3:"Route check",dist:"Distances and bearings",rhumb:"Rhumb line",gc:"Great circle",map:"Route plot",
+hh:"Help",h4:"Route file for ECDIS (RTZ)",r_name:"Route name",r_vessel:"Vessel name (optional)",r_author:"Author (optional)",opt:"optional",
+r_ver:"RTZ version",r_rad:"Turn radius (NM)",r_xp:"XTD port (NM)",r_xs:"XTD starboard (NM)",r_geom:"Leg type in the file",
+o_lox:"Rhumb line (Loxodrome)",o_ort:"Great circle (Orthodrome)",dl_rtz:"Download RTZ",share:"Share…",dl_gpx:"GPX",dl_csv:"CSV",preview:"Show file contents",
+verify:"Always check the imported route in the ECDIS: every waypoint, leg, XTD and the safety contour against the chart. The route must be verified and approved by the navigating officer before use.",
+disc:"An aid only. Always verify results against official publications and charts.",
+undo:"Undo",
+log_ok:(n,s)=>`Added ${n} waypoint${n===1?"":"s"} from ${s}.`,log_none:"No coordinates found.",log_bad:n=>`${n} line${n===1?"":"s"} looked like coordinates but could not be read:`,
+log_grid:(n,g)=>`${n} point${n===1?"":"s"} read as Easting / Northing in ${g}. Check the grid in Reading options.`,
+log_swap:n=>`${n} line${n===1?"":"s"} had Lat and Lon the wrong way round; fixed.`,
+err_file:(f,e)=>`${f}: ${e}`,err_old:"This file type is not supported. Save it as .docx, .xlsx or PDF, or copy and paste the text.",
+err_pdf:"No text found in this PDF (a scan?). Copy the coordinates and paste them here instead.",err_zip:"This browser is too old to open Word and Excel files. Paste the text instead.",
+err_clip:"The clipboard could not be read. Paste into the box above (Ctrl+V or long-press → Paste).",
+t_total:(n,d,g)=>`<span><b>${n}</b> waypoint${n===1?"":"s"}</span><span>${g}: <b>${d}</b> NM</span>`,
+empty:"No waypoints yet. Add some in step 1.",
+w_few:"A route needs at least 2 waypoints.",w_empty:n=>`${n} waypoint${n===1?" has":"s have"} no valid position and will be left out of the file.`,
+w_dup:(a,b)=>`WP ${a} and WP ${b} are at the same position.`,w_long:(a,d)=>`The leg to WP ${a} is ${d} NM long. Check for a typing error.`,
+w_zero:a=>`WP ${a} is at 0° 0°. Check the position.`,w_ed50:"ED50 to WGS84 is approximate (a few metres). For ECDIS prefer WGS84 / ETRS89 coordinates.",
+w_dupn:"Some waypoints have the same name.",w_ok:"No problems found. Still check the plot above.",w_name:a=>`The name of WP ${a} is longer than 20 characters. Some ECDIS cut it or refuse it.`,
+w_zone:"Easting / Northing is shown for the grid chosen in step 1. Make sure the zone is right.",
+cleared:"Cleared",copied:"Copied",rev_ok:"Route reversed",saved:"File ready",
+ask_clear:"Remove all waypoints?",
+hlp:`<h3>How it works</h3><ol><li><b>Add coordinates:</b> drop a file, paste text or type them in. The app finds the positions itself.</li><li><b>Check the list and the plot.</b> Fix names or positions, change the order, choose how the coordinates are shown.</li><li><b>Download the RTZ</b> and import it in the ECDIS.</li></ol>
+<h3>What it understands</h3><ul><li><code>54°07.404'N 018°38.502'E</code>, <code>54 07.404 N 018 38.502 E</code>, <code>N 54 07.404 E 018 38.502</code></li><li><code>54°07'24.2"N 018°38'30.1"E</code>, <code>5407.404N 01838.502E</code> (NMEA style), <code>540724N 0183830E</code></li><li><code>54.12345 18.54321</code>, <code>54,12345; 18,54321</code>, <code>-3.5 55.2</code></li><li>Easting / Northing: <code>512345.5 5712345.2</code>, <code>E 512345 N 5712345</code>, <code>31U 512345 5712345</code></li><li>A name in front of the position: <code>WP3 54°07.4'N 018°38.5'E</code>. Several waypoints on one line, and a latitude and a longitude on two lines, also work.</li><li>Files: Word (.docx, text and tables), Excel (.xlsx), PDF with text, text and CSV, RTZ and GPX.</li></ul>
+<h3>Easting / Northing</h3><p>Choose the grid in <b>Reading options</b>: UTM (WGS84 / ETRS89 is the same for this purpose), UTM ED50 or British National Grid, and the zone. Easting / Northing is converted to WGS84 Lat / Lon. The RTZ file always holds WGS84 positions. ED50 is approximate (a few metres).</p>
+<h3>Importing in the ECDIS</h3><p>Copy the .rtz file to a USB stick or the ECDIS import folder, then use the route import function of the route manager. If the import fails, shorten the names (20 characters, no special characters) or try RTZ 1.0 / 1.1. After the import compare the route with the plot here.</p>
+<h3>Your data</h3><p>Files are read in this browser only and nothing is sent anywhere. The list is kept on this device until you clear it.</p>`
+},
+pl:{
+eyebrow:"Mostek · ECDIS",
+desc:"Zamień współrzędne w plik trasy dla ECDIS. Wpisz je, wklej albo upuść plik Word, Excel, PDF lub tekstowy. Szerokość / długość w dowolnym formacie albo Easting / Northing.",
+h1:"Dodaj współrzędne",drop:"Upuść plik tutaj",dropsub:"Word, Excel, PDF, tekst, CSV, RTZ lub GPX",
+ph:"…albo wklej tutaj tekst ze współrzędnymi (z Worda, Excela, PDF-a, e-maila). Jeden punkt w wierszu, nazwa z przodu jest opcjonalna.",
+read:"Wczytaj współrzędne",clip:"Wklej ze schowka",addman:"Wpisz ręcznie",opts:"Opcje wczytywania",
+o_type:"Współrzędne w źródle",o_order:"Kolejność pary",o_grid:"Siatka (dla Easting / Northing)",o_zone:"Strefa UTM",o_hem:"Półkula",o_eno:"Kolejność Easting / Northing",
+b_zone:"Użyj strefy pierwszego punktu",
+m_auto:"Wykryj automatycznie",m_ll:"Szerokość / długość",m_en:"Easting / Northing (siatka)",
+or_auto:"Szer., dł. (poprawia zamienioną parę)",or_latlon:"Zawsze szer., dł.",or_lonlat:"Zawsze dł., szer.",
+g_utm:"UTM · WGS84 / ETRS89",g_ed50:"UTM · ED50 (przybliżone)",g_bng:"Brytyjska siatka narodowa (BNG)",hN:"Północ",hS:"Południe",
+eo_auto:"Automatycznie",eo_en:"Najpierw Easting",eo_ne:"Najpierw Northing",
+h2:"Punkty trasy",view:"Pokaż jako",fmt:"Format",dec:"Miejsca po przecinku",hemi:"Półkula",sym:"Symbole ° ′ ″",pad:"Zera wiodące",
+f_dd:"DD · 54.12340°",f_ddm:"DM · 54° 07.404′",f_dms:"DMS · 54° 07′ 24.2″",
+hm_suffix:"54° N (litera po)",hm_prefix:"N 54° (litera przed)",hm_sign:"+ / − (znak)",
+c_name:"Nazwa",c_leg:"Odcinek",lat:"Szerokość",lon:"Długość",east:"Easting (m)",north:"Northing (m)",
+add:"+ Dodaj punkt",rev:"Odwróć trasę",copy:"Kopiuj tabelę",clear:"Wyczyść wszystko",
+h3:"Kontrola trasy",dist:"Odległości i kursy",rhumb:"Loksodroma",gc:"Ortodroma",map:"Wykres trasy",
+hh:"Pomoc",h4:"Plik trasy dla ECDIS (RTZ)",r_name:"Nazwa trasy",r_vessel:"Nazwa statku (opcjonalnie)",r_author:"Autor (opcjonalnie)",opt:"opcjonalnie",
+r_ver:"Wersja RTZ",r_rad:"Promień zwrotu (NM)",r_xp:"XTD lewa burta (NM)",r_xs:"XTD prawa burta (NM)",r_geom:"Rodzaj odcinka w pliku",
+o_lox:"Loksodroma (Loxodrome)",o_ort:"Ortodroma (Orthodrome)",dl_rtz:"Pobierz RTZ",share:"Udostępnij…",dl_gpx:"GPX",dl_csv:"CSV",preview:"Pokaż zawartość pliku",
+verify:"Zawsze sprawdź zaimportowaną trasę w ECDIS: każdy punkt, odcinek, XTD i izobatę bezpieczeństwa na mapie. Przed użyciem trasa musi być zweryfikowana i zatwierdzona przez oficera nawigacyjnego.",
+disc:"Tylko pomoc. Zawsze weryfikuj wyniki z oficjalnymi publikacjami i mapami.",
+undo:"Cofnij",
+log_ok:(n,s)=>`Dodano punktów: ${n} (${s}).`,log_none:"Nie znaleziono współrzędnych.",log_bad:n=>`Wierszy wyglądających jak współrzędne, których nie udało się odczytać: ${n}:`,
+log_grid:(n,g)=>`Punkty odczytane jako Easting / Northing w siatce ${g}: ${n}. Sprawdź siatkę w Opcjach wczytywania.`,
+log_swap:n=>`Wiersze z zamienioną szerokością i długością (poprawione): ${n}.`,
+err_file:(f,e)=>`${f}: ${e}`,err_old:"Ten typ pliku nie jest obsługiwany. Zapisz go jako .docx, .xlsx lub PDF albo skopiuj i wklej tekst.",
+err_pdf:"W tym PDF-ie nie ma tekstu (skan?). Skopiuj współrzędne i wklej je tutaj.",err_zip:"Ta przeglądarka jest za stara, by otwierać pliki Word i Excel. Wklej tekst.",
+err_clip:"Nie można odczytać schowka. Wklej do pola powyżej (Ctrl+V lub przytrzymaj → Wklej).",
+t_total:(n,d,g)=>`<span>Punktów: <b>${n}</b></span><span>${g}: <b>${d}</b> NM</span>`,
+empty:"Brak punktów. Dodaj je w kroku 1.",
+w_few:"Trasa potrzebuje co najmniej 2 punktów.",w_empty:n=>`Punkty bez poprawnej pozycji (${n}) nie trafią do pliku.`,
+w_dup:(a,b)=>`WP ${a} i WP ${b} mają tę samą pozycję.`,w_long:(a,d)=>`Odcinek do WP ${a} ma ${d} NM. Sprawdź, czy to nie literówka.`,
+w_zero:a=>`WP ${a} jest w 0° 0°. Sprawdź pozycję.`,w_ed50:"Przeliczenie ED50 na WGS84 jest przybliżone (kilka metrów). Do ECDIS lepiej używać współrzędnych WGS84 / ETRS89.",
+w_dupn:"Niektóre punkty mają taką samą nazwę.",w_ok:"Nie znaleziono problemów. Mimo to sprawdź wykres powyżej.",w_name:a=>`Nazwa WP ${a} ma ponad 20 znaków. Niektóre ECDIS ją skracają lub odrzucają.`,
+w_zone:"Easting / Northing pokazano dla siatki wybranej w kroku 1. Upewnij się, że strefa jest właściwa.",
+cleared:"Wyczyszczono",copied:"Skopiowano",rev_ok:"Trasa odwrócona",saved:"Plik gotowy",
+ask_clear:"Usunąć wszystkie punkty?",
+hlp:`<h3>Jak to działa</h3><ol><li><b>Dodaj współrzędne:</b> upuść plik, wklej tekst albo wpisz je. Aplikacja sama znajdzie pozycje.</li><li><b>Sprawdź listę i wykres.</b> Popraw nazwy lub pozycje, zmień kolejność, wybierz sposób wyświetlania współrzędnych.</li><li><b>Pobierz plik RTZ</b> i zaimportuj go w ECDIS.</li></ol>
+<h3>Co rozumie</h3><ul><li><code>54°07.404'N 018°38.502'E</code>, <code>54 07.404 N 018 38.502 E</code>, <code>N 54 07.404 E 018 38.502</code></li><li><code>54°07'24.2"N 018°38'30.1"E</code>, <code>5407.404N 01838.502E</code> (styl NMEA), <code>540724N 0183830E</code></li><li><code>54.12345 18.54321</code>, <code>54,12345; 18,54321</code>, <code>-3.5 55.2</code></li><li>Easting / Northing: <code>512345.5 5712345.2</code>, <code>E 512345 N 5712345</code>, <code>31U 512345 5712345</code></li><li>Nazwa przed pozycją: <code>WP3 54°07.4'N 018°38.5'E</code>. Działa też kilka punktów w jednym wierszu oraz szerokość i długość w dwóch kolejnych wierszach.</li><li>Pliki: Word (.docx, tekst i tabele), Excel (.xlsx), PDF z tekstem, tekst i CSV, RTZ i GPX.</li></ul>
+<h3>Easting / Northing</h3><p>Wybierz siatkę w <b>Opcjach wczytywania</b>: UTM (WGS84 / ETRS89 to tu to samo), UTM ED50 lub brytyjska BNG oraz strefę. Easting / Northing jest zamieniany na szerokość i długość WGS84. Plik RTZ zawsze zawiera pozycje WGS84. ED50 jest przybliżone (kilka metrów).</p>
+<h3>Import do ECDIS</h3><p>Skopiuj plik .rtz na pendrive lub do folderu importu ECDIS i użyj funkcji importu tras w menedżerze tras. Jeśli import się nie uda, skróć nazwy (20 znaków, bez znaków specjalnych) albo spróbuj RTZ 1.0 / 1.1. Po imporcie porównaj trasę z wykresem tutaj.</p>
+<h3>Twoje dane</h3><p>Pliki są czytane tylko w tej przeglądarce i nic nie jest nigdzie wysyłane. Lista zostaje na tym urządzeniu, dopóki jej nie wyczyścisz.</p>`
+}};
+
+let S={lang:"en",theme:"auto",wps:[],fmt:"ddm",dec:3,hemi:"suffix",sym:true,pad:true,view:"ll",
+  grid:{type:"utm",datum:"wgs84",zone:31,south:false},mode:"auto",order:"auto",enOrder:"auto",gc:false,
+  route:{name:"",author:"",vessel:"",imo:"",mmsi:""},rtz:{ver:"1.0",radius:0.5,xtdP:0.1,xtdS:0.1,geom:"Loxodrome"}};
+try{const j=JSON.parse(localStorage.getItem(LS)||"{}");for(const k in j){if(k in S)S[k]=(typeof S[k]==="object"&&!Array.isArray(S[k])&&j[k])?Object.assign(S[k],j[k]):j[k]}}catch(e){}
+S.lang="en"; /* the app always opens in English; PL is chosen per session */
+if(S.theme!=="light"&&S.theme!=="dark")S.theme="auto";
+let UNDO=null;
+const save=()=>{try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}};
+const t=k=>{const v=TX[S.lang][k];return v!==undefined?v:TX.en[k]};
+const fo=()=>({fmt:S.fmt,dec:+S.dec,hemi:S.hemi,sym:S.sym,pad:S.pad});
+const valid=()=>S.wps.filter(w=>w.lat!=null&&w.lon!=null&&isFinite(w.lat)&&isFinite(w.lon));
+const rOpts=()=>({mode:S.mode,order:S.order,enOrder:S.enOrder,grid:S.grid});
+const nf=(v,d)=>v.toLocaleString(S.lang==="pl"?"pl-PL":"en-GB",{minimumFractionDigits:d,maximumFractionDigits:d});
+function toast(m){const e=$("#toast");e.textContent=m;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),2600)}
+
+/* ---------- static text and option lists ---------- */
+function opts(id,list,cur){$(id).innerHTML=list.map(([v,l])=>`<option value="${v}"${String(v)===String(cur)?" selected":""}>${esc(l)}</option>`).join("")}
+function applyStatic(){
+  document.documentElement.lang=S.lang;
+  $$("[data-i]").forEach(e=>{const v=t(e.dataset.i);if(typeof v==="string")e.textContent=v});
+  $$("[data-ip]").forEach(e=>e.placeholder=t(e.dataset.ip));
+  $$("[data-ia]").forEach(e=>e.setAttribute("aria-label",t(e.dataset.ia)));
+  $("#helpBody").innerHTML=t("hlp");
+  $("#sLang").value=S.lang;
+  opts("#oMode",[["auto",t("m_auto")],["ll",t("m_ll")],["en",t("m_en")]],S.mode);
+  opts("#oOrder",[["auto",t("or_auto")],["latlon",t("or_latlon")],["lonlat",t("or_lonlat")]],S.order);
+  const gk=S.grid.type==="bng"?"bng":S.grid.datum==="ed50"?"ed50":"utm";
+  opts("#oGrid",[["utm",t("g_utm")],["ed50",t("g_ed50")],["bng",t("g_bng")]],gk);
+  opts("#oHem",[["N",t("hN")],["S",t("hS")]],S.grid.south?"S":"N");
+  opts("#oEno",[["auto",t("eo_auto")],["en",t("eo_en")],["ne",t("eo_ne")]],S.enOrder);
+  opts("#oFmt",[["dd",t("f_dd")],["ddm",t("f_ddm")],["dms",t("f_dms")]],S.fmt);
+  opts("#oDec",[0,1,2,3,4,5,6,7,8].map(n=>[n,n]),S.dec);
+  opts("#oHemi",[["suffix",t("hm_suffix")],["prefix",t("hm_prefix")],["sign",t("hm_sign")]],S.hemi);
+  $("#oSym").checked=S.sym;$("#oPad").checked=S.pad;$("#oZone").value=S.grid.zone;
+  $("#fZone").hidden=$("#fHem").hidden=S.grid.type==="bng";
+  $$("#sView button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===S.view));
+  $$("#sGc button").forEach(b=>b.setAttribute("aria-pressed",(b.dataset.g==="1")===S.gc));
+  $("#rName").value=S.route.name;$("#rName").placeholder=defName();$("#rVessel").value=S.route.vessel;$("#rAuthor").value=S.route.author;$("#rImo").value=S.route.imo;$("#rMmsi").value=S.route.mmsi;
+  $("#zVer").value=S.rtz.ver;$("#zRad").value=S.rtz.radius;$("#zXp").value=S.rtz.xtdP;$("#zXs").value=S.rtz.xtdS;$("#zGeom").value=S.rtz.geom;
+  const th=[["auto",{en:"Auto",pl:"Auto"}],["light",{en:"Light",pl:"Jasny"}],["dark",{en:"Dark",pl:"Ciemny"}]];
+  $("#sTheme").innerHTML=th.map(([k,l])=>`<button data-th="${k}" aria-pressed="${S.theme===k}">${l[S.lang]}</button>`).join("");
+  if(S.theme==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.dataset.theme=S.theme;
+  $("#aboutLink").innerHTML=` · <a href="../about/">About &amp; terms</a>`;
+  renderList();
+}
+const defName=()=>"Route "+new Date().toISOString().slice(0,10);
+
+/* ---------- waypoint list ---------- */
+const colA=()=>S.view==="ll"?t("lat"):t("east"),colB=()=>S.view==="ll"?t("lon"):t("north");
+function cellTxt(w,k){
+  if(w.lat==null||w.lon==null)return S.view==="ll"?(k===0?(w.lat==null?"":fmtCoord(w.lat,true,fo())):(w.lon==null?"":fmtCoord(w.lon,false,fo()))):(k===0?(w._e||""):(w._n||""));
+  if(S.view==="ll")return k===0?fmtCoord(w.lat,true,fo()):fmtCoord(w.lon,false,fo());
+  const[e,n]=latLonToGrid(w.lat,w.lon,S.grid);return(k===0?e:n).toFixed(2)}
+function renderList(){
+  $("#hA").textContent=colA();$("#hB").textContent=colB();
+  const gi=$("#gridInfo");gi.hidden=S.view!=="en";gi.textContent=gridLabel(S.grid);
+  if(!S.wps.length){$("#list").innerHTML=`<div class="empty">${t("empty")}</div>`;refreshDerived();return}
+  $("#list").innerHTML=S.wps.map((w,i)=>`<div class="wp" data-id="${w.id}">
+    <span class="no">${i+1}</span>
+    <input class="nm" type="text" value="${esc(w.name||"")}" placeholder="WP ${i+1}" aria-label="${t("c_name")} ${i+1}" autocomplete="off" autocapitalize="characters">
+    <input class="ca" type="text" value="${esc(cellTxt(w,0))}" aria-label="${esc(colA())} ${i+1}" autocomplete="off" spellcheck="false">
+    <input class="cb" type="text" value="${esc(cellTxt(w,1))}" aria-label="${esc(colB())} ${i+1}" autocomplete="off" spellcheck="false">
+    <span class="lg"></span>
+    <span class="act"><button data-a="up" aria-label="Up">↑</button><button data-a="dn" aria-label="Down">↓</button><button data-a="del" aria-label="Delete">✕</button></span></div>`).join("");
+  refreshDerived()}
+function legs(){const v=valid(),out=new Map();for(let i=1;i<v.length;i++)out.set(v[i].id,legCalc(v[i-1],v[i],S.gc));return out}
+function refreshDerived(){
+  const L=legs();let tot=0;L.forEach(x=>tot+=x.d);
+  $$("#list .wp").forEach(r=>{const x=L.get(r.dataset.id);r.querySelector(".lg").innerHTML=x?`<b>${String(Math.round(x.b)%360).padStart(3,"0")}°</b><br>${nf(x.d,2)} NM`:""});
+  $("#total").innerHTML=S.wps.length?t("t_total")(S.wps.length,nf(tot,2),S.gc?t("gc"):t("rhumb")):"";
+  drawMap();renderWarn(L);renderRtz();save()}
+
+/* ---------- map ---------- */
+function drawMap(){
+  const v=valid(),svg=$("#map"),W=640,H=340,P=34;
+  if(!v.length){svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" style="stroke:none;fill:var(--dim)">—</text>`;return}
+  const lat0=v.reduce((a,w)=>a+w.lat,0)/v.length,k=Math.max(0.05,Math.cos(lat0*D2R));
+  // unwrap longitudes around the first point
+  const lons=v.map(w=>{let d=w.lon-v[0].lon;while(d>180)d-=360;while(d<-180)d+=360;return v[0].lon+d});
+  const xs=lons.map(l=>l*k),ys=v.map(w=>w.lat);
+  let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const spanX=Math.max(x1-x0,1e-5),spanY=Math.max(y1-y0,1e-5),sc=Math.min((W-2*P)/spanX,(H-2*P)/spanY);
+  const ox=(W-spanX*sc)/2,oy=(H-spanY*sc)/2;
+  const X=x=>ox+(x-x0)*sc,Y=y=>H-(oy+(y-y0)*sc);
+  const pts=v.map((w,i)=>[X(xs[i]),Y(ys[i])]);
+  let s=`<g stroke="var(--line)" stroke-width="1">`;for(let i=1;i<6;i++)s+=`<path d="M${i*W/6} 0V${H}M0 ${i*H/6}H${W}"/>`;s+=`</g>`;
+  if(v.length>1)s+=`<polyline points="${pts.map(p=>p.map(n=>n.toFixed(1)).join(",")).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+  pts.forEach((p,i)=>{const first=i===0,last=i===pts.length-1&&pts.length>1,c=first?"#30d158":last?"#ff453a":"var(--surface)";
+    s+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${first||last?7:5}" fill="${c}" stroke="var(--accent)" stroke-width="2.5"/>`;
+    s+=`<text x="${(p[0]+9).toFixed(1)}" y="${(p[1]-8).toFixed(1)}">${S.wps.indexOf(v[i])+1}</text>`});
+  s+=`<g transform="translate(${W-26},26)"><path d="M0 -14 L7 8 L0 3 L-7 8Z" fill="var(--accent)"/><text x="0" y="24" text-anchor="middle" style="stroke:none">N</text></g>`;
+  svg.innerHTML=s}
+
+/* ---------- warnings ---------- */
+function renderWarn(L){
+  const v=valid(),W=[];const bad=S.wps.length-v.length;
+  if(S.wps.length&&v.length<2)W.push(["warn",t("w_few")]);
+  if(bad)W.push(["warn",t("w_empty")(bad)]);
+  v.forEach((w,i)=>{const n=S.wps.indexOf(w)+1;
+    if(Math.abs(w.lat)<1e-9&&Math.abs(w.lon)<1e-9)W.push(["bad",t("w_zero")(n)]);
+    if(i>0){const x=L.get(w.id);if(x){const pn=S.wps.indexOf(v[i-1])+1;if(x.d<0.005)W.push(["warn",t("w_dup")(pn,n)]);else if(x.d>1500)W.push(["warn",t("w_long")(n,nf(x.d,0))])}}
+    if((w.name||"").length>20)W.push(["warn",t("w_name")(n)])});
+  const nm=v.map((w,i)=>(w.name||"WP "+(S.wps.indexOf(w)+1)).toLowerCase());if(new Set(nm).size<nm.length)W.push(["warn",t("w_dupn")]);
+  if(S.grid.type==="utm"&&S.grid.datum==="ed50"&&(S.view==="en"||S.mode==="en"))W.push(["warn",t("w_ed50")]);
+  if(S.view==="en"&&v.length)W.push(["",t("w_zone")]);
+  if(!W.length&&v.length>1)W.push(["ok",t("w_ok")]);
+  $("#warns").innerHTML=W.map(([c,m])=>`<div class="note ${c}">${esc(m)}</div>`).join("")}
+
+/* ---------- RTZ ---------- */
+const routeInfo=()=>Object.assign({},S.route,{name:S.route.name.trim()||defName()});
+const rtzOpts=()=>({ver:S.rtz.ver,radius:+S.rtz.radius||0,xtdP:+S.rtz.xtdP||0,xtdS:+S.rtz.xtdS||0,geom:S.rtz.geom});
+const fileBase=()=>routeInfo().name.replace(/[\\/:*?"<>|\s]+/g,"_").replace(/^_+|_+$/g,"").slice(0,60)||"route";
+function renderRtz(){const v=valid(),ok=v.length>=2;
+  $("#xml").textContent=v.length?buildRTZ(v,routeInfo(),rtzOpts()):"";
+  ["#bRtz","#bGpx","#bCsv","#bShare"].forEach(s=>$(s).disabled=!ok)}
+function download(name,data,mime){const b=new Blob([data],{type:mime||"application/octet-stream"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+const rtzFile=()=>({name:fileBase()+".rtz",data:buildRTZ(valid(),routeInfo(),rtzOpts())});
+
+/* ---------- ingest ---------- */
+function snapshot(){UNDO=S.wps.map(w=>Object.assign({},w))}
+function ingest(res,src){
+  const log=$("#log");
+  if(!res.pts.length){log.innerHTML=`<div class="note warn">${esc(t("log_none"))}${res.bad.length?badList(res.bad):""}</div>`;return}
+  snapshot();
+  res.pts.forEach(p=>{const n=S.wps.length+1;S.wps.push({id:uid(),name:p.name||"WP "+n,lat:p.lat,lon:p.lon})});
+  let h=`<div class="note ok">${esc(t("log_ok")(res.pts.length,src))} <button class="btn sm" id="bUndo">${t("undo")}</button></div>`;
+  if(res.notes&&res.notes.grid)h+=`<div class="note warn">${esc(t("log_grid")(res.notes.grid,gridLabel(S.grid)))}</div>`;
+  if(res.notes&&res.notes.swapped)h+=`<div class="note warn">${esc(t("log_swap")(res.notes.swapped))}</div>`;
+  if(res.bad.length)h+=`<div class="note warn">${badList(res.bad)}</div>`;
+  log.innerHTML=h;renderList();
+  const u=$("#bUndo");if(u)u.onclick=()=>{if(UNDO){S.wps=UNDO;UNDO=null;$("#log").innerHTML="";renderList()}};
+  $("#c2").scrollIntoView({behavior:"smooth",block:"start"})}
+const badList=b=>`${esc(t("log_bad")(b.length))}<ul>${b.slice(0,12).map(x=>`<li><code>${esc(x)}</code></li>`).join("")}</ul>`;
+function ingestText(text,src){ingest(parseText(text,rOpts()),src)}
+
+/* ---------- file readers ---------- */
+function decodeText(buf){const u=new Uint8Array(buf);
+  if(u[0]===0xFF&&u[1]===0xFE)return new TextDecoder("utf-16le").decode(buf);
+  if(u[0]===0xFE&&u[1]===0xFF)return new TextDecoder("utf-16be").decode(buf);
+  try{return new TextDecoder("utf-8",{fatal:true}).decode(buf)}catch(e){return new TextDecoder("windows-1252").decode(buf)}}
+async function unzip(buf){
+  if(typeof DecompressionStream==="undefined")throw new Error(t("err_zip"));
+  const u=new Uint8Array(buf),dv=new DataView(buf);let e=u.length-22;
+  while(e>=0&&dv.getUint32(e,true)!==0x06054b50)e--;if(e<0)throw new Error("zip");
+  const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);const files={};
+  for(let i=0;i<n&&dv.getUint32(p,true)===0x02014b50;i++){
+    const method=dv.getUint16(p+10,true),cs=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lho=dv.getUint32(p+42,true);
+    const name=new TextDecoder().decode(u.subarray(p+46,p+46+nl));files[name]={method,cs,lho};p+=46+nl+xl+cl}
+  return async name=>{const f=files[name];if(!f)return null;const lnl=dv.getUint16(f.lho+26,true),lxl=dv.getUint16(f.lho+28,true),st=f.lho+30+lnl+lxl,d=u.subarray(st,st+f.cs);
+    if(f.method===0)return new TextDecoder().decode(d);
+    const out=await new Response(new Blob([d]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer();return new TextDecoder().decode(out)};
+}
+const xml=s=>new DOMParser().parseFromString(s,"application/xml");
+const ln=n=>n.localName;
+async function docxText(buf){
+  const get=await unzip(buf),d=xml(await get("word/document.xml")||"");const out=[];
+  const ptext=p=>{let s="";(function w(n){for(const c of n.childNodes){if(c.nodeType!==1)continue;const l=ln(c);
+      if(l==="t")s+=c.textContent;else if(l==="tab")s+="\t";else if(l==="br"||l==="cr")s+="\n";else if(l!=="instrText")w(c)}})(p);return s};
+  (function walk(n){for(const c of n.childNodes){if(c.nodeType!==1)continue;const l=ln(c);
+    if(l==="p")out.push(ptext(c));
+    else if(l==="tbl"){for(const tr of c.childNodes){if(tr.nodeType!==1||ln(tr)!=="tr")continue;
+      const cells=[];for(const tc of tr.childNodes){if(tc.nodeType!==1||ln(tc)!=="tc")continue;const ps=[];(function f(x){for(const y of x.childNodes){if(y.nodeType!==1)continue;if(ln(y)==="p")ps.push(ptext(y));else f(y)}})(tc);cells.push(ps.join(" ").replace(/\s+/g," ").trim())}
+      out.push(cells.join("\t"))}}
+    else walk(c)}})(d.documentElement);
+  return out.join("\n")}
+async function xlsxText(buf){
+  const get=await unzip(buf),ss=[];const sx=await get("xl/sharedStrings.xml");
+  if(sx){for(const si of xml(sx).getElementsByTagName("si")){let s="";for(const tt of si.getElementsByTagName("t")){let p=tt.parentNode;if(p&&ln(p)==="rPh")continue;s+=tt.textContent}ss.push(s)}}
+  const out=[];
+  for(let i=1;i<=60;i++){const sh=await get(`xl/worksheets/sheet${i}.xml`);if(!sh)continue;
+    for(const row of xml(sh).getElementsByTagName("row")){const cells=[];
+      for(const c of row.getElementsByTagName("c")){const r=c.getAttribute("r")||"",m=r.match(/^([A-Z]+)/);let col=0;if(m)for(const ch of m[1])col=col*26+ch.charCodeAt(0)-64;col=Math.max(col-1,cells.length);
+        const ty=c.getAttribute("t"),v=c.getElementsByTagName("v")[0];let val="";
+        if(ty==="s"&&v)val=ss[+v.textContent]||"";else if(ty==="inlineStr")val=c.textContent;else if(v)val=v.textContent;
+        while(cells.length<col)cells.push("");cells[col]=String(val).replace(/[\t\r\n]+/g," ")}
+      while(cells.length&&cells[cells.length-1]==="")cells.pop();if(cells.length)out.push(cells.join("\t"))}}
+  return out.join("\n")}
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.appendChild(s)})}
+async function pdfText(buf){
+  if(!window.pdfjsLib){await loadScript("vendor/pdf.min.js");pdfjsLib.GlobalWorkerOptions.workerSrc="vendor/pdf.worker.min.js"}
+  const doc=await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise,out=[];
+  for(let p=1;p<=doc.numPages;p++){const tc=await(await doc.getPage(p)).getTextContent(),rows=[];
+    for(const it of tc.items){if(!it.str&&!it.hasEOL)continue;const y=it.transform[5],x=it.transform[4],h=Math.abs(it.transform[3])||10;
+      let r=rows.find(r=>Math.abs(r.y-y)<h*0.5);if(!r){r={y,items:[]};rows.push(r)}r.items.push({x,w:it.width||0,s:it.str})}
+    rows.sort((a,b)=>b.y-a.y);
+    for(const r of rows){r.items.sort((a,b)=>a.x-b.x);let s="",end=null;
+      for(const it of r.items){if(end!==null){const gap=it.x-end;s+=gap>10?"\t":gap>1.2?" ":""}s+=it.s;end=it.x+it.w}
+      out.push(s)}}
+  return out.join("\n")}
+function routeXml(text){ // RTZ or GPX
+  const d=xml(text);if(d.getElementsByTagName("parsererror").length)throw new Error("XML");const pts=[];
+  const wp=[...d.getElementsByTagName("waypoint")].filter(n=>n.getElementsByTagName("position").length);
+  if(wp.length)for(const w of wp){const p=w.getElementsByTagName("position")[0];pts.push({name:w.getAttribute("name")||"",lat:+p.getAttribute("lat"),lon:+p.getAttribute("lon")})}
+  else{let l=[...d.getElementsByTagName("rtept")];if(!l.length)l=[...d.getElementsByTagName("wpt")];if(!l.length)l=[...d.getElementsByTagName("trkpt")];
+    for(const w of l){const nm=w.getElementsByTagName("name")[0];pts.push({name:nm?nm.textContent.trim():"",lat:+w.getAttribute("lat"),lon:+w.getAttribute("lon")})}}
+  const info=d.getElementsByTagName("routeInfo")[0]||d.getElementsByTagName("rte")[0];
+  return{pts:pts.filter(p=>isFinite(p.lat)&&isFinite(p.lon)&&Math.abs(p.lat)<=90&&Math.abs(p.lon)<=180),bad:[],notes:{},info}}
+async function readFile(f){
+  const ext=(f.name.split(".").pop()||"").toLowerCase(),buf=await f.arrayBuffer();
+  if(["rtz","gpx","xml"].includes(ext)){const r=routeXml(decodeText(buf));
+    if(r.info&&!S.route.name){const n=r.info.getAttribute("routeName")||(r.info.getElementsByTagName("name")[0]||{}).textContent;if(n){S.route.name=n.trim();$("#rName").value=S.route.name}}return r}
+  let text;
+  if(ext==="docx")text=await docxText(buf);else if(ext==="xlsx"||ext==="xlsm")text=await xlsxText(buf);
+  else if(ext==="pdf"){text=await pdfText(buf);if(!text.trim())throw new Error(t("err_pdf"))}
+  else if(["doc","xls","odt","ods","rtf","pages","numbers"].includes(ext))throw new Error(t("err_old"));
+  else text=decodeText(buf);
+  return parseText(text,rOpts())}
+async function handleFiles(files){
+  for(const f of files){try{const r=await readFile(f);ingest(r,f.name)}catch(e){$("#log").innerHTML=`<div class="note bad">${esc(t("err_file")(f.name,e.message||e))}</div>`}}}
+
+/* ---------- events ---------- */
+$("#file").onchange=e=>{handleFiles([...e.target.files]);e.target.value=""};
+$("#bRead").onclick=()=>{const v=$("#paste").value;if(v.trim()){ingestText(v,"text");$("#paste").value=""}};
+$("#paste").addEventListener("paste",()=>setTimeout(()=>$("#bRead").click(),0));
+$("#bClip").onclick=async()=>{try{const v=await navigator.clipboard.readText();if(v.trim())ingestText(v,"clipboard")}catch(e){toast(t("err_clip"));$("#paste").focus()}};
+$("#bAddMan").onclick=()=>addRow(true);
+document.addEventListener("paste",e=>{const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;
+  const f=e.clipboardData&&e.clipboardData.files;if(f&&f.length){e.preventDefault();handleFiles([...f]);return}
+  const x=e.clipboardData&&e.clipboardData.getData("text");if(x&&x.trim()){e.preventDefault();ingestText(x,"clipboard")}});
+let dragN=0;const over=$("#over");
+addEventListener("dragenter",e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes("Files")){dragN++;over.textContent=t("drop");over.hidden=false}});
+addEventListener("dragleave",()=>{dragN=Math.max(0,dragN-1);if(!dragN)over.hidden=true});
+addEventListener("dragover",e=>e.preventDefault());
+addEventListener("drop",e=>{e.preventDefault();dragN=0;over.hidden=true;if(e.dataTransfer&&e.dataTransfer.files.length)handleFiles([...e.dataTransfer.files])});
+
+function addRow(focus){const n=S.wps.length+1;S.wps.push({id:uid(),name:"WP "+n,lat:null,lon:null});renderList();
+  if(focus){const r=$$("#list .wp").pop();if(r){r.querySelector(".ca").focus();r.scrollIntoView({block:"center"})}}}
+$("#bAdd").onclick=()=>addRow(true);
+$("#bRev").onclick=()=>{S.wps.reverse();renderList();toast(t("rev_ok"))};
+$("#bClear").onclick=()=>{if(!S.wps.length)return;if(confirm(t("ask_clear"))){snapshot();S.wps=[];$("#log").innerHTML=`<div class="note"><button class="btn sm" id="bUndo2">${t("undo")}</button></div>`;
+  $("#bUndo2").onclick=()=>{if(UNDO){S.wps=UNDO;UNDO=null;$("#log").innerHTML="";renderList()}};renderList();toast(t("cleared"))}};
+$("#bCopy").onclick=async()=>{const v=S.wps.filter(w=>w.lat!=null&&w.lon!=null);const txt=buildTSV(v,fo());
+  try{await navigator.clipboard.writeText(txt);toast(t("copied"))}catch(e){const ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();toast(t("copied"))}};
+
+$("#list").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const row=b.closest(".wp"),i=S.wps.findIndex(w=>w.id===row.dataset.id);if(i<0)return;
+  if(b.dataset.a==="del")S.wps.splice(i,1);
+  else if(b.dataset.a==="up"&&i>0)[S.wps[i-1],S.wps[i]]=[S.wps[i],S.wps[i-1]];
+  else if(b.dataset.a==="dn"&&i<S.wps.length-1)[S.wps[i+1],S.wps[i]]=[S.wps[i],S.wps[i+1]];
+  renderList()});
+$("#list").addEventListener("change",e=>{
+  const el=e.target,row=el.closest(".wp");if(!row)return;const w=S.wps.find(x=>x.id===row.dataset.id);if(!w)return;
+  if(el.classList.contains("nm")){w.name=el.value.trim();save();refreshDerived();return}
+  const k=el.classList.contains("ca")?0:1,txt=el.value.trim();el.classList.remove("bad");
+  const redraw=()=>{row.querySelector(".ca").value=cellTxt(w,0);row.querySelector(".cb").value=cellTxt(w,1);$$("input",row).forEach(i=>i.classList.remove("bad"));refreshDerived()};
+  if(S.view==="ll"){
+    if(!txt){if(k===0)w.lat=null;else w.lon=null;redraw();return}
+    const r=parseLine(txt,Object.assign(rOpts(),{mode:"ll"}),{});
+    if(r&&r.pts.length){w.lat=r.pts[0].lat;w.lon=r.pts[0].lon;redraw();return}
+    const v=parseCell(txt,k===0);if(v==null){el.classList.add("bad");return}
+    if(k===0)w.lat=v;else w.lon=v;redraw()}
+  else{
+    const num=parseFloat(txt.replace(/\s/g,"").replace(",","."));
+    if(txt&&!isFinite(num)){el.classList.add("bad");return}
+    let e0,n0;
+    if(w.lat!=null&&w.lon!=null){[e0,n0]=latLonToGrid(w.lat,w.lon,S.grid)}else{e0=w._e!=null&&w._e!==""?+w._e:null;n0=w._n!=null&&w._n!==""?+w._n:null}
+    if(k===0)e0=txt?num:null;else n0=txt?num:null;
+    if(e0!=null&&n0!=null){const ll=gridToLatLon(e0,n0,S.grid);if(isFinite(ll[0])&&Math.abs(ll[0])<=90){w.lat=ll[0];w.lon=ll[1];delete w._e;delete w._n}else{el.classList.add("bad");return}}
+    else{w.lat=null;w.lon=null;w._e=e0!=null?String(e0):"";w._n=n0!=null?String(n0):""}
+    redraw()}});
+
+const bindSel=(id,fn)=>$(id).addEventListener("change",e=>{fn(e.target.value);save();applyStatic()});
+bindSel("#oMode",v=>S.mode=v);bindSel("#oOrder",v=>S.order=v);bindSel("#oEno",v=>S.enOrder=v);
+bindSel("#oGrid",v=>{if(v==="bng")S.grid.type="bng";else{S.grid.type="utm";S.grid.datum=v==="ed50"?"ed50":"wgs84"}});
+bindSel("#oHem",v=>S.grid.south=v==="S");
+$("#oZone").addEventListener("change",e=>{const z=Math.round(+e.target.value);S.grid.zone=Math.min(60,Math.max(1,z||31));save();applyStatic()});
+$("#bZone").onclick=()=>{const w=valid()[0];if(!w)return;S.grid.type=S.grid.type==="bng"?"utm":S.grid.type;S.grid.zone=Math.min(60,Math.floor((w.lon+180)/6)+1);S.grid.south=w.lat<0;save();applyStatic()};
+bindSel("#oFmt",v=>S.fmt=v);bindSel("#oDec",v=>S.dec=+v);bindSel("#oHemi",v=>S.hemi=v);
+$("#oSym").onchange=e=>{S.sym=e.target.checked;save();renderList()};$("#oPad").onchange=e=>{S.pad=e.target.checked;save();renderList()};
+$("#sView").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.view=b.dataset.v;save();applyStatic()};
+$("#sGc").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.gc=b.dataset.g==="1";save();applyStatic()};
+$("#sTheme").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.theme=b.dataset.th;save();applyStatic()};
+$("#sLang").onchange=e=>{S.lang=e.target.value;save();applyStatic()};
+const inp=(id,fn)=>$(id).addEventListener("input",e=>{fn(e.target.value);save();renderRtz()});
+inp("#rName",v=>S.route.name=v);inp("#rVessel",v=>S.route.vessel=v);inp("#rAuthor",v=>S.route.author=v);
+inp("#rImo",v=>S.route.imo=v.replace(/\D/g,""));inp("#rMmsi",v=>S.route.mmsi=v.replace(/\D/g,""));
+inp("#zVer",v=>S.rtz.ver=v);inp("#zRad",v=>S.rtz.radius=v);inp("#zXp",v=>S.rtz.xtdP=v);inp("#zXs",v=>S.rtz.xtdS=v);inp("#zGeom",v=>S.rtz.geom=v);
+$("#bRtz").onclick=()=>{const f=rtzFile();download(f.name,f.data);toast(t("saved"))};
+$("#bGpx").onclick=()=>download(fileBase()+".gpx",buildGPX(valid(),routeInfo()));
+$("#bCsv").onclick=()=>download(fileBase()+".csv","﻿"+buildCSV(valid(),fo(),S.grid),"text/csv");
+try{const probe=new File(["x"],"a.rtz",{type:"application/xml"});if(navigator.canShare&&navigator.canShare({files:[probe]}))$("#bShare").hidden=false}catch(e){}
+$("#bShare").onclick=async()=>{const f=rtzFile();try{await navigator.share({files:[new File([f.data],f.name,{type:"application/xml"})],title:routeInfo().name})}catch(e){}};
+
+applyStatic();
+</script>
+</body>
+</html>
