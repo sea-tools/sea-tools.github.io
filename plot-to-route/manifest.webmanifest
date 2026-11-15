@@ -1,0 +1,12 @@
+{
+  "name": "Plot to Route",
+  "short_name": "Plot to Route",
+  "start_url": "./",
+  "scope": "./",
+  "display": "minimal-ui",
+  "background_color": "#0a84ff",
+  "theme_color": "#0a84ff",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
