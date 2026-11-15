@@ -45,9 +45,10 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 
 .wrap{max-width:1040px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) max(clamp(14px,4vw,40px),env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(clamp(14px,4vw,40px),env(safe-area-inset-left))}
 .top{display:flex;align-items:center;gap:14px;margin-bottom:6px;flex-wrap:wrap}
+.ttl{display:flex;align-items:center;gap:14px;min-width:0}
 .ctl{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .ctl select{width:auto;height:36px;font-size:14px}
-@media (max-width:640px){.ctl{width:100%;margin-left:0;justify-content:space-between}}
+@media (max-width:700px){.top .back{order:1}.ctl{order:2;margin-left:auto}.ttl{order:3;flex-basis:100%}}
 .print-only{display:none}
 @media print{
   body{background:#fff;color:#000}.wrap{padding:0;max-width:none}
@@ -158,8 +159,8 @@ pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);f
 <div class="wrap">
   <div class="top">
     <a class="back" href="../" aria-label="SeaTools">‹</a>
-    <svg class="badge" viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a84ff"/><stop offset="1" stop-color="#5e5ce6"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#bg)"/><g fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="6"><path d="M0 170h512M0 340h512M170 0v512M340 0v512"/></g><path d="M112 392 214 252 304 312 402 132" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 44"/><path d="M112 392 214 252 304 312 402 132" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><circle cx="214" cy="252" r="24" fill="#fff"/><circle cx="304" cy="312" r="24" fill="#fff"/><circle cx="112" cy="392" r="34" fill="#fff"/><circle cx="112" cy="392" r="20" fill="#30d158"/><circle cx="402" cy="132" r="34" fill="#fff"/><circle cx="402" cy="132" r="20" fill="#ff453a"/></svg>
-    <div><p class="eyebrow" data-i="eyebrow">Bridge · ECDIS</p><h1>Plot to Route</h1></div>
+    <div class="ttl"><svg class="badge" viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a84ff"/><stop offset="1" stop-color="#5e5ce6"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#bg)"/><g fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="6"><path d="M0 170h512M0 340h512M170 0v512M340 0v512"/></g><path d="M112 392 214 252 304 312 402 132" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 44"/><path d="M112 392 214 252 304 312 402 132" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><circle cx="214" cy="252" r="24" fill="#fff"/><circle cx="304" cy="312" r="24" fill="#fff"/><circle cx="112" cy="392" r="34" fill="#fff"/><circle cx="112" cy="392" r="20" fill="#30d158"/><circle cx="402" cy="132" r="34" fill="#fff"/><circle cx="402" cy="132" r="20" fill="#ff453a"/></svg>
+    <div><p class="eyebrow" data-i="eyebrow">Bridge · ECDIS</p><h1>Plot to Route</h1></div></div>
     <div class="ctl"><div class="seg" id="sTheme" role="group" aria-label="Appearance"></div><select id="sLang" aria-label="Language"><option value="en">English</option><option value="pl">Polski</option></select></div>
   </div>
   <div id="printHead" class="print-only"></div>
@@ -263,7 +264,7 @@ pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);f
 
   <div class="foot">
     <p data-i="disc" style="margin:0"></p>
-    <p style="margin:0">Plot to Route · © 2026 SeaTools<span id="aboutLink"></span></p>
+    <p style="margin:0">Plot to Route 1.1 · © 2026 SeaTools<span id="aboutLink"></span></p>
   </div>
 </div>
 <div id="over" hidden></div>
