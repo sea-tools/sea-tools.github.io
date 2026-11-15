@@ -1191,7 +1191,7 @@ $("wipe").onclick = () => {
 const GROUPS = { dpo: "DP operator", eng: "Engineer", oth: "Other" };
 const RANKS = {
   dpo: ["Senior DPO (SDPO)", "DPO", "Junior DPO (JDPO)", "Trainee DPO"],
-  eng: ["Chief Engineer", "Second Engineer", "Third Engineer", "Fourth Engineer", "ETO", "Engine Rating"],
+  eng: ["Chief Engineer", "Second Engineer", "Third Engineer", "Fourth Engineer", "Electrotechnical Officer (ETO)", "Engine Rating"],
   oth: ["Master", "Chief Officer", "Second Officer", "Third Officer"]
 };
 const PATTERNS = [
@@ -1217,7 +1217,10 @@ function parseWins(str) {        // "HH:MM-HH:MM,..." -> minute ranges; a range 
 const patternLabel = (w) => !w ? "Not on watch" : (PATTERNS.find((x) => x[0] === w) || [0, w.replace(/-/g, "–").replace(/,/g, " and ")])[1];
 const watchShort = (w) => !w ? "—" : w.split(",").map((r) => r.replace(/(\d\d):00/g, "$1").replace("-", "–")).join(", ");
 const onboard = (p, d) => (!p.from || d >= p.from) && (!p.to || d <= p.to);
-const rankIdx = (p) => { const i = (RANKS[p.group] || []).indexOf(p.rank); return i < 0 ? 99 : i; };
+const rankIdx = (p) => {         // also matches a short form typed by hand, e.g. "ETO" or "SDPO"
+  const i = (RANKS[p.group] || []).findIndex((x) => x === p.rank || (x.match(/\(([^)]+)\)/) || [])[1] === p.rank);
+  return i < 0 ? 99 : i;
+};
 const crewSort = (x, y) => (["dpo", "eng", "oth"].indexOf(x.group) - ["dpo", "eng", "oth"].indexOf(y.group)) || (rankIdx(x) - rankIdx(y)) || x.name.localeCompare(y.name);
 function shortRank(r) {
   const m = r.match(/\(([^)]+)\)/); if (m) return m[1];
