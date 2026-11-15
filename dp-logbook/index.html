@@ -211,7 +211,6 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
 #dpTbl.crewtbl td:nth-child(3),#dpTbl.crewtbl th:nth-child(3){text-align:right;white-space:nowrap}
 #dpTbl.crewtbl td:last-child,#dpTbl.crewtbl th:last-child{text-align:center}
 .sum[hidden]{display:none}
-#loc.inh{color:var(--muted);font-style:italic}
 #locNote{font-size:12.5px;color:var(--muted);margin:-6px 2px 12px}
 #locNote[hidden]{display:none}
 #dpWhoBox label{margin-top:16px}
@@ -643,7 +642,7 @@ function render() {
   renderLights();
   const d = day();
   const el = effLoc(cur);
-  $("loc").value = el.text; $("loc").classList.toggle("inh", !!el.from);
+  $("loc").value = el.text;
   $("locNote").hidden = !el.from; if (el.from) $("locNote").textContent = "Carried over from " + fmtDate(el.from) + " because DP continues. Edit it if the location changes (e.g. add “/ new location”).";
   const list = $("list");
   closeSug();
@@ -803,7 +802,7 @@ $("loc").addEventListener("focus", beginEdit);
 $("loc").addEventListener("input", (ev) => {
   markEdit(); const d = day(true), v = ev.target.value;
   d.loc = v; if (v.trim() === "") d.lo = true; else delete d.lo;      // an emptied field stays empty for this day; typed text is this day's own location
-  ev.target.classList.remove("inh"); $("locNote").hidden = true; save();
+  $("locNote").hidden = true; save();
 });
 
 /* ---------- status lights ---------- */
