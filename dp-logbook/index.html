@@ -288,6 +288,8 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
       <option value="06:00-12:00,18:00-24:00">06:00–12:00 and 18:00–24:00</option>
       <option value="00:00-12:00">00:00–12:00</option>
       <option value="12:00-24:00">12:00–24:00</option>
+      <option value="06:00-18:00">06:00–18:00</option>
+      <option value="18:00-06:00">18:00–06:00 (past midnight)</option>
       <option value="custom">Other hours…</option>
     </select>
     <div class="two" id="dpCustom" hidden style="margin-top:8px">
@@ -1203,6 +1205,8 @@ const PATTERNS = [
   ["06:00-12:00,18:00-24:00", "6 on / 6 off: 06–12 and 18–24"],
   ["00:00-12:00", "12 on / 12 off: 00–12"],
   ["12:00-24:00", "12 on / 12 off: 12–24"],
+  ["06:00-18:00", "12 on / 12 off: 06–18 (day)"],
+  ["18:00-06:00", "12 on / 12 off: 18–06 (night)"],
   ["08:00-17:00", "Day work: 08–17"]
 ];
 function parseWins(str) {        // "HH:MM-HH:MM,..." -> minute ranges; a range past midnight is split in two
