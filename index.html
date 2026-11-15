@@ -78,7 +78,24 @@
                 background:var(--gold);color:#14232d;font-weight:600;font-size:15px;text-decoration:none}
   .contact .btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35)}
   .contact .btn:focus-visible,.mail button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
-  .contact .actions{display:flex;gap:10px;flex-wrap:wrap}
+  .contact .intro{display:flex;flex-direction:column;gap:18px;min-width:0}
+  .contact .intro p{margin:0}
+  .contact form{display:flex;flex-direction:column;gap:8px;min-width:0}
+  .contact form>label{font-size:14px;font-weight:600;margin-top:6px}
+  .contact .opt{font-weight:400;color:var(--steel)}
+  .contact input[type=email],.contact textarea{width:100%;font:16px var(--font);color:#14232d;background:#fff;border:0;border-radius:10px;padding:11px 12px}
+  .contact input[type=email]:focus-visible,.contact textarea:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+  .contact textarea{resize:vertical}
+  .kind{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+  .kind legend{font-size:14px;font-weight:600;margin-bottom:6px;padding:0}
+  .kind label{display:flex;align-items:center;gap:10px;font-size:15px;color:#c5d1d9;min-height:32px;cursor:pointer}
+  .kind input{accent-color:var(--gold);width:18px;height:18px}
+  .contact form .btn{align-self:flex-start;margin-top:10px;border:0;cursor:pointer;font-family:var(--font)}
+  .contact form .btn:disabled{opacity:.6;cursor:default}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+  .status{margin:4px 0 0 !important;font-size:14px;min-height:1.5em}
+  .status.ok{color:var(--gold)}
+  .status.err{color:#ffb4ae}
   .mail{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.15);padding-top:18px;
         font-size:14px;color:#c5d1d9}
   .mail code{font-family:var(--mono);font-size:15px;color:#fff;user-select:all;word-break:break-all}
@@ -139,21 +156,33 @@
   </div>
 
   <section class="contact" id="contact" aria-label="Contact">
-    <div>
-      <div class="eyebrow">For companies</div>
-      <h3>Need a tool for your fleet?</h3>
-      <p>Company forms prefilled for your vessels, your logo on reports, or a new app built around how your crews work. Tell me what slows your crews down.</p>
-      <a class="btn" data-goal="contact-company" href="mailto:seatools.contact@protonmail.com?subject=SeaTools%20for%20our%20fleet">Write about your fleet</a>
-    </div>
-    <div>
-      <div class="eyebrow">New tools</div>
-      <h3>Get new tools first</h3>
-      <p>New apps and features are on the way. Send a short email and you will hear about them first. Missing a tool on board? Suggest it.</p>
-      <div class="actions">
-        <a class="btn" data-goal="notify-me" href="mailto:seatools.contact@protonmail.com?subject=Notify%20me%20about%20new%20SeaTools">Notify me</a>
-        <a class="btn ghost" data-goal="suggest-tool" href="mailto:seatools.contact@protonmail.com?subject=Tool%20idea%20for%20SeaTools">Suggest a tool</a>
+    <div class="intro">
+      <div>
+        <div class="eyebrow">New tools</div>
+        <h3>Get new tools first</h3>
+        <p>New apps and features are on the way. Leave your email and you will hear about them first. Missing a tool on board? Suggest it.</p>
+      </div>
+      <div>
+        <div class="eyebrow">For companies</div>
+        <h3>Need a tool for your fleet?</h3>
+        <p>Company forms prefilled for your vessels, your logo on reports, or a new app built around how your crews work.</p>
       </div>
     </div>
+    <form id="contactForm" novalidate>
+      <fieldset class="kind">
+        <legend>I want to</legend>
+        <label><input type="radio" name="kind" id="kNotify" value="Notify me about new tools" checked> Get new tools first</label>
+        <label><input type="radio" name="kind" id="kIdea" value="Tool idea"> Suggest a tool</label>
+        <label><input type="radio" name="kind" id="kCompany" value="Company enquiry"> Ask about my fleet</label>
+      </fieldset>
+      <label for="cEmail">Your email</label>
+      <input type="email" id="cEmail" name="email" required autocomplete="email" placeholder="name@example.com">
+      <label for="cMsg">Message <span class="opt">(optional)</span></label>
+      <textarea id="cMsg" name="message" rows="3" placeholder="Your rank, vessel type, or the tool you need"></textarea>
+      <input type="text" name="_honey" id="cHoney" tabindex="-1" autocomplete="off" class="hp" aria-hidden="true">
+      <button type="submit" class="btn" id="cSend">Send</button>
+      <p class="status" id="cStatus" role="status"></p>
+    </form>
     <div class="mail">
       <span>Email:</span><code id="mailAddr">seatools.contact@protonmail.com</code>
       <button type="button" id="copyMail">Copy</button>
@@ -255,12 +284,45 @@
     setTimeout(() => { copyBtn.textContent = "Copy"; }, 2000);
   });
 
-  // Count clicks on contact buttons in GoatCounter (anonymous, no cookies).
-  document.querySelectorAll("[data-goal]").forEach((el) => el.addEventListener("click", () => {
-    if (window.goatcounter && window.goatcounter.count) {
-      window.goatcounter.count({ path: "click/" + el.dataset.goal, title: "Click: " + el.dataset.goal, event: true });
-    }
-  }));
+  // Contact form: sends straight to the SeaTools inbox via FormSubmit (no mail app needed).
+  const FORM_ENDPOINT = "https://formsubmit.co/ajax/seatools.contact@protonmail.com";
+  const form = document.getElementById("contactForm");
+  const status = document.getElementById("cStatus");
+  const sendBtn = document.getElementById("cSend");
+  const setStatus = (msg, cls) => { status.textContent = msg; status.className = "status " + (cls || ""); };
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("cEmail");
+    if (!email.value.trim() || !email.checkValidity()) { setStatus("Enter a valid email address.", "err"); email.focus(); return; }
+    if (document.getElementById("cHoney").value) return;
+    if (!navigator.onLine) { setStatus("No connection. Try again when you are online, or email seatools.contact@protonmail.com.", "err"); return; }
+    const kind = form.querySelector("input[name=kind]:checked").value;
+    sendBtn.disabled = true; setStatus("Sending…");
+    try {
+      const res = await fetch(FORM_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          _subject: "SeaTools: " + kind,
+          _template: "table",
+          _captcha: "false",
+          type: kind,
+          email: email.value.trim(),
+          message: document.getElementById("cMsg").value.trim() || "-",
+          page: location.href
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || String(data.success) === "false") throw new Error(data.message || "send failed");
+      form.reset();
+      setStatus(kind === "Notify me about new tools" ? "Thanks. You will hear about new tools first." : "Thanks. Your message has been sent.", "ok");
+      if (window.goatcounter && window.goatcounter.count) {
+        window.goatcounter.count({ path: "form/" + kind.toLowerCase().replace(/\s+/g, "-"), title: "Form: " + kind, event: true });
+      }
+    } catch (err) {
+      setStatus("The message could not be sent. Please email seatools.contact@protonmail.com.", "err");
+    } finally { sendBtn.disabled = false; }
+  });
 
   if ("serviceWorker" in navigator) {
     addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
