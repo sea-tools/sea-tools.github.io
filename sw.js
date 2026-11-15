@@ -2,7 +2,7 @@
 // Strategy: try the network first (so updates show up straight away),
 // fall back to the saved copy when there is no connection.
 // When you add a new app, add its files to PRECACHE and bump VERSION.
-const VERSION = "v17";
+const VERSION = "v18";
 const CACHE = "marine-apps-" + VERSION;
 const PRECACHE = [
   "./",
