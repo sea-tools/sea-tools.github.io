@@ -179,7 +179,6 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
   #print td:first-child,#print th:first-child{width:22mm;text-align:center;font-family:Consolas,Menlo,monospace;white-space:nowrap}
   #print td{white-space:pre-wrap}
   .pw{font-size:9.5pt;margin:0 0 8px}.pw div{margin:2px 0}
-  #print td.ow,#print th.ow{width:52mm;text-align:left;font-family:inherit;font-size:9pt;white-space:normal}
   #print #dpTbl td:first-child,#print #dpTbl th:first-child{width:auto;text-align:left;font-family:inherit;white-space:normal}
   #print tr{break-inside:avoid}
   .ps{display:flex;gap:40px;margin-top:22mm;break-inside:avoid}
@@ -322,7 +321,7 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
       </div>
     </div>
     <p id="prInfo"></p>
-    <label class="chk" id="prCrewBox" hidden><input type="checkbox" id="prCrew"> Include who was on watch (from Crew &amp; watches)</label>
+    <label class="chk" id="prCrewBox" hidden><input type="checkbox" id="prCrew"> Include the watch roster of each day (from Crew &amp; watches)</label>
     <div class="btns" style="margin-top:14px"><button class="b" id="prGo" style="background:var(--accent);color:var(--accent-ink)">Print</button></div>
     <p>To save a PDF, choose “Save as PDF” as the printer (on iPad / iPhone: Share in the print preview).</p>
   </div>
@@ -1091,12 +1090,6 @@ $("setDlg").addEventListener("close", () => { render(); tick(); });
 
 /* ---------- print / export ---------- */
 const phLogo = () => S.logo ? '<img src="' + S.logo + '" alt="">' : "";
-function onWatchAt(d, hhmm) {    // crew on watch on date d at time hhmm, as short text
-  if (!hhmm) return "";
-  const m = toMin(hhmm);
-  return S.crew.slice().sort(crewSort).filter((p) => onboard(p, d) && parseWins(p.watch).some((r) => m >= r[0] && m < r[1]))
-    .map((p) => shortRank(p.rank) + " " + shortName(p.name)).join("; ");
-}
 function watchRoster(d) {        // who keeps which watch on date d
   const line = (label, g) => {
     const ps = S.crew.slice().sort(crewSort).filter((p) => g.includes(p.group) && onboard(p, d) && parseWins(p.watch).length);
@@ -1117,8 +1110,8 @@ function printDays(dates, t1, t2) {   // t1 limits the first day, t2 the last da
     if (!rows.length && !one) continue;
     body += (one ? "" : "<h2>" + fmtDate(d, true) + "</h2>") +
       '<div class="pm">' + (one ? "<span>Times: " + tz + "</span>" : "") + (v.loc ? "<span>Location / operation: " + esc(v.loc) + "</span>" : "") + "<span>On DP this day: " + fmtDur(dpMinutes(d)) + "</span></div>" + (withCrew ? watchRoster(d) : "") +
-      "<table><thead><tr><th>Time</th><th>Event</th>" + (withCrew ? '<th class="ow">On watch</th>' : "") + "</tr></thead><tbody>" +
-      (rows.length ? rows.map((e) => "<tr><td>" + esc(e.t) + "</td><td>" + esc(e.text) + "</td>" + (withCrew ? '<td class="ow">' + esc(onWatchAt(d, e.t)) + "</td>" : "") + "</tr>").join("") : '<tr><td></td><td>No entries</td>' + (withCrew ? "<td></td>" : "") + "</tr>") +
+      "<table><thead><tr><th>Time</th><th>Event</th></tr></thead><tbody>" +
+      (rows.length ? rows.map((e) => "<tr><td>" + esc(e.t) + "</td><td>" + esc(e.text) + "</td></tr>").join("") : '<tr><td></td><td>No entries</td></tr>') +
       "</tbody></table>";
   }
   if (!body) return toast("No entries in this period"), false;
