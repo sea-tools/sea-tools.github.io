@@ -180,13 +180,12 @@ details summary{font-weight:650}
 .acts button:not(.pri),.banner button{background:var(--paper);box-shadow:var(--sh)}
 }
 
-@media screen{.logo-print{display:none}}
-@media print{.logo-scr{display:none!important}}
+@media print{.top img{box-shadow:none!important}}
 </style>
 
 <div class="wrap">
   <div class="top">
-    <div class="row" style="gap:10px"><img class="logo-scr" src="icon.png" width="34" height="34" alt="" style="border-radius:8px;display:block;box-shadow:0 2px 8px rgba(0,0,0,.25)"><svg class="logo-print" width="34" height="34" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#14232d"/><g fill="none" stroke="#8fa3b1" stroke-width="1.5"><circle cx="32" cy="32" r="24"/><circle cx="32" cy="32" r="14"/><path d="M32 6v52M6 32h52"/></g><g transform="rotate(-30 32 32)"><path d="M32 10l8 11v25H24V21z" fill="#ffffff" fill-opacity=".18" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round"/><circle cx="32" cy="10" r="3.5" fill="#ff5a4f"/></g><g fill="#ffd166"><circle cx="27" cy="30" r="1.8"/><circle cx="35" cy="36" r="1.8"/><circle cx="30" cy="38" r="1.8"/></g></svg>
+    <div class="row" style="gap:10px"><img src="icon.png" width="34" height="34" alt="" style="border-radius:8px;display:block;box-shadow:0 2px 8px rgba(0,0,0,.25)">
     <h1>DP FOOTPRINT PLOT</h1></div>
     <div class="acts noprint">
       <button id="newBtn">New</button>
