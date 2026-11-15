@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tight &amp; Right</title>
+<meta name="description" content="Bolt and nut tightening torque for ISO metric coarse and fine threads, with an animated analog click wrench and a digital torque wrench. Works offline.">
+<meta name="theme-color" content="#14232d">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}))}</script>
+<script src="../assets/stats.js" defer></script>
+<style>
+:root{
+  --bg:#eef1f4; --card:#fff; --ink:#14232d; --muted:#5d6c77; --line:#d3dae0; --fill:#eef1f4;
+  --navy:#14232d; --accent:#e4572e; --accent-ink:#fff; --gold:#ffd166; --ok:#1b8a3a; --warn:#b26a00; --danger:#c62828;
+  --warnbg:#fff4de; --dangerbg:#fde8e8; --infobg:#e3f0fc;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0b1116; --card:#16222b; --ink:#e6edf2; --muted:#93a4b0; --line:#2a3944; --fill:#0f1920;
+    --accent:#ff7a4d; --accent-ink:#1c0a03; --ok:#4cd07a; --warn:#ffb347; --danger:#ff6b60;
+    --warnbg:#2f2410; --dangerbg:#331816; --infobg:#1d3346}
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 var(--font);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+#top{background:var(--navy);color:#fff;padding:calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left))}
+#top .in{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:10px}
+#top .back{color:#c5d1d9;text-decoration:none;font-size:26px;line-height:1;padding:6px 8px 8px 0;flex:none}
+#top h1{margin:0;font-size:18px;letter-spacing:-.01em;line-height:1.2;flex:1}
+#top small{display:block;font-size:12.5px;color:#9fb2bf;font-weight:400}
+.lang{display:flex;border-radius:9px;overflow:hidden;border:1px solid rgba(255,255,255,.25);flex:none}
+.lang button{border:0;background:transparent;color:#c5d1d9;padding:0 12px;min-height:36px;font-size:13px;font-weight:600}
+.lang button[aria-pressed=true]{background:#fff;color:var(--navy)}
+
+main{max-width:1100px;margin:0 auto;padding:16px calc(14px + env(safe-area-inset-right)) 40px calc(14px + env(safe-area-inset-left))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+h2{margin:0 0 12px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:var(--mono);font-weight:600}
+
+/* inputs + result */
+.top{display:grid;grid-template-columns:1fr;gap:14px}
+@media (min-width:860px){.top{grid-template-columns:1.1fr 1fr}}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.form{grid-template-columns:1fr}}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);font-weight:600}
+select{min-height:46px;border:1px solid var(--line);border-radius:10px;background:var(--fill);padding:0 10px;font-size:16px;color:var(--ink)}
+.span2{grid-column:1/-1}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--fill)}
+.seg button{flex:1;border:0;background:transparent;min-height:46px;font-weight:600;font-size:15px;color:var(--muted)}
+.seg button[aria-pressed=true]{background:var(--navy);color:#fff}
+@media (prefers-color-scheme:dark){.seg button[aria-pressed=true]{background:#e6edf2;color:#14232d}}
+details.adv{grid-column:1/-1}
+details.adv summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;min-height:36px;display:flex;align-items:center}
+details.adv .form{margin-top:8px}
+.note{grid-column:1/-1;font-size:13.5px;border-radius:10px;padding:9px 12px;background:var(--infobg);color:var(--ink)}
+.note.warn{background:var(--warnbg)} .note.danger{background:var(--dangerbg)}
+
+.res{display:flex;flex-direction:column;gap:10px}
+.big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.big b{font-size:clamp(46px,9vw,68px);line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.big span{font-size:22px;color:var(--muted);font-weight:600}
+.sub{display:flex;gap:6px 16px;flex-wrap:wrap;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.sub b{color:var(--ink)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-size:14px;border-top:1px solid var(--line);padding-top:10px;font-variant-numeric:tabular-nums}
+.kv div:nth-child(odd){color:var(--muted)} .kv div:nth-child(even){font-weight:650;text-align:right}
+.stages{display:flex;gap:8px;flex-wrap:wrap}
+.stages div{flex:1;min-width:84px;background:var(--fill);border-radius:10px;padding:7px 10px;text-align:center;font-size:12px;color:var(--muted)}
+.stages b{display:block;font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* wrenches */
+.wrenches{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px}
+@media (min-width:980px){.wrenches{grid-template-columns:1.55fr 1fr}}
+.wrenches svg{width:100%;height:auto;display:block}
+.setting{margin-top:6px;font-size:15px;text-align:center;font-variant-numeric:tabular-nums}
+.setting b{font-family:var(--mono)}
+.steps{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.steps span{background:var(--fill);border-radius:999px;padding:3px 10px}
+.steps span.on{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.cardhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.cardhead h2{margin:0}
+.units{display:flex;gap:6px}
+.units button{border:1px solid var(--line);background:var(--fill);border-radius:8px;min-height:34px;padding:0 10px;font-size:13px;font-weight:600;color:var(--muted)}
+.units button[aria-pressed=true]{background:var(--navy);color:#fff;border-color:var(--navy)}
+@media (prefers-color-scheme:dark){.units button[aria-pressed=true]{background:#e6edf2;color:#14232d}}
+.demo{display:flex;justify-content:center;margin-top:14px}
+.btn{border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);min-height:48px;padding:0 22px;font-weight:700;font-size:16px}
+.btn:active{filter:brightness(.92)}
+.empty{padding:36px 10px;text-align:center;color:var(--muted)}
+
+/* text sections */
+details.sec{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:4px 16px}
+details.sec summary{cursor:pointer;font-weight:700;min-height:50px;display:flex;align-items:center;font-size:16px}
+details.sec h3{margin:16px 0 4px;font-size:15px}
+details.sec p,details.sec li{font-size:14.5px;color:var(--muted);margin:4px 0}
+details.sec li b,details.sec p b{color:var(--ink)}
+details.sec ul,details.sec ol{margin:4px 0 8px;padding-left:22px}
+details.sec code{font-family:var(--mono);font-size:13px;background:var(--fill);padding:1px 6px;border-radius:5px;color:var(--ink)}
+details.sec .box{background:var(--warnbg);border-radius:10px;padding:8px 12px;margin:12px 0 14px;color:var(--ink);font-size:14px}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums;margin:8px 0 14px}
+th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:600;font-size:12.5px}
+tr.cur td{background:var(--infobg);font-weight:700}
+.tblwrap{overflow-x:auto}
+.foot{margin-top:18px;font-size:12.5px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header id="top"><div class="in">
+  <a class="back" href="../" aria-label="Back">‹</a>
+  <h1><span data-i="title"></span><small data-i="subtitle"></small></h1>
+  <div class="lang" role="group" aria-label="Language">
+    <button data-lang="en" aria-pressed="false">EN</button><button data-lang="pl" aria-pressed="false">PL</button>
+  </div>
+</div></header>
+
+<main>
+  <section class="top">
+    <div class="card">
+      <h2 data-i="h_fastener"></h2>
+      <div class="form">
+        <label class="span2"><span data-i="l_type"></span>
+          <div class="seg" id="typeSeg">
+            <button data-type="bolt" data-i="t_bolt"></button>
+            <button data-type="nut" data-i="t_nut"></button>
+            <button data-type="stud" data-i="t_stud"></button>
+          </div>
+        </label>
+        <label><span id="clsLbl"></span><select id="cls"></select></label>
+        <label><span data-i="l_size"></span><select id="size"></select></label>
+        <label class="span2"><span data-i="l_lube"></span><select id="lube"></select></label>
+        <details class="adv"><summary data-i="l_adv"></summary>
+          <div class="form">
+            <label><span data-i="l_preload"></span><select id="nu"></select></label>
+            <label><span data-i="l_mult"></span><select id="mult"></select></label>
+          </div>
+        </details>
+        <div class="note" id="typeNote"></div>
+        <div id="warns" style="display:contents"></div>
+      </div>
+    </div>
+
+    <div class="card res" id="result"></div>
+  </section>
+
+  <section class="wrenches">
+    <div class="card">
+      <div class="cardhead"><h2 data-i="h_analog"></h2><span id="wrenchName" style="font-size:13px;color:var(--muted)"></span></div>
+      <div id="analogBox"></div>
+    </div>
+    <div class="card">
+      <div class="cardhead"><h2 data-i="h_digital"></h2>
+        <div class="units" id="units">
+          <button data-u="nm" aria-pressed="true">Nm</button><button data-u="lbf" aria-pressed="false">lbf·ft</button><button data-u="kgf" aria-pressed="false">kgf·m</button>
+        </div></div>
+      <div id="digitalBox"></div>
+    </div>
+  </section>
+  <div class="demo"><button class="btn" id="demo" data-i="demo"></button></div>
+
+  <details class="sec" open><summary data-i="s_how"></summary><div id="how"></div></details>
+  <details class="sec"><summary data-i="s_table"></summary><div id="tableBox"></div></details>
+  <details class="sec"><summary data-i="s_calc"></summary><div id="calc"></div></details>
+  <p class="foot" data-i="disclaimer"></p>
+</main>
+
+<script>
+"use strict";
+/* ============ DATA ============ */
+// ISO metric threads. Coarse pitch per diameter, fine pitches listed below.
+// As = tensile stress area (ISO 898-1): π/4·(d − 0.9382·P)²;  d2 = pitch diameter = d − 0.6495·P.
+const COARSE={5:.8,6:1,8:1.25,10:1.5,12:1.75,14:2,16:2,18:2.5,20:2.5,22:2.5,24:3,27:3,30:3.5,33:3.5,36:4,39:4,42:4.5,48:5};
+const FINE=[[5,.5],[6,.75],[8,1.25],[8,1],[10,1.25],[10,1],[12,1.5],[12,1.25],[14,1.5],[16,1.5],[18,2],[18,1.5],[20,2],[20,1.5],
+  [22,2],[22,1.5],[24,2],[24,1.5],[27,2],[30,2],[33,2],[36,3],[36,2],[39,3],[42,3],[48,3]];
+// Spanner / socket size across flats (ISO 272); some older DIN sizes differ.
+const AF={5:8,6:10,8:13,10:16,12:18,14:21,16:24,18:27,20:30,22:34,24:36,27:41,30:46,33:50,36:55,39:60,42:65,48:75};
+const AF_DIN={10:17,12:19,14:22,22:32};
+const mkThread=(d,P,fine)=>({id:"M"+d+(fine?"x"+P:""),d,P,fine,As:Math.PI/4*Math.pow(d-.9382*P,2),d2:d-.6495*P,af:AF[d]});
+const THREADS=Object.keys(COARSE).map(d=>mkThread(+d,COARSE[d],false)).concat(FINE.map(([d,P])=>mkThread(d,P,true)))
+  .sort((a,b)=>a.d-b.d||(a.fine-b.fine)||(b.P-a.P));
+const thLabel=(th,lang)=>{const P=String(th.P);return "M"+th.d+" × "+(lang==="pl"?P.replace(".",","):P)};
+// Rp = yield / proof strength (MPa). nut = marked nut class that mates with this bolt class.
+const CLASSES=[
+  {id:"4.6",Rp:240,nut:"4"},{id:"5.8",Rp:400,nut:"5"},{id:"8.8",Rp:640,nut:"8"},{id:"10.9",Rp:940,nut:"10"},{id:"12.9",Rp:1100,nut:"12"},
+  {id:"A2-70",Rp:450,nut:"A2-70",ss:1},{id:"A4-70",Rp:450,nut:"A4-70",ss:1},{id:"A4-80",Rp:600,nut:"A4-80",ss:1}];
+// Nut factor K in T = K·d·F
+// K = nut factor for the standard coarse thread; mu = friction coefficient used for the fine-thread correction.
+const LUBES=[{id:"dry",K:.20,mu:.15},{id:"oil",K:.15,mu:.11},{id:"cuni",K:.12,mu:.09},{id:"moly",K:.10,mu:.075}];
+const PRELOADS=[{v:.7,id:"std"},{v:.5,id:"low"},{v:.9,id:"high"}];
+const MULTS=[1,3,5,10,25];
+// Hand wrenches (click type). step = one full turn of the handle (main scale division), 10 micro divisions per turn.
+const WRENCHES=[
+  {min:1,max:10,L:.20,step:1},{min:5,max:25,L:.25,step:5},{min:20,max:100,L:.40,step:10},{min:40,max:200,L:.50,step:10},
+  {min:60,max:340,L:.65,step:20},{min:150,max:700,L:1.0,step:50},{min:200,max:1000,L:1.2,step:50}];
+
+/* ============ TEXT (EN / PL) ============ */
+const TX={
+en:{
+ title:"Tight & Right",subtitle:"Bolts, nuts & studs – ISO metric",
+ h_fastener:"Fastener",l_type:"What are you tightening?",t_bolt:"Bolt / screw",t_nut:"Nut",t_stud:"Stud",
+ l_class_bolt:"Strength class (head marking)",l_class_nut:"Nut class (marking on nut)",l_size:"Thread (size × pitch)",g_coarse:"Coarse thread",g_fine:"Fine thread",r_thread:"Thread",r_k:"Nut factor K (used)",r_af:"Spanner / socket (AF)",r_vs:(c)=>`Compared with coarse ${c}`,w_fine:(n)=>`Fine thread ${n}: check the pitch with a thread gauge before you tighten. Fine threads need the same pitch on bolt and nut and are damaged more easily by cross-threading.`,l_lube:"Thread condition / lubricant",
+ l_adv:"Advanced: preload level, torque multiplier",l_preload:"Preload (% of yield)",l_mult:"Torque multiplier",
+ mult_none:"None (hand wrench only)",
+ lube_dry:"Dry, as supplied (K 0.20)",lube_oil:"Light oil / engine oil (K 0.15)",lube_cuni:"Copper / nickel anti-seize (K 0.12)",lube_moly:"MoS₂ paste (K 0.10)",
+ pre_std:"70 % – standard",pre_low:"50 % – gaskets, soft material, reuse",pre_high:"90 % – critical, lubricated, precise tool",
+ cls_nutopt:(n,b)=>`Nut ${n}  (for bolts ${b})`,
+ note_bolt:(c)=>`Bolt class ${c}. Best practice: hold the head and turn the nut. If you must turn the head, use the same value but expect ±10 % more scatter.`,
+ note_nut:(n,b)=>`Nut class ${n} mates with bolts ${b}. The torque is set by the bolt it matches. Hold the bolt head, turn the nut. Prevailing-torque (locking) nut: add the running torque, see Instructions.`,
+ note_stud:(c)=>`Stud class ${c}. Seat the stud fully, then tighten the NUT to this value – never torque the stud itself. Minimum engagement 1×d in steel, 1.5–2×d in cast iron or aluminium.`,
+ w_ss:"Stainless steel galls (seizes) easily. Always lubricate and tighten slowly, never dry and never with an impact tool.",
+ w_dry_ss:"Dry stainless threads: K is raised to 0.25, but seizure is likely – use anti-seize.",
+ w_big:"Large size: a hand wrench cannot give this torque. Use a torque multiplier (set it in Advanced) or a hydraulic wrench / bolt tensioner.",
+ w_high:"90 % preload leaves little reserve. Use only if the procedure demands it.",
+ w_nomult:"Torque is above 1000 Nm – no hand wrench in this app reaches it. Pick a torque multiplier in Advanced.",
+ w_low:"Torque is below 1 Nm – use a small precision torque screwdriver.",
+ r_torque:"Tightening torque",r_set:"Set the wrench to",r_pull:"Pull at the handle end",r_preload:"Bolt preload (clamp force)",r_as:"Stress area / yield",
+ r_wrench:"Suggested wrench",r_stages:"Tighten in stages",r_nm:"Nm",r_ratio:"Multiplier ratio",r_input:"Wrench input",
+ r_stage:(p)=>`${p} %`,
+ h_analog:"Analog click wrench – top view",h_digital:"Digital wrench",
+ wr_range:(a,b)=>`${a}–${b} Nm wrench`,
+ set_read:(m,u,t)=>`Reading: main scale <b>${m}</b> + micro scale <b>${u}</b> = <b>${t} Nm</b>`,
+ st_unlock:"1 Unlock",st_set:"2 Turn to set",st_lock:"3 Lock",
+ lcd_set:"SET",lcd_hold:"HOLD",demo:"▶ Simulate tightening",demo_stop:"■ Reset",
+ s_how:"Instructions",s_table:"Table: all sizes for this class",s_calc:"How the value is calculated",
+ tb_size:"Thread",tb_t:"Torque Nm",tb_f:"Preload kN",
+ disclaimer:"Guide values for ISO metric coarse and fine threads, calculated – not copied from a maker's table. Always use the torque from the equipment manual, the maker or the class-approved procedure if one exists; it overrides this app. Never rely on this app alone for safety-critical joints.",
+ how:`
+<h3>0 · Before you start</h3>
+<ul>
+<li><b>Maker's value first.</b> Engine, pump, flange or deck-equipment manual always overrides this app.</li>
+<li><b>Clean the threads and the faces.</b> Rust, paint or dirt change friction and so the real preload by 20–40 %. Replace damaged, stretched or badly corroded fasteners.</li>
+<li><b>Lubricate exactly as the procedure says.</b> Torque is mostly spent on friction (about 90 %), only about 10 % makes preload. A torque meant for dry threads, applied to oiled threads, over-tightens by 25–40 % and can yield the bolt.</li>
+</ul>
+<h3>1 · Bolt, nut, stud – what is different</h3>
+<ul>
+<li><b>Strength comes from the bolt</b> (marking on the head: 8.8, 10.9, 12.9 …). The nut only has to be strong enough: <b>nut 8 with bolt 8.8, nut 10 with 10.9, nut 12 with 12.9</b>. Stainless is marked the same on both (A2-70, A4-80).</li>
+<li>So the torque in this app is the torque of the <b>bolt</b> class. Choosing “Nut” just translates the nut marking to the matching bolt class.</li>
+<li><b>Turn the nut and hold the head</b> whenever you can. The nut face and threads then carry the friction you assumed.</li>
+<li><b>Locking nuts</b> (nylon insert or all-metal): first run the nut down and read the running (prevailing) torque on the wrench, then <b>add it</b> to the table value.</li>
+<li><b>Studs:</b> never torque the stud, torque the nut. Mixed-material joints (steel stud in aluminium) – follow the maker, the value is usually lower.</li>
+</ul>
+<h3>2 · Setting the analog click wrench</h3>
+<ol>
+<li><b>Unlock</b> – release the lock (lock ring or locking screw at the end of the handle, usually turn counter-clockwise).</li>
+<li><b>Turn the handle.</b> The sleeve edge moves along the main scale. Stop on the main-scale line (tens), then turn the micro scale until the correct number lines up with the datum line. Example: 52 Nm = main 50 + micro 2. The animation above shows exactly this.</li>
+<li><b>Lock</b> – tighten the lock again. An unlocked setting drifts.</li>
+<li><b>Pull</b> – one hand on the centre of the grip, smoothly and at 90° to the wrench. No jerks, no pipe extension, no impact.</li>
+<li><b>Stop at the click</b> (and the small kick in the handle). Do not pull further – the click already means you reached the value.</li>
+<li><b>Stages:</b> 30 % → 60 % → 100 %. For flanges and covers go <b>crosswise (star pattern)</b>, then do one last pass at 100 % in a circle until nothing turns any more.</li>
+<li><b>After use:</b> unlock and set the wrench to the <b>lowest value on its scale</b> (not to zero), lock, put it in its case. A spring left compressed loses accuracy.</li>
+</ol>
+<h3>3 · Digital wrench</h3>
+<ul>
+<li>Check the battery, choose the unit, enter the target (the LCD shows SET). Pull slowly: the LEDs go yellow near the target and green with a beep and vibration at the target. Red = overshoot, loosen and repeat.</li>
+</ul>
+<h3>4 · Care of the wrench</h3>
+<ul>
+<li>Never use it as a breaker bar to loosen, never drop it, never use it above its range. Calibrate every 12 months or after any drop or overload (ISO 6789).</li>
+<li>Accuracy is best between 20 % and 100 % of the wrench range – the app chooses a wrench that fits.</li>
+<li>A crow-foot or extension on the head changes the real torque. Set T × L ÷ (L + E), where L is the wrench length and E the extension (in line with the wrench).</li>
+</ul>
+<h3>5 · Large sizes</h3>
+<p>Above about 600–1000 Nm a hand wrench is not practical. Use a <b>torque multiplier</b> (set the wrench to the torque ÷ ratio, fit the reaction arm against a solid point and stay clear of it) or a <b>hydraulic torque wrench / bolt tensioner</b> following the maker's procedure.</p>
+<h3>6 · Coarse or fine thread</h3>
+<ul>
+<li><b>How to tell:</b> measure the outer diameter with calipers and the pitch with a thread gauge (or count threads over 10 mm). M10 × 1.5 is coarse, M10 × 1.25 and M10 × 1 are fine. Marking “M10” alone always means coarse.</li>
+<li><b>Fine thread</b> has a larger stress area, so it carries more preload and takes about 3–10 % more torque than the coarse thread of the same size. It resists loosening from vibration better and allows fine adjustment, which is why engines, pumps and hydraulics use it a lot.</li>
+<li>It is also <b>more sensitive</b>: dirt, damage, wrong pitch and cross-threading ruin it quickly, and stainless fine threads gall easily. Start the nut by hand for several turns before using any tool.</li>
+<li><b>Never mix pitches</b> (fine bolt in coarse nut or the other way). If it does not turn freely by hand, stop and check.</li>
+<li>Engine cylinder-head, connecting-rod and main-bearing bolts often have fine threads and their own procedure (torque plus angle, stretch bolts that must be replaced). In that case the <b>engine manual overrides the table</b>.</li>
+<li><b>Spanner size:</b> the table shows the ISO across-flats size. Older DIN fasteners differ for M10 (17), M12 (19), M14 (22) and M22 (32). The app shows the DIN size in brackets.</li>
+</ul>`,
+ calc:`
+<p><code>F = ν · Rp · As</code> preload (N) = preload level × yield strength (MPa) × stress area (mm²)</p>
+<p><code>T = K · d · F</code> torque (N·mm) = nut factor × nominal diameter (mm) × preload (N)</p>
+<p>Defaults: 70 % of yield, K = 0.20 dry / 0.15 oiled / 0.12 anti-seize / 0.10 MoS₂. Yield Rp: 4.6 = 240, 5.8 = 400, 8.8 = 640, 10.9 = 940, 12.9 = 1100, A2-70 and A4-70 = 450, A4-80 = 600 MPa. Torque is rounded to a value the wrench scale can show.</p>
+<p><b>Fine thread:</b> As = π/4 · (d − 0.9382 · P)², pitch diameter d₂ = d − 0.6495 · P. K is corrected from the coarse value by <code>ΔK = (P − P_coarse) / (2π·d) + μ · (d₂ − d₂_coarse) / (2 · cos 30° · d)</code>: a smaller pitch lowers the lifting term, a larger pitch diameter raises thread friction. Friction μ: dry 0.15, oil 0.11, anti-seize 0.09, MoS₂ 0.075 (stainless dry 0.22).</p>
+<p>The real result depends on friction, so scatter of ±25 % is normal with plain torque control. That is why the maker's value and a clean, correctly lubricated thread matter more than the last digit.</p>`
+},
+pl:{
+ title:"Tight & Right",subtitle:"Śruby, nakrętki i szpilki – gwint metryczny ISO",
+ h_fastener:"Element złączny",l_type:"Co dokręcasz?",t_bolt:"Śruba",t_nut:"Nakrętka",t_stud:"Szpilka",
+ l_class_bolt:"Klasa wytrzymałości (znak na łbie)",l_class_nut:"Klasa nakrętki (znak na nakrętce)",l_size:"Gwint (rozmiar × skok)",g_coarse:"Gwint zwykły",g_fine:"Gwint drobnozwojny",r_thread:"Gwint",r_k:"Współczynnik K (użyty)",r_af:"Klucz / nasadka (rozmiar)",r_vs:(c)=>`W porównaniu z gwintem zwykłym ${c}`,w_fine:(n)=>`Gwint drobny ${n}: przed dokręceniem sprawdź skok sprawdzianem do gwintów. Śruba i nakrętka muszą mieć ten sam skok, a gwint drobny łatwiej uszkodzić przy krzywym nakręcaniu.`,l_lube:"Stan gwintu / smarowanie",
+ l_adv:"Zaawansowane: poziom napięcia, mnożnik momentu",l_preload:"Napięcie wstępne (% granicy plastyczności)",l_mult:"Mnożnik momentu",
+ mult_none:"Brak (tylko klucz ręczny)",
+ lube_dry:"Na sucho, jak z fabryki (K 0,20)",lube_oil:"Lekki olej / olej silnikowy (K 0,15)",lube_cuni:"Pasta miedziowa / niklowa (K 0,12)",lube_moly:"Pasta MoS₂ (K 0,10)",
+ pre_std:"70 % – standard",pre_low:"50 % – uszczelki, miękki materiał, ponowne użycie",pre_high:"90 % – krytyczne, smarowane, precyzyjne narzędzie",
+ cls_nutopt:(n,b)=>`Nakrętka ${n}  (do śrub ${b})`,
+ note_bolt:(c)=>`Śruba klasy ${c}. Najlepiej trzymać łeb i kręcić nakrętką. Jeśli musisz kręcić łbem, wartość jest ta sama, ale rozrzut jest większy o ok. ±10 %.`,
+ note_nut:(n,b)=>`Nakrętka klasy ${n} pasuje do śrub ${b}. Moment wynika ze śruby, do której pasuje. Trzymaj łeb śruby, kręć nakrętką. Nakrętka samohamowna: dodaj moment oporowy, patrz Instrukcja.`,
+ note_stud:(c)=>`Szpilka klasy ${c}. Najpierw wkręć szpilkę do końca, potem dokręcaj NAKRĘTKĘ tym momentem – nigdy samej szpilki. Minimalne wkręcenie: 1×d w stali, 1,5–2×d w żeliwie lub aluminium.`,
+ w_ss:"Stal nierdzewna łatwo się zaciera. Zawsze smaruj i dokręcaj powoli – nigdy na sucho i nigdy kluczem udarowym.",
+ w_dry_ss:"Nierdzewka na sucho: K podniesione do 0,25, ale zatarcie jest prawdopodobne – użyj pasty antyzatarciowej.",
+ w_big:"Duży rozmiar: kluczem ręcznym nie da się uzyskać tego momentu. Użyj mnożnika momentu (w sekcji Zaawansowane) albo klucza hydraulicznego / napinacza śrub.",
+ w_high:"Przy 90 % zostaje mały zapas. Stosuj tylko, jeśli wymaga tego procedura.",
+ w_nomult:"Moment powyżej 1000 Nm – żaden klucz ręczny w tej aplikacji tego nie osiągnie. Wybierz mnożnik momentu w Zaawansowane.",
+ w_low:"Moment poniżej 1 Nm – użyj małego precyzyjnego wkrętaka dynamometrycznego.",
+ r_torque:"Moment dokręcania",r_set:"Ustaw klucz na",r_pull:"Siła na końcu rączki",r_preload:"Napięcie śruby (siła docisku)",r_as:"Przekrój rdzenia / granica plast.",
+ r_wrench:"Zalecany klucz",r_stages:"Dokręcaj etapami",r_nm:"Nm",r_ratio:"Przełożenie mnożnika",r_input:"Moment na kluczu",
+ r_stage:(p)=>`${p} %`,
+ h_analog:"Klucz analogowy (z kliknięciem) – widok z góry",h_digital:"Klucz elektroniczny",
+ wr_range:(a,b)=>`klucz ${a}–${b} Nm`,
+ set_read:(m,u,t)=>`Odczyt: skala główna <b>${m}</b> + podziałka <b>${u}</b> = <b>${t} Nm</b>`,
+ st_unlock:"1 Odblokuj",st_set:"2 Przekręć",st_lock:"3 Zablokuj",
+ lcd_set:"NASTAW",lcd_hold:"HOLD",demo:"▶ Symuluj dokręcanie",demo_stop:"■ Reset",
+ s_how:"Instrukcja",s_table:"Tabela: wszystkie rozmiary dla tej klasy",s_calc:"Jak liczona jest wartość",
+ tb_size:"Gwint",tb_t:"Moment Nm",tb_f:"Napięcie kN",
+ disclaimer:"Wartości orientacyjne dla gwintu metrycznego ISO, zwykłego i drobnozwojnego, obliczone, a nie przepisane z tabeli producenta. Zawsze stosuj moment z instrukcji urządzenia, od producenta lub z procedury zatwierdzonej przez klasę, jeśli taka istnieje – ma pierwszeństwo przed tą aplikacją. Nie opieraj się wyłącznie na niej przy połączeniach krytycznych dla bezpieczeństwa.",
+ how:`
+<h3>0 · Zanim zaczniesz</h3>
+<ul>
+<li><b>Najpierw wartość producenta.</b> Instrukcja silnika, pompy, kołnierza czy urządzenia pokładowego zawsze ma pierwszeństwo przed tą aplikacją.</li>
+<li><b>Wyczyść gwinty i powierzchnie.</b> Rdza, farba i brud zmieniają tarcie, a więc rzeczywiste napięcie, o 20–40 %. Wymień uszkodzone, rozciągnięte lub mocno skorodowane śruby.</li>
+<li><b>Smaruj dokładnie tak, jak mówi procedura.</b> Około 90 % momentu idzie na pokonanie tarcia, tylko ok. 10 % robi napięcie śruby. Moment podany dla gwintu suchego, użyty na gwincie naoliwionym, przeciąża śrubę o 25–40 % i może ją wyciągnąć poza granicę plastyczności.</li>
+</ul>
+<h3>1 · Śruba, nakrętka, szpilka – co jest inne</h3>
+<ul>
+<li><b>Wytrzymałość daje śruba</b> (znak na łbie: 8.8, 10.9, 12.9 …). Nakrętka musi tylko być wystarczająco mocna: <b>nakrętka 8 do śruby 8.8, nakrętka 10 do 10.9, nakrętka 12 do 12.9</b>. Stal nierdzewna jest oznaczona tak samo na obu (A2-70, A4-80).</li>
+<li>Dlatego moment w aplikacji to moment klasy <b>śruby</b>. Wybór „Nakrętka” tylko zamienia znak na nakrętce na odpowiadającą klasę śruby.</li>
+<li><b>Kręć nakrętką, a łeb trzymaj</b>, gdy tylko się da. Wtedy tarcie na gwincie i pod nakrętką jest takie, jak założono.</li>
+<li><b>Nakrętki samohamowne</b> (z wkładką nylonową lub całometalowe): najpierw nakręć nakrętkę i odczytaj na kluczu moment oporowy, potem <b>dodaj go</b> do wartości z tabeli.</li>
+<li><b>Szpilki:</b> nigdy nie dokręcaj samej szpilki, tylko nakrętkę. Połączenia z różnych materiałów (szpilka stalowa w aluminium) – stosuj wartość producenta, zwykle niższą.</li>
+</ul>
+<h3>2 · Ustawianie klucza analogowego (z kliknięciem)</h3>
+<ol>
+<li><b>Odblokuj</b> – zwolnij kontrę (pierścień lub śruba kontrująca na końcu rączki, zwykle w lewo).</li>
+<li><b>Kręć rączką.</b> Krawędź tulei przesuwa się po skali głównej. Zatrzymaj się na kresce skali głównej (dziesiątki), potem kręć podziałką, aż właściwa liczba stanie naprzeciw kreski odniesienia. Przykład: 52 Nm = główna 50 + podziałka 2. Animacja powyżej pokazuje dokładnie to.</li>
+<li><b>Zablokuj</b> – dokręć kontrę z powrotem. Nieskontrowane ustawienie ucieka.</li>
+<li><b>Pociągnij</b> – jedna ręka na środku rączki, płynnie i pod kątem 90° do klucza. Bez szarpania, bez przedłużki z rury, bez udaru.</li>
+<li><b>Stop po kliknięciu</b> (i lekkim kopnięciu w rączce). Nie ciągnij dalej – kliknięcie znaczy, że wartość została osiągnięta.</li>
+<li><b>Etapy:</b> 30 % → 60 % → 100 %. Przy kołnierzach i pokrywach dokręcaj <b>na krzyż (w gwiazdę)</b>, a na koniec zrób jeszcze jedno kółko na 100 %, aż nic się już nie kręci.</li>
+<li><b>Po użyciu:</b> odblokuj i ustaw klucz na <b>najniższą wartość skali</b> (nie na zero), zablokuj, schowaj do skrzynki. Sprężyna zostawiona napięta traci dokładność.</li>
+</ol>
+<h3>3 · Klucz elektroniczny</h3>
+<ul>
+<li>Sprawdź baterię, wybierz jednostkę, wpisz wartość docelową (na LCD napis NASTAW). Ciągnij powoli: diody robią się żółte blisko celu, a zielone z sygnałem dźwiękowym i wibracją po osiągnięciu. Czerwona = przekroczenie, poluzuj i powtórz.</li>
+</ul>
+<h3>4 · Dbanie o klucz</h3>
+<ul>
+<li>Nigdy nie używaj go jako dźwigni do odkręcania, nie upuszczaj, nie używaj powyżej zakresu. Wzorcuj co 12 miesięcy lub po każdym upadku albo przeciążeniu (ISO 6789).</li>
+<li>Dokładność jest najlepsza między 20 % a 100 % zakresu klucza – aplikacja dobiera pasujący klucz.</li>
+<li>Nasadka otwarta lub przedłużka na główce zmienia rzeczywisty moment. Ustaw T × L ÷ (L + E), gdzie L to długość klucza, a E przedłużka (w osi klucza).</li>
+</ul>
+<h3>5 · Duże rozmiary</h3>
+<p>Powyżej ok. 600–1000 Nm klucz ręczny jest niepraktyczny. Użyj <b>mnożnika momentu</b> (ustaw klucz na moment ÷ przełożenie, oprzyj ramię reakcyjne o twardy punkt i trzymaj się z dala) albo <b>klucza hydraulicznego / napinacza śrub</b> zgodnie z procedurą producenta.</p>
+<h3>6 · Gwint zwykły czy drobny</h3>
+<ul>
+<li><b>Jak rozpoznać:</b> zmierz suwmiarką średnicę zewnętrzną, a skok sprawdzianem do gwintów (albo policz zwoje na 10 mm). M10 × 1,5 to gwint zwykły, M10 × 1,25 i M10 × 1 to gwinty drobne. Samo oznaczenie „M10” zawsze oznacza gwint zwykły.</li>
+<li><b>Gwint drobny</b> ma większy przekrój rdzenia, więc przenosi większe napięcie i wymaga ok. 3–10 % większego momentu niż gwint zwykły tego samego rozmiaru. Lepiej opiera się odkręcaniu od drgań i pozwala na dokładniejszą regulację, dlatego jest często stosowany w silnikach, pompach i hydraulice.</li>
+<li>Jest też <b>bardziej wrażliwy</b>: brud, uszkodzenie, zły skok i krzywe nakręcenie szybko go niszczą, a drobny gwint ze stali nierdzewnej łatwo się zaciera. Przed użyciem narzędzia nakręć nakrętkę ręką na kilka zwojów.</li>
+<li><b>Nigdy nie mieszaj skoków</b> (śruba drobna w nakrętce zwykłej lub odwrotnie). Jeśli nie kręci się swobodnie ręką, zatrzymaj się i sprawdź.</li>
+<li>Śruby głowicy, korbowodów i łożysk głównych w silnikach mają często gwint drobny i własną procedurę (moment plus kąt, śruby rozciągliwe do wymiany). Wtedy <b>instrukcja silnika ma pierwszeństwo przed tabelą</b>.</li>
+<li><b>Rozmiar klucza:</b> tabela podaje rozmiar ISO na płask. Starsze elementy DIN różnią się przy M10 (17), M12 (19), M14 (22) i M22 (32). Aplikacja pokazuje rozmiar DIN w nawiasie.</li>
+</ul>`,
+ calc:`
+<p><code>F = ν · Rp · As</code> napięcie (N) = poziom napięcia × granica plastyczności (MPa) × przekrój rdzenia (mm²)</p>
+<p><code>T = K · d · F</code> moment (N·mm) = współczynnik K × średnica nominalna (mm) × napięcie (N)</p>
+<p>Domyślnie: 70 % granicy plastyczności, K = 0,20 sucho / 0,15 olej / 0,12 pasta antyzatarciowa / 0,10 MoS₂. Granica Rp: 4.6 = 240, 5.8 = 400, 8.8 = 640, 10.9 = 940, 12.9 = 1100, A2-70 i A4-70 = 450, A4-80 = 600 MPa. Moment jest zaokrąglany do wartości, którą da się ustawić na skali klucza.</p>
+<p><b>Gwint drobny:</b> As = π/4 · (d − 0,9382 · P)², średnica podziałowa d₂ = d − 0,6495 · P. K jest korygowane względem gwintu zwykłego: <code>ΔK = (P − P_zwykły) / (2π·d) + μ · (d₂ − d₂_zwykły) / (2 · cos 30° · d)</code>: mniejszy skok zmniejsza składnik „podnoszenia”, a większa średnica podziałowa zwiększa tarcie na gwincie. Tarcie μ: sucho 0,15, olej 0,11, pasta 0,09, MoS₂ 0,075 (nierdzewka sucho 0,22).</p>
+<p>Rzeczywisty wynik zależy od tarcia, więc przy zwykłym dokręcaniu momentem rozrzut ±25 % jest normalny. Dlatego wartość producenta oraz czysty, prawidłowo nasmarowany gwint ważą więcej niż ostatnia cyfra.</p>`
+}};
+
+/* ============ STATE ============ */
+const $=id=>document.getElementById(id);
+const LS="torque-wrench-v1";
+let S={lang:(navigator.language||"en").toLowerCase().startsWith("pl")?"pl":"en",type:"bolt",cls:"8.8",size:"M16",lube:"dry",nu:.7,mult:1,unit:"nm"};
+try{Object.assign(S,JSON.parse(localStorage.getItem(LS)||"{}"))}catch(e){}
+if(!THREADS.some(x=>x.id===S.size))S.size="M16";
+const save=()=>{try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}};
+const t=k=>TX[S.lang][k];
+const fmt=(v,dp)=>v.toLocaleString(S.lang==="pl"?"pl-PL":"en-GB",{minimumFractionDigits:dp,maximumFractionDigits:dp});
+const fmtT=v=>fmt(v,v<20&&Math.abs(v-Math.round(v))>1e-9?1:0);
+const NS="http://www.w3.org/2000/svg";
+const el=(tag,attrs,parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e};
+
+/* ============ CALCULATION ============ */
+function roundT(T){return T<20?Math.round(T*2)/2:T<300?Math.round(T):Math.round(T/5)*5}
+function calc(clsId,thId,lubeId,nu){
+  const c=CLASSES.find(x=>x.id===clsId),s=THREADS.find(x=>x.id===thId),l=LUBES.find(x=>x.id===lubeId);
+  const dry=lubeId==="dry";
+  let K=l.K,mu=l.mu; if(c.ss&&dry){K=.25;mu=.22}
+  // Fine thread: smaller lead (less torque to lift the load) but larger pitch diameter (more thread friction).
+  const cp=COARSE[s.d],cd2=s.d-.6495*cp;
+  if(s.fine) K+=(s.P-cp)/(2*Math.PI*s.d)+mu*(s.d2-cd2)/(2*.866*s.d);
+  const F=nu*c.Rp*s.As;                 // N
+  const T=K*s.d*F/1000;                 // Nm
+  return {c,s,K,F,T:roundT(T),Traw:T};
+}
+function pickWrench(T){return WRENCHES.find(w=>T>=w.min&&T<=w.max)||null}
+const toUnit=(nm)=>S.unit==="lbf"?nm*0.737562:S.unit==="kgf"?nm*0.101972:nm;
+const unitLbl=()=>S.unit==="lbf"?"lbf·ft":S.unit==="kgf"?"kgf·m":"Nm";
+
+/* ============ UI BUILD ============ */
+function buildSelects(){
+  const opt=th=>`<option value="${th.id}">${thLabel(th,S.lang)}</option>`;
+  $("size").innerHTML=`<optgroup label="${t("g_coarse")}">${THREADS.filter(x=>!x.fine).map(opt).join("")}</optgroup><optgroup label="${t("g_fine")}">${THREADS.filter(x=>x.fine).map(opt).join("")}</optgroup>`;
+  $("lube").innerHTML=LUBES.map(l=>`<option value="${l.id}">${t("lube_"+l.id)}</option>`).join("");
+  $("nu").innerHTML=PRELOADS.map(p=>`<option value="${p.v}">${t("pre_"+p.id)}</option>`).join("");
+  $("mult").innerHTML=MULTS.map(m=>`<option value="${m}">${m===1?t("mult_none"):m+" : 1"}</option>`).join("");
+  const nut=S.type==="nut";
+  $("clsLbl").textContent=t(nut?"l_class_nut":"l_class_bolt");
+  $("cls").innerHTML=CLASSES.map(c=>{
+    const lbl=nut?t("cls_nutopt")(c.nut,c.id):c.id;
+    return `<option value="${c.id}">${lbl}</option>`}).join("");
+  $("cls").value=S.cls;$("size").value=S.size;$("lube").value=S.lube;$("nu").value=String(S.nu);$("mult").value=String(S.mult);
+}
+function applyStatic(){
+  document.documentElement.lang=S.lang;
+  document.querySelectorAll("[data-i]").forEach(n=>{n.textContent=t(n.dataset.i)});
+  document.querySelectorAll("[data-lang]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.lang===S.lang));
+  document.querySelectorAll("[data-type]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.type===S.type));
+  document.querySelectorAll("[data-u]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.u===S.unit));
+  $("how").innerHTML=t("how");$("calc").innerHTML=t("calc");
+  $("demo").textContent=demoRunning?t("demo_stop"):t("demo");
+  document.title=t("title");
+  buildSelects();
+}
+
+/* ============ ANALOG WRENCH (SVG) ============ */
+const A={tok:0,svg:null,wr:null,v:0,target:0,anim:0,lock:true,flash:0,labels:{}};
+const CY=125,SX0=265,SX1=745;
+function buildAnalog(){
+  const svg=el("svg",{viewBox:"0 0 960 260",role:"img","aria-label":"Analog torque wrench"});
+  const defs=el("defs",{},svg);
+  const g1=el("linearGradient",{id:"gSteel",x1:0,y1:0,x2:0,y2:1},defs);
+  [["0","#e9eef2"],["0.5","#aab8c3"],["1","#6f808d"]].forEach(([o,c])=>el("stop",{offset:o,"stop-color":c},g1));
+  const g2=el("linearGradient",{id:"gGrip",x1:0,y1:0,x2:0,y2:1},defs);
+  [["0","#3b4a56"],["0.45","#14232d"],["1","#05090c"]].forEach(([o,c])=>el("stop",{offset:o,"stop-color":c},g2));
+  const g3=el("linearGradient",{id:"gBrass",x1:0,y1:0,x2:0,y2:1},defs);
+  [["0","#ffe9a8"],["0.5","#e0b24a"],["1","#9a7420"]].forEach(([o,c])=>el("stop",{offset:o,"stop-color":c},g3));
+  A.barrel=el("g",{},svg);        // fixed barrel + main scale (rebuilt per wrench)
+  A.sleeve=el("g",{},svg);        // moving sleeve (rebuilt per frame)
+  A.fixed=el("g",{},svg);         // head, lock, labels
+  // head
+  el("rect",{x:132,y:CY-24,width:150,height:48,fill:"url(#gSteel)",stroke:"#566673","stroke-width":1.5},A.fixed);
+  el("circle",{cx:92,cy:CY,r:66,fill:"url(#gSteel)",stroke:"#566673","stroke-width":2},A.fixed);
+  el("circle",{cx:92,cy:CY,r:48,fill:"#c2ced7",stroke:"#7a8b97","stroke-width":2},A.fixed);
+  for(let i=0;i<24;i++){const a=i/24*Math.PI*2;el("line",{x1:92+48*Math.cos(a),y1:CY+48*Math.sin(a),x2:92+55*Math.cos(a),y2:CY+55*Math.sin(a),stroke:"#7a8b97","stroke-width":2},A.fixed)}
+  el("rect",{x:76,y:CY-16,width:32,height:32,rx:2,fill:"#4b5a66",stroke:"#2b3640","stroke-width":2},A.fixed);
+  el("rect",{x:56,y:CY-72,width:20,height:30,rx:5,fill:"#e4572e",stroke:"#8f2f12"},A.fixed); // direction lever
+  // lock ring + end
+  A.lockRing=el("rect",{x:896,y:CY-40,width:44,height:80,rx:10,fill:"url(#gBrass)",stroke:"#7a5a14","stroke-width":1.5},A.fixed);
+  for(let i=0;i<5;i++)el("line",{x1:906+i*7,y1:CY-34,x2:906+i*7,y2:CY+34,stroke:"#7a5a14","stroke-width":1.5,opacity:.55},A.fixed);
+  A.lockTxt=el("text",{x:918,y:CY+72,"text-anchor":"middle","font-size":26,"font-weight":700,"font-family":"var(--mono)",fill:"#1b8a3a"},A.fixed);
+  // callouts (text only, 13px)
+  const cl=(x,y,id)=>{A.labels[id]=el("text",{x,y,"font-size":17,"font-family":"var(--font)","font-weight":700,fill:"currentColor",opacity:.8},A.fixed)};
+  cl(285,26,"mainL");cl(690,26,"microL");cl(850,CY+104,"lockL");
+  A.flashTxt=el("text",{x:92,y:34,"text-anchor":"middle","font-size":30,"font-weight":800,fill:"#e4572e",opacity:0},A.fixed);A.flashTxt.textContent="CLICK!";
+  $("analogBox").appendChild(svg);A.svg=svg;
+  const fit=()=>svg.setAttribute("viewBox",innerWidth<700?"250 0 710 260":"0 0 960 260");fit();addEventListener("resize",fit);
+  const info=document.createElement("div");info.className="setting";info.id="reading";$("analogBox").appendChild(info);
+  const st=document.createElement("div");st.className="steps";st.id="stepsBar";$("analogBox").appendChild(st);
+}
+function labelsText(){
+  A.labels.mainL.textContent={en:"MAIN SCALE",pl:"SKALA GŁÓWNA"}[S.lang];
+  A.labels.microL.textContent={en:"MICRO SCALE (turns)",pl:"PODZIAŁKA (kręci się)"}[S.lang];
+  A.labels.lockL.textContent={en:"LOCK",pl:"KONTRA"}[S.lang];
+}
+function drawBarrel(w){
+  const g=A.barrel;g.textContent="";
+  const n=(w.max-w.min)/w.step,pitch=(SX1-SX0)/n;A.n=n;A.pitch=pitch;
+  el("rect",{x:270,y:CY-38,width:640,height:76,rx:8,fill:"url(#gSteel)",stroke:"#566673","stroke-width":1.5},g);
+  const skip=pitch<44?2:1;
+  for(let k=0;k<=n;k++){
+    const x=SX0+k*pitch;
+    el("line",{x1:x,y1:CY-38,x2:x,y2:CY-24,stroke:"#14232d","stroke-width":2},g);
+    if(k%skip===0){const tx=el("text",{x,y:CY-8,"text-anchor":"middle","font-size":19,"font-weight":700,"font-family":"var(--mono)",fill:"#14232d"},g);tx.textContent=w.min+k*w.step}
+    if(k<n)for(let j=1;j<5;j++){const xx=x+j*pitch/5;el("line",{x1:xx,y1:CY-38,x2:xx,y2:CY-31,stroke:"#14232d","stroke-width":1},g)}
+  }
+}
+const edgeX=v=>SX0+(v-A.wr.min)/A.wr.step*A.pitch;
+function drawSleeve(v){
+  const g=A.sleeve;g.textContent="";const w=A.wr,R=48,ex=edgeX(v),end=900;
+  // datum line on barrel (left of sleeve)
+  el("rect",{x:ex,y:CY-R,width:end-ex,height:2*R,rx:12,fill:"url(#gGrip)",stroke:"#000","stroke-width":1.5},g);
+  el("line",{x1:SX0-14,y1:CY+14,x2:ex,y2:CY+14,stroke:"#e4572e","stroke-width":2.5},g);
+  // cylinder: one full turn per main-scale step. theta = 0 faces the viewer, scale index at CY+14 -> we use y offset
+  const rot=(v-w.min)/w.step*Math.PI*2, N=10, iy=CY+14;
+  // grip knurl (full length)
+  for(let k=0;k<36;k++){
+    const a=k/36*Math.PI*2+rot, c=Math.cos(a); if(c<=0.05)continue;
+    const y=CY+R*Math.sin(a)*0.98;
+    el("line",{x1:ex+8,y1:y,x2:end-6,y2:y,stroke:"#8da0ad","stroke-width":1.2,opacity:.15+.35*c},g);
+  }
+  // micro scale: numbers 0..9 with tick lines on first part of sleeve
+  const micro=w.step/N;
+  const frac=(((v-w.min)/w.step)%1+1)%1;                 // 0..1 turn position
+  for(let k=0;k<N;k++){
+    const a=(k/N-frac)*Math.PI*2;                         // angle of division k from the datum line
+    const c=Math.cos(a), s=Math.sin(a); if(c<=0.12)continue;
+    const y=CY+14+ (R*0.92)*s -0;
+    const len=26*c;
+    el("line",{x1:ex+6,y1:y,x2:ex+6+len,y2:y,stroke:"#f2f6f9","stroke-width":1.8*c+.4,opacity:.9},g);
+    const tx=el("text",{x:ex+42,y:y+7*c,"font-size":22*c,"font-weight":700,"font-family":"var(--mono)",fill:Math.abs(s)<0.12?"#ffd166":"#e6edf2",opacity:.55+.45*c},g);
+    tx.textContent=fmt(k*micro,micro<1?1:0);
+  }
+  // index marker triangle at datum
+  el("path",{d:`M${ex-2},${iy} l-12,-6 v12 z`,fill:"#e4572e"},g);
+  // sleeve edge highlight
+  el("line",{x1:ex,y1:CY-R,x2:ex,y2:CY+R,stroke:"#ffd166","stroke-width":3},g);
+}
+function setLock(on){A.lock=on;A.lockTxt.textContent=on?"🔒":"🔓";A.lockRing.setAttribute("fill",on?"url(#gBrass)":"#e4572e");
+  A.lockTxt.setAttribute("fill",on?"#1b8a3a":"#c62828");}
+function stepBar(i){
+  $("stepsBar").innerHTML=[t("st_unlock"),t("st_set"),t("st_lock")].map((x,k)=>`<span class="${k===i?"on":""}">${x}</span>`).join("");
+}
+let wrenchEmpty=false;
+function showAnalog(w,setNm,animate){
+  if(!w){$("analogBox").style.display="none";return}
+  $("analogBox").style.display="";
+  const changed=A.wr!==w;
+  A.wr=w;
+  if(changed){drawBarrel(w);A.v=w.min}
+  const dest=setNm; A.target=dest;
+  labelsText();
+  const micro=w.step/10;
+  const main=Math.floor(dest/w.step+1e-9)*w.step, mic=Math.round((dest-main)/micro)*micro;
+  $("reading").innerHTML=t("set_read")(fmtT(main),fmtT(Math.round(mic*100)/100),fmtT(dest));
+  $("wrenchName").textContent=t("wr_range")(w.min,w.max);
+  cancelAnimationFrame(A.anim);const my=++A.tok;
+  if(!animate){A.v=dest;drawSleeve(dest);setLock(true);stepBar(2);return}
+  const from=A.v,t0=performance.now(),dur=Math.min(1600,500+Math.abs(dest-from)/w.step*160);
+  setLock(false);stepBar(1);
+  const tick=now=>{
+    if(my!==A.tok)return;
+    const p=Math.min(1,(now-t0)/dur),e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+    A.v=from+(dest-from)*e;drawSleeve(A.v);
+    if(p<1)A.anim=requestAnimationFrame(tick);else{A.v=dest;setLock(true);stepBar(2)}
+  };
+  stepBar(0);
+  setTimeout(()=>{if(my===A.tok)A.anim=requestAnimationFrame(tick)},reduceMotion?0:250);
+  if(reduceMotion){A.v=dest;drawSleeve(dest);setLock(true);stepBar(2)}
+}
+const reduceMotion=matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+/* ============ DIGITAL WRENCH (SVG) ============ */
+const D={};
+function buildDigital(){
+  const svg=el("svg",{viewBox:"0 0 600 270",role:"img","aria-label":"Digital torque wrench"});
+  const defs=el("defs",{},svg);
+  const g=el("linearGradient",{id:"gBody",x1:0,y1:0,x2:0,y2:1},defs);
+  [["0","#3f5463"],["0.5","#22323e"],["1","#0e171d"]].forEach(([o,c])=>el("stop",{offset:o,"stop-color":c},g));
+  // head
+  el("rect",{x:110,y:98,width:100,height:44,fill:"url(#gSteel)",stroke:"#566673","stroke-width":1.5},svg);
+  el("circle",{cx:76,cy:120,r:58,fill:"url(#gSteel)",stroke:"#566673","stroke-width":2},svg);
+  el("circle",{cx:76,cy:120,r:42,fill:"#c2ced7",stroke:"#7a8b97","stroke-width":2},svg);
+  el("rect",{x:62,y:106,width:28,height:28,rx:2,fill:"#4b5a66",stroke:"#2b3640","stroke-width":2},svg);
+  // body
+  el("rect",{x:170,y:62,width:400,height:116,rx:16,fill:"url(#gBody)",stroke:"#000","stroke-width":1.5},svg);
+  el("rect",{x:176,y:68,width:388,height:6,rx:3,fill:"#fff",opacity:.12},svg);
+  // handle grip
+  el("rect",{x:440,y:66,width:126,height:108,rx:14,fill:"#e4572e",opacity:.0},svg);
+  // LCD
+  el("rect",{x:190,y:78,width:236,height:84,rx:8,fill:"#c4d3a4",stroke:"#0a0f12","stroke-width":3},svg);
+  D.set=el("text",{x:200,y:97,"font-size":13,"font-weight":700,"font-family":"var(--mono)",fill:"#243018"},svg);
+  D.unit=el("text",{x:416,y:97,"text-anchor":"end","font-size":13,"font-weight":700,"font-family":"var(--mono)",fill:"#243018"},svg);
+  D.val=el("text",{x:410,y:138,"text-anchor":"end","font-size":44,"font-weight":800,"font-family":"var(--mono)",fill:"#1c2812"},svg);
+  D.bar=[];for(let i=0;i<20;i++)D.bar.push(el("rect",{x:200+i*10.6,y:146,width:8,height:10,fill:"#1c2812",opacity:.12},svg));
+  // LEDs
+  D.leds=[["#ffc107","y"],["#2ecc71","g"],["#ff4b3e","r"]].map(([c,id],i)=>{
+    el("circle",{cx:462+i*34,cy:96,r:12,fill:"#0a0f12"},svg);
+    return el("circle",{cx:462+i*34,cy:96,r:9,fill:c,opacity:.15},svg)});
+  // buttons
+  ["−","+","▷"].forEach((s,i)=>{el("circle",{cx:462+i*34,cy:140,r:13,fill:"#3a4a57",stroke:"#0a0f12","stroke-width":1.5},svg);
+    const tx=el("text",{x:462+i*34,y:146,"text-anchor":"middle","font-size":16,"font-weight":700,fill:"#c5d1d9"},svg);tx.textContent=s});
+  // grip
+  el("rect",{x:566,y:72,width:0,height:0},svg);
+  $("digitalBox").appendChild(svg);D.svg=svg;
+  const info=document.createElement("div");info.className="setting";info.id="dreading";$("digitalBox").appendChild(info);
+}
+D.v=0;
+function drawDigital(){
+  const T=D.target||0;
+  D.set.textContent=T>0?`${t("lcd_set")} ${fmt(toUnit(T),S.unit==="nm"?(T<20?1:0):2)}`:"";
+  D.unit.textContent=unitLbl();
+  D.val.textContent=fmt(toUnit(D.v),S.unit==="nm"?1:2);
+  const r=T>0?D.v/T:0;
+  D.bar.forEach((b,i)=>b.setAttribute("opacity",r>=(i+1)/20-1e-9?1:.12));
+  D.leds[0].setAttribute("opacity",r>=.9&&r<1-1e-9?1:.15);
+  D.leds[1].setAttribute("opacity",r>=1-1e-9&&r<1.05?1:.15);
+  D.leds[2].setAttribute("opacity",r>=1.05?1:.15);
+}
+function showDigital(T){
+  D.target=T;
+  const dr=$("dreading");
+  dr.innerHTML=T>0?`<b>${fmt(toUnit(T),S.unit==="nm"?(T<20?1:0):2)} ${unitLbl()}</b>`:"";
+  if(!demoRunning)D.v=0;
+  drawDigital();
+}
+
+/* ============ DEMO (simulate pull) ============ */
+let demoRunning=false,demoRaf=0;
+function beep(){try{const ac=new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();
+  o.frequency.value=1760;o.connect(g);g.connect(ac.destination);g.gain.setValueAtTime(.2,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.35);o.start();o.stop(ac.currentTime+.36)}catch(e){}}
+function demo(){
+  if(demoRunning){demoRunning=false;cancelAnimationFrame(demoRaf);D.v=0;drawDigital();A.flashTxt.setAttribute("opacity",0);$("demo").textContent=t("demo");return}
+  if(!D.target)return;
+  demoRunning=true;$("demo").textContent=t("demo_stop");
+  const T=D.target,t0=performance.now(),dur=reduceMotion?10:3200;
+  const step=now=>{
+    const p=Math.min(1,(now-t0)/dur);
+    D.v=T*(p*p*0.35+p*0.65);drawDigital();
+    if(p<1)demoRaf=requestAnimationFrame(step);
+    else{D.v=T;drawDigital();beep();if(navigator.vibrate)try{navigator.vibrate(120)}catch(e){}
+      A.flashTxt.setAttribute("opacity",1);
+      setTimeout(()=>{A.flashTxt.setAttribute("opacity",0)},1200);
+      setTimeout(()=>{if(demoRunning){demoRunning=false;$("demo").textContent=t("demo");D.v=0;drawDigital()}},2600)}
+  };
+  demoRaf=requestAnimationFrame(step);
+}
+
+/* ============ RENDER ============ */
+let lastKey="";
+function render(animate){
+  const r=calc(S.cls,S.size,S.lube,S.nu);
+  const ratio=S.mult, inNm=r.T/ratio;
+  const wrench=pickWrench(inNm);
+  // setting rounded to what the dial can show
+  const setNm=wrench?Math.round(inNm/(wrench.step/10))*(wrench.step/10):inNm;
+  const cNut=CLASSES.find(c=>c.id===r.c.id).nut;
+
+  // note + warnings
+  $("typeNote").className="note";
+  $("typeNote").textContent=S.type==="bolt"?t("note_bolt")(r.c.id):S.type==="nut"?t("note_nut")(cNut,r.c.id):t("note_stud")(r.c.id);
+  const W=[];
+  if(r.c.ss)W.push(["warn",t("w_ss")]);
+  if(r.c.ss&&S.lube==="dry")W.push(["danger",t("w_dry_ss")]);
+  if(r.s.fine)W.push(["",t("w_fine")(thLabel(r.s,S.lang))]);
+  if(S.nu>=.9)W.push(["warn",t("w_high")]);
+  if(r.T>1000*ratio||(inNm>1000)) W.push(["danger",t("w_nomult")]);
+  else if(r.T>600&&ratio===1) W.push(["warn",t("w_big")]);
+  if(inNm<1)W.push(["warn",t("w_low")]);
+  $("warns").innerHTML=W.map(([c,m])=>`<div class="note ${c}">${m}</div>`).join("");
+
+  // result card
+  let cmp=0,cmpTh=null;
+  if(r.s.fine){cmpTh=THREADS.find(x=>!x.fine&&x.d===r.s.d);cmp=(r.T/calc(S.cls,cmpTh.id,S.lube,S.nu).T-1)*100}
+  const pull=wrench?setNm/wrench.L:null;
+  const stages=[30,60,100].map(p=>({p,v:p===100?r.T:roundT(r.T*p/100)}));
+  $("result").innerHTML=`
+    <h2>${t("r_torque")} · ${thLabel(r.s,S.lang)} · ${S.type==="nut"?cNut:r.c.id}</h2>
+    <div class="big"><b>${fmtT(r.T)}</b><span>Nm</span></div>
+    <div class="sub"><span><b>${fmt(r.T*0.737562,r.T*0.737562<20?1:0)}</b> lbf·ft</span><span><b>${fmt(r.T*0.101972,r.T*0.101972<10?2:1)}</b> kgf·m</span></div>
+    <div class="stages">${stages.map(s=>`<div>${t("r_stage")(s.p)}<b>${fmtT(s.v)}</b></div>`).join("")}</div>
+    <div class="kv">
+      <div>${t("r_preload")}</div><div>${fmt(r.F/1000,1)} kN</div>
+      <div>${t("r_thread")}</div><div>${thLabel(r.s,S.lang)} · ${r.s.fine?t("g_fine"):t("g_coarse")}</div>
+      <div>${t("r_as")}</div><div>${fmt(r.s.As,1)} mm² / ${r.c.Rp} MPa</div>
+      <div>${t("r_k")}</div><div>${fmt(r.K,3)}</div>
+      <div>${t("r_af")}</div><div>${r.s.af} mm${AF_DIN[r.s.d]?` (DIN ${AF_DIN[r.s.d]})`:""}</div>
+      ${cmp?`<div>${t("r_vs")(thLabel(cmpTh,S.lang))}</div><div>${cmp>0?"+":""}${fmt(cmp,0)} %</div>`:""}
+      ${ratio>1?`<div>${t("r_ratio")}</div><div>${ratio} : 1</div><div>${t("r_input")}</div><div>${fmtT(setNm)} Nm</div>`:""}
+      <div>${t("r_wrench")}</div><div>${wrench?t("wr_range")(wrench.min,wrench.max):"–"}</div>
+      ${pull?`<div>${t("r_pull")} (L = ${Math.round(wrench.L*1000)} mm)</div><div>${fmt(pull,0)} N ≈ ${fmt(pull/9.81,0)} kg</div>`:""}
+    </div>`;
+
+  // wrenches
+  const key=[r.s.id,r.c.id,S.lube,S.nu,S.mult].join("|");
+  showAnalog(wrench,setNm,animate&&key!==lastKey);lastKey=key;
+  $("digitalBox").style.display=wrench||inNm>0?"":"none";
+  showDigital(setNm);
+
+  // table for all sizes
+  let rows="";
+  [false,true].forEach(f=>{rows+=`<tr><th colspan="4" style="text-align:left;padding-top:12px">${t(f?"g_fine":"g_coarse")}</th></tr>`;
+    THREADS.filter(x=>x.fine===f).forEach(th=>{const x=calc(S.cls,th.id,S.lube,S.nu);
+      rows+=`<tr class="${th.id===S.size?"cur":""}"><td>${thLabel(th,S.lang)}</td><td>${th.af}</td><td>${fmtT(x.T)}</td><td>${fmt(x.F/1000,1)}</td></tr>`})});
+  $("tableBox").innerHTML=`<p>${S.type==="nut"?`${S.lang==="pl"?"Nakrętka":"Nut"} ${cNut} → ${r.c.id}`:r.c.id} · ${t("lube_"+S.lube)} · ν ${Math.round(S.nu*100)} %</p>
+    <div class="tblwrap"><table><thead><tr><th>${t("tb_size")}</th><th>AF mm</th><th>${t("tb_t")}</th><th>${t("tb_f")}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  save();
+}
+
+/* ============ EVENTS ============ */
+function bind(){
+  document.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{S.lang=b.dataset.lang;applyStatic();labelsText();stepBar(2);render(false)});
+  document.querySelectorAll("[data-type]").forEach(b=>b.onclick=()=>{S.type=b.dataset.type;applyStatic();render(false)});
+  document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{S.unit=b.dataset.u;applyStatic();render(false)});
+  $("cls").onchange=e=>{S.cls=e.target.value;render(true)};
+  $("size").onchange=e=>{S.size=e.target.value;render(true)};
+  $("lube").onchange=e=>{S.lube=e.target.value;render(true)};
+  $("nu").onchange=e=>{S.nu=parseFloat(e.target.value);render(true)};
+  $("mult").onchange=e=>{S.mult=parseInt(e.target.value,10);render(true)};
+  $("demo").onclick=demo;
+}
+buildAnalog();buildDigital();
+applyStatic();bind();render(false);
+</script>
+</body>
+</html>
