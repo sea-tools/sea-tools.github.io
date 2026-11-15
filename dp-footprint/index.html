@@ -158,6 +158,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 :root[data-theme="dark"]{--bg:#000;--paper:#1c1c1e;--field:#2c2c2e;--fill2:#3a3a3c;--thumb:#636366;--line:rgba(255,255,255,.12);--ink:#f5f5f7;--muted:#98989d;
   --btn:#0a84ff;--btnfg:#fff;--accent2:#409cff;--infobg:#10263f;--hdg:#ff6961;--sh:0 0 0 .5px rgba(255,255,255,.06),0 12px 32px rgba(0,0,0,.55);--glow:0 8px 22px rgba(10,132,255,.35)}
 body{letter-spacing:-.011em;-webkit-font-smoothing:antialiased}
+#dial,#dialPrint,#thr{letter-spacing:normal}
 h1{font-size:22px;letter-spacing:-.02em;font-weight:700}
 h2{color:var(--muted);letter-spacing:.07em;font-weight:600}
 .card{border:0;border-radius:20px;padding:16px;box-shadow:var(--sh)}
@@ -178,11 +179,14 @@ dialog::backdrop{background:rgba(0,0,0,.4);-webkit-backdrop-filter:blur(8px);bac
 details summary{font-weight:650}
 .acts button:not(.pri),.banner button{background:var(--paper);box-shadow:var(--sh)}
 }
+
+@media screen{.logo-print{display:none}}
+@media print{.logo-scr{display:none!important}}
 </style>
 
 <div class="wrap">
   <div class="top">
-    <div class="row" style="gap:10px"><img src="icon.png" width="34" height="34" alt="" style="border-radius:8px;display:block;box-shadow:0 2px 8px rgba(0,0,0,.25)">
+    <div class="row" style="gap:10px"><img class="logo-scr" src="icon.png" width="34" height="34" alt="" style="border-radius:8px;display:block;box-shadow:0 2px 8px rgba(0,0,0,.25)"><svg class="logo-print" width="34" height="34" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#14232d"/><g fill="none" stroke="#8fa3b1" stroke-width="1.5"><circle cx="32" cy="32" r="24"/><circle cx="32" cy="32" r="14"/><path d="M32 6v52M6 32h52"/></g><g transform="rotate(-30 32 32)"><path d="M32 10l8 11v25H24V21z" fill="#ffffff" fill-opacity=".18" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round"/><circle cx="32" cy="10" r="3.5" fill="#ff5a4f"/></g><g fill="#ffd166"><circle cx="27" cy="30" r="1.8"/><circle cx="35" cy="36" r="1.8"/><circle cx="30" cy="38" r="1.8"/></g></svg>
     <h1>DP FOOTPRINT PLOT</h1></div>
     <div class="acts noprint">
       <button id="newBtn">New</button>
@@ -361,11 +365,13 @@ function drawDial(){
   arr.forEach(a=>{a.ghost=a.d==null;a.sa=a.ghost?a.def:norm(a.d-o)});
   arr.forEach((a,i)=>a.c=i);
   for(let n=0;n<3;n++)arr.forEach(a=>arr.forEach(b=>{if(angd(a.sa,b.sa)<8)a.c=b.c=Math.min(a.c,b.c)}));
-  arr.forEach(a=>{const g=arr.filter(b=>b.c===a.c),sd=b=>((b.sa-g[0].sa+540)%360)-180;g.sort((x,y)=>sd(x)-sd(y));a.lo=0;a.ti=g.indexOf(a)});  /* same direction: arrows lie on top of each other, only the labels are stacked */
+  arr.forEach(a=>{const g=arr.filter(b=>b.c===a.c),sd=b=>((b.sa-g[0].sa+540)%360)-180;g.sort((x,y)=>sd(x)-sd(y));/* arrows from exactly the same direction share one lane (lie on top of each other, labels stacked); close but different directions keep separate lanes as before */
+    const lanes=[];g.forEach(b=>{if(!lanes.some(l=>angd(l,b.sa)<.5))lanes.push(b.sa)});
+    a.lo=(lanes.findIndex(l=>angd(l,a.sa)<.5)-(lanes.length-1)/2)*38;a.ti=g.filter(b=>angd(b.sa,a.sa)<.5).indexOf(a)});
   arr.forEach(a=>{const t=a.sa*Math.PI/180,u=[Math.sin(t),-Math.cos(t)],p=[Math.cos(t),Math.sin(t)];
     const P=(r,l)=>[u[0]*r+p[0]*l,u[1]*r+p[1]*l].map(f).join(',');
     const hr=a.out?A1:A0,s=a.out?-1:1,tr=a.out?A0:A1;
-    const rot=a.sa<=180?a.sa-90:a.sa-270;const[tx,ty]=P((A0+A1)/2,15+a.ti*15).split(',');
+    const rot=a.sa<=180?a.sa-90:a.sa-270;const[tx,ty]=P((A0+A1)/2,a.lo+15+a.ti*15).split(',');
     h+=`<g class="arr ${a.k}${a.ghost?' ghost':''}" data-drag="${a.k}"><line class="hit" x1="${P(A0-8,a.lo).split(',')[0]}" y1="${P(A0-8,a.lo).split(',')[1]}" x2="${P(A1+8,a.lo).split(',')[0]}" y2="${P(A1+8,a.lo).split(',')[1]}"/>`+
       `<polyline class="sh" points="${P(tr,a.lo)} ${P(hr+s*14,a.lo)}"/><polygon class="hd" points="${P(hr,a.lo)} ${P(hr+s*19,a.lo+9)} ${P(hr+s*19,a.lo-9)}"/>`+
       `<text x="${tx}" y="${ty}" transform="rotate(${f(rot)} ${tx} ${ty})">${a.ghost?a.lab+' · drag':a.lab+' '+pad(a.d)+'° '+a.val}</text></g>`;});
