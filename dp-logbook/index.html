@@ -178,10 +178,42 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
   #print th{background:#e8e8e8;font-size:9.5pt;text-transform:uppercase;letter-spacing:.05em;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   #print td:first-child,#print th:first-child{width:22mm;text-align:center;font-family:Consolas,Menlo,monospace;white-space:nowrap}
   #print td{white-space:pre-wrap}
+  #print #dpTbl td:first-child,#print #dpTbl th:first-child{width:auto;text-align:left;font-family:inherit;white-space:normal}
   #print tr{break-inside:avoid}
   .ps{display:flex;gap:40px;margin-top:22mm;break-inside:avoid}
   .ps div{flex:1;border-top:1px solid #000;padding-top:4px;font-size:9.5pt}
 }
+
+/* crew bar + crew dialog */
+#crewbar{max-width:860px;margin:9px auto 1px;display:flex;flex-wrap:wrap;align-items:center;gap:5px 14px;font-size:13px;color:#c5d1d9;cursor:pointer}
+#crewbar[hidden]{display:none}
+#crewbar .cwl{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8fa3b1}
+#crewbar .cw{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+#crewbar .cw i{font-style:normal;font-weight:700;font-size:11px;padding:1px 6px;border-radius:5px}
+#crewbar .cw.dpo i{background:#4cc9ff;color:#06263b}
+#crewbar .cw.eng i{background:#ffd166;color:#3a2a00}
+#crewbar .cw.oth i{background:#8fa3b1;color:#10202a}
+#crewbar .cw b{color:#fff;font-weight:600}
+#crewbar .cw small{opacity:.7;font-size:11.5px}
+#crewbar .none{color:#ffb4ad}
+#crewbar .more{margin-left:auto;color:#8fa3b1;font-size:12px}
+.person{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;padding:12px 0;border-top:1px solid var(--line);align-items:center}
+.person:first-of-type{border-top:0}
+.person b{font-size:15.5px}
+.person .sub{grid-column:1;color:var(--muted);font-size:13px}
+.person .acts{grid-column:2;grid-row:1 / span 3;display:flex;gap:6px;flex-direction:column}
+.badge{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px;margin-left:6px;background:var(--fill);color:var(--muted);vertical-align:middle}
+.badge.on{background:#1a8a3c;color:#fff}.badge.dpo{background:#4cc9ff;color:#06263b}.badge.eng{background:#ffd166;color:#3a2a00}
+.chk{display:flex;gap:10px;align-items:center;font-size:15px;color:var(--ink)!important;font-weight:500!important;margin:0 0 14px!important}
+.chk input{width:22px;height:22px;flex:none}
+#dpTbl.crewtbl td:nth-child(2),#dpTbl.crewtbl th:nth-child(2){text-align:left;white-space:normal;font-variant-numeric:normal}
+#dpTbl.crewtbl td:nth-child(3),#dpTbl.crewtbl th:nth-child(3){text-align:right;white-space:nowrap}
+#dpTbl.crewtbl td:last-child,#dpTbl.crewtbl th:last-child{text-align:center}
+.sum[hidden]{display:none}
+#dpWhoBox label{margin-top:16px}
+.db label.chk{display:flex}
+#dpTbl td small{display:block;color:var(--muted);font-size:12px}
+@media print{#dpTbl td small{color:#000}}
 </style>
 </head>
 <body>
@@ -193,7 +225,9 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
   <button class="tb" id="daysBtn">Days</button>
   <button class="tb" id="printBtn">Print</button>
   <button class="tb" id="setBtn" aria-label="Settings" title="Settings">⚙</button>
-</div></header>
+</div>
+  <div id="crewbar" hidden role="button" tabindex="0" aria-label="Crew on watch now. Tap to edit crew and watch patterns"></div>
+</header>
 
 <div id="datebar"><div class="in">
   <button class="nav" id="prev" aria-label="Previous day">‹</button>
@@ -236,6 +270,13 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
       <div><label for="dpFrom">From</label><input type="date" id="dpFrom"></div>
       <div><label for="dpTo">To</label><input type="date" id="dpTo"></div>
     </div>
+    <div id="dpWhoBox">
+      <label for="dpWho">Report for</label>
+      <select id="dpWho"></select>
+      <p id="dpWhoNote" hidden></p>
+    </div>
+    <p id="dpCrewHint" hidden><button class="b" id="dpCrewLink">Add crew &amp; watch patterns for per-person reports…</button></p>
+    <div id="dpWinBox">
     <label for="dpWin">Hours of the day (watch)</label>
     <select id="dpWin">
       <option value="00:00-24:00">Whole day, 00:00–24:00</option>
@@ -252,6 +293,7 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
     <div class="two" id="dpCustom" hidden style="margin-top:8px">
       <div><label for="dpT1">From time</label><input type="text" id="dpT1" inputmode="numeric" maxlength="5" placeholder="06:00" autocomplete="off"></div>
       <div><label for="dpT2">To time</label><input type="text" id="dpT2" inputmode="numeric" maxlength="5" placeholder="12:00" autocomplete="off"></div>
+    </div>
     </div>
     <label for="dpMin">A DP day is a day with at least</label>
     <select id="dpMin"><option value="120">2 hours on DP (Nautical Institute, from 1 Jan 2015)</option><option value="60">1 hour on DP (old scheme, before 2015)</option></select>
@@ -290,9 +332,45 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
   </div>
 </dialog>
 
+<dialog id="crewDlg">
+  <div class="dh"><h2>Crew &amp; watches</h2><button data-close>Done</button></div>
+  <div class="db" id="crewMain">
+    <label class="chk"><input type="checkbox" id="crewShow"> Show who is on watch at the top of the logbook</label>
+    <div id="crewList"></div>
+    <div class="btns" style="margin-top:14px"><button class="b" id="crewAdd" style="background:var(--accent);color:var(--accent-ink)">+ Add person</button></div>
+    <p>List the DP operators and engineers who keep DP watches, with their watch pattern. The bar at the top then shows who is on watch right now and it changes by itself with the time. When the crew changes, use “Sign off” for the person leaving and add the new one with their sign-on date: past reports keep the right people.</p>
+  </div>
+  <div class="db" id="crewForm" hidden>
+    <label for="cfName">Name</label>
+    <input type="text" id="cfName" autocomplete="off" placeholder="First name Surname">
+    <label for="cfGroup">Group</label>
+    <select id="cfGroup"><option value="dpo">DP operator</option><option value="eng">Engineer</option><option value="oth">Other</option></select>
+    <label for="cfRank">Rank</label>
+    <input type="text" id="cfRank" list="rankList" autocomplete="off" placeholder="Pick from the list or type your own">
+    <datalist id="rankList"></datalist>
+    <label for="cfPattern">Watch pattern</label>
+    <select id="cfPattern"></select>
+    <div id="cfCustomBox" hidden>
+      <label for="cfCustom">Watch hours (24 h, several ranges separated by commas)</label>
+      <input type="text" id="cfCustom" autocomplete="off" placeholder="e.g. 00-04, 12-16  or  0600-1200, 1800-2400">
+    </div>
+    <div class="two">
+      <div><label for="cfFrom">Signed on (optional)</label><input type="date" id="cfFrom"></div>
+      <div><label for="cfTo">Signed off (optional)</label><input type="date" id="cfTo"></div>
+    </div>
+    <p>Dates decide on which days this person counts in the reports. Leave them empty if they have always been on board.</p>
+    <div class="btns" style="margin-top:14px">
+      <button class="b" id="cfSave" style="background:var(--accent);color:var(--accent-ink)">Save</button>
+      <button class="b" id="cfCancel">Cancel</button>
+      <button class="b red" id="cfDelete">Delete person</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="setDlg">
   <div class="dh"><h2>Settings</h2><button data-close>Done</button></div>
   <div class="db">
+    <div class="btns" style="margin-bottom:6px"><button class="b" id="crewOpen">Crew &amp; watch patterns…</button></div>
     <label for="sVessel">Vessel name</label>
     <input type="text" id="sVessel" autocomplete="off">
     <label for="sCompany">Company / header text (optional, shown on printouts)</label>
@@ -451,6 +529,13 @@ function normalise(s) {
   delete s.hipap;
   s.company = typeof s.company === "string" ? s.company : "";
   s.logo = typeof s.logo === "string" && /^data:image\//.test(s.logo) && s.logo.length < 900000 ? s.logo : "";
+  s.showCrew = s.showCrew !== false;
+  const okW = /^\d\d:\d\d-\d\d:\d\d(,\d\d:\d\d-\d\d:\d\d)*$/, okD = /^\d{4}-\d\d-\d\d$/;
+  s.crew = (Array.isArray(s.crew) ? s.crew : []).filter((p) => p && typeof p.name === "string" && p.name.trim()).map((p) => ({
+    id: typeof p.id === "string" && p.id ? p.id : uid(), name: p.name.trim().slice(0, 80),
+    group: ["dpo", "eng", "oth"].includes(p.group) ? p.group : "oth", rank: typeof p.rank === "string" ? p.rank.trim().slice(0, 60) : "",
+    watch: typeof p.watch === "string" && okW.test(p.watch) ? p.watch : "", from: okD.test(p.from || "") ? p.from : "", to: okD.test(p.to || "") ? p.to : ""
+  }));
   s.dpMin = s.dpMin === 60 ? 60 : 120;
   s.dpWin = typeof s.dpWin === "string" && /^\d\d:\d\d-\d\d:\d\d(,\d\d:\d\d-\d\d:\d\d)?$/.test(s.dpWin) ? s.dpWin : "00:00-24:00";
   const days = {};
@@ -527,6 +612,7 @@ function render() {
   $("vesselLbl").textContent = S.vessel;
   $("vesselLbl").hidden = !S.vessel;
   $("logo").hidden = !S.logo; if (S.logo) $("logo").src = S.logo;
+  renderCrewBar();
   document.title = "DP Logbook" + (S.vessel ? " – " + S.vessel : "");
   renderLights();
   const d = day();
@@ -556,7 +642,7 @@ function tick() {
   const n = now();
   $("clock").innerHTML = n.time + "<small>" + tzLabel() + "</small>";
   if (followToday && cur !== n.date && !document.activeElement.closest("#list")) goto(n.date);
-  else { $("todayBtn").hidden = cur === n.date; renderLights(); }
+  else { $("todayBtn").hidden = cur === n.date; renderLights(); renderCrewBar(); }
 }
 
 function goto(date) {
@@ -749,9 +835,11 @@ function lbToday() {             // the newest day that has entries (or today): 
 function dpMinutes(date, evs, wins) {   // wins: [[fromMin, toMin], ...] hours of the day to count; default whole day
   const n = now(), last = lbToday();
   if (date > last) return 0;
-  const end = date === last ? toMin(n.time) : 1440;
+  let end = date === last ? toMin(n.time) : 1440;
+  const all = evs || dpEvents();
+  if (date === last && date > n.date) for (const e of all) if (e.date === date && e.min > end) end = e.min;   // a logged day ahead of the device clock: never cut off later entries
   let on = false, from = 0; const iv = [];
-  for (const e of evs || dpEvents()) {
+  for (const e of all) {
     if (e.date < date) { on = e.on; continue; }
     if (e.date > date) break;
     if (on && !e.on) iv.push([from, Math.min(e.min, end)]);
@@ -780,23 +868,65 @@ function openDp() {
   const sel = $("dpWin"); sel.value = S.dpWin;
   if (sel.value !== S.dpWin) { sel.value = "custom"; $("dpT1").value = S.dpWin.slice(0, 5); $("dpT2").value = S.dpWin.slice(6, 11); }
   $("dpCustom").hidden = sel.value !== "custom";
-  calcDp(); $("dpDlg").showModal();
+  fillWho(); calcDp(); $("dpDlg").showModal();
+}
+function personStats(p, a, b, evs) {
+  const wins = parseWins(p.watch); let tot = 0, dd = 0, any = 0, guard = 0; const rows = [];
+  if (!wins.length) return { tot, dd, any, rows, wins };
+  for (let d = a; d <= b && guard++ < 4000; d = shiftDate(d, 1)) {
+    if (!onboard(p, d)) continue;
+    const m = dpMinutes(d, evs, wins); if (!m) continue;
+    tot += m; any++; if (m >= S.dpMin) dd++; rows.push({ d, m });
+  }
+  return { tot, dd, any, rows, wins };
+}
+const hrs = (m) => (m / 60).toFixed(1).replace(/\.0$/, "");
+function fillWho() {
+  const sel = $("dpWho"), keep = sel.value, people = S.crew.slice().sort(crewSort);
+  sel.innerHTML = '<option value="vessel">Vessel – all DP time</option>' + (people.length ? '<option value="all">All crew – one table</option>' : "") +
+    people.map((p) => '<option value="' + p.id + '">' + esc(p.name) + (p.rank ? " – " + esc(p.rank) : "") + "</option>").join("");
+  sel.value = [...sel.options].some((o) => o.value === keep) ? keep : "vessel";
+  $("dpWhoBox").hidden = !people.length; $("dpCrewHint").hidden = !!people.length;
 }
 function calcDp() {
   let a = $("dpFrom").value, b = $("dpTo").value;
   if (!a || !b) return;
   if (a > b) [a, b] = [b, a];
-  const evs = dpEvents(), wins = dpWins(); let tot = 0, dd = 0, any = 0, rows = "", guard = 0;
-  for (let d = a; d <= b && guard++ < 4000; d = shiftDate(d, 1)) {
-    const m = dpMinutes(d, evs, wins); if (!m) continue;
-    tot += m; any++; if (m >= S.dpMin) dd++;
-    rows += "<tr><td>" + fmtDate(d) + "</td><td>" + fmtDur(m) + "</td><td>" + (m >= S.dpMin ? "✓" : "–") + "</td></tr>";
+  const evs = dpEvents(), who = $("dpWho").value || "vessel", person = S.crew.find((p) => p.id === who);
+  const mode = who === "all" ? "all" : person ? "person" : "vessel";
+  $("dpWinBox").hidden = mode !== "vessel"; $("dpWhoNote").hidden = mode === "vessel";
+  document.querySelector("#dpDlg .sum").hidden = mode === "all";
+  $("dpTbl").className = mode === "all" ? "crewtbl" : "";
+  if (mode === "all") {
+    $("dpWhoNote").textContent = "Each person's own watch pattern and time on board are used for the period.";
+    const people = S.crew.slice().sort(crewSort); let rows = "";
+    const stats = people.map((p) => ({ p, st: personStats(p, a, b, evs) }));
+    for (const { p, st } of stats) {
+      if (!parseWins(p.watch).length) continue;
+      rows += "<tr><td>" + esc(p.name) + "<small>" + esc(p.rank) + "</small></td><td>" + esc(watchShort(p.watch)) + "</td><td>" + hrs(st.tot) + " h</td><td>" + st.dd + "</td></tr>";
+    }
+    $("dpTbl").innerHTML = rows ? "<tr><th>Person</th><th>Watch</th><th>DP hours</th><th>DP days</th></tr>" + rows : "<tr><td>Nobody has a watch pattern yet.</td></tr>";
+    return { a, b, mode, stats };
   }
-  $("dpH").textContent = (tot / 60).toFixed(1).replace(/\.0$/, "");
-  $("dpD").textContent = dd; $("dpA").textContent = any;
-  $("dpTbl").innerHTML = rows ? "<tr><th>Date</th><th>On DP</th><th>DP day</th></tr>" + rows : "<tr><td>No DP time logged in this period.</td></tr>";
-  return { a, b, tot, dd, any };
+  let wins, st;
+  if (mode === "person") {
+    st = personStats(person, a, b, evs);
+    $("dpWhoNote").textContent = person.name + (person.rank ? " · " + person.rank : "") + " · watch " + watchShort(person.watch) + (person.from || person.to ? " · on board " + (person.from || "…") + " – " + (person.to || "…") : "");
+  } else {
+    wins = dpWins(); st = { tot: 0, dd: 0, any: 0, rows: [] }; let guard = 0;
+    for (let d = a; d <= b && guard++ < 4000; d = shiftDate(d, 1)) {
+      const m = dpMinutes(d, evs, wins); if (!m) continue;
+      st.tot += m; st.any++; if (m >= S.dpMin) st.dd++; st.rows.push({ d, m });
+    }
+  }
+  const rows = st.rows.map((r) => "<tr><td>" + fmtDate(r.d) + "</td><td>" + fmtDur(r.m) + "</td><td>" + (r.m >= S.dpMin ? "✓" : "–") + "</td></tr>").join("");
+  $("dpH").textContent = hrs(st.tot); $("dpD").textContent = st.dd; $("dpA").textContent = st.any;
+  $("dpTbl").innerHTML = rows ? "<tr><th>Date</th><th>On DP</th><th>DP day</th></tr>" + rows
+    : "<tr><td>" + (mode === "person" && !parseWins(person.watch).length ? "This person has no watch pattern set." : "No DP time logged in this period.") + "</td></tr>";
+  return { a, b, mode, person, tot: st.tot, dd: st.dd, any: st.any };
 }
+$("dpWho").onchange = calcDp;
+$("dpCrewLink").onclick = () => { $("dpDlg").close(); openCrew(); };
 $("dpFrom").onchange = $("dpTo").onchange = calcDp;
 function customWin() {
   const p24 = (v) => /^24[:.]?00$/.test(v.trim()) ? "24:00" : parseTime(v);
@@ -813,11 +943,14 @@ $("dpT1").onchange = $("dpT2").onchange = customWin;
 $("dpMin").onchange = (ev) => { S.dpMin = +ev.target.value; save(); calcDp(); renderLights(); };
 $("dpPrint").onclick = () => {
   const r = calcDp(); if (!r) return;
+  const per = r.mode === "person", all = r.mode === "all";
+  const sub = per ? "<b>" + esc(r.person.name) + "</b>" + (r.person.rank ? ", " + esc(r.person.rank) : "") + "<br>Watch: " + esc(watchShort(r.person.watch))
+    : all ? "All crew – own watch patterns" : "Hours counted: " + winLabel();
+  const cards = all ? "" : '<div class="sum"><div><b>' + fmtDur(r.tot) + "</b>on DP</div><div><b>" + r.dd + "</b>DP days (min. " + S.dpMin / 60 + " h on DP per day)</div><div><b>" + r.any + "</b>days with any DP</div></div>";
   $("print").innerHTML = '<section class="pday"><div class="ph"><div class="pl'+'">' + phLogo() + '<h1>DP HOURS &amp; DP DAYS</h1></div><div>' + (S.company ? esc(S.company) + "<br>" : "") + (S.vessel ? "<b>" + esc(S.vessel) + "</b><br>" : "") +
-    fmtDate(r.a) + " – " + fmtDate(r.b) + "<br>Hours counted: " + winLabel() + "</div></div>" +
-    '<div class="sum"><div><b>' + fmtDur(r.tot) + "</b>on DP</div><div><b>" + r.dd + "</b>DP days (min. " + S.dpMin / 60 + " h on DP per day)</div><div><b>" + r.any + "</b>days with any DP</div></div>" +
-    '<table id="dpTbl">' + $("dpTbl").innerHTML + "</table>" +
-    '<div class="ps"><div>DPO (name / signature)</div><div>Master (name / signature)</div></div></section>';
+    fmtDate(r.a) + " – " + fmtDate(r.b) + "<br>" + sub + "</div></div>" + cards +
+    '<table id="dpTbl" class="' + (all ? "crewtbl" : "") + '">' + $("dpTbl").innerHTML + "</table>" +
+    '<div class="ps">' + (per ? "<div>" + esc(r.person.name) + " (signature)</div>" : all ? "" : "<div>DPO (name / signature)</div>") + "<div>Master (name / signature)</div></div></section>";
   $("dpDlg").close(); setTimeout(() => print(), 50);
 };
 
@@ -1046,11 +1179,122 @@ $("impMerge").onclick = () => {
   if (!S.vessel) S.vessel = impData.vessel;
   if (!S.logo) S.logo = impData.logo;
   if (!S.company) S.company = impData.company;
+  for (const q of impData.crew) if (!S.crew.some((p) => p.name.toLowerCase() === q.name.toLowerCase() && p.rank === q.rank)) S.crew.push(q);
   impDone(added + (added === 1 ? " entry" : " entries") + " added from backup");
 };
 $("wipe").onclick = () => {
   if (!confirm("Delete ALL logbook entries on this device?\nThis cannot be undone. Save a backup file first if unsure.")) return;
   snap(); S.days = {}; save(); $("setDlg").close(); goto(now().date); toast("All entries deleted", "Undo", undo);
+};
+
+/* ---------- crew & watches ---------- */
+const GROUPS = { dpo: "DP operator", eng: "Engineer", oth: "Other" };
+const RANKS = {
+  dpo: ["Senior DPO (SDPO)", "DPO", "Junior DPO (JDPO)", "Trainee DPO"],
+  eng: ["Chief Engineer", "Second Engineer", "Third Engineer", "Fourth Engineer", "ETO", "Engine Rating"],
+  oth: ["Master", "Chief Officer", "Second Officer", "Third Officer"]
+};
+const PATTERNS = [
+  ["", "Not on watch"],
+  ["00:00-04:00,12:00-16:00", "4 on / 8 off: 00–04 and 12–16"],
+  ["04:00-08:00,16:00-20:00", "4 on / 8 off: 04–08 and 16–20"],
+  ["08:00-12:00,20:00-24:00", "4 on / 8 off: 08–12 and 20–24"],
+  ["00:00-06:00,12:00-18:00", "6 on / 6 off: 00–06 and 12–18"],
+  ["06:00-12:00,18:00-24:00", "6 on / 6 off: 06–12 and 18–24"],
+  ["00:00-12:00", "12 on / 12 off: 00–12"],
+  ["12:00-24:00", "12 on / 12 off: 12–24"],
+  ["08:00-17:00", "Day work: 08–17"]
+];
+function parseWins(str) {        // "HH:MM-HH:MM,..." -> minute ranges; a range past midnight is split in two
+  const out = [];
+  for (const w of String(str || "").split(",")) {
+    const m = w.match(/^(\d\d):(\d\d)-(\d\d):(\d\d)$/); if (!m) continue;
+    const a = +m[1] * 60 + +m[2], b = +m[3] * 60 + +m[4];
+    if (a < b) out.push([a, b]); else if (a > b) out.push([a, 1440], [0, b]);
+  }
+  return out;
+}
+const patternLabel = (w) => !w ? "Not on watch" : (PATTERNS.find((x) => x[0] === w) || [0, w.replace(/-/g, "–").replace(/,/g, " and ")])[1];
+const watchShort = (w) => !w ? "—" : w.split(",").map((r) => r.replace(/(\d\d):00/g, "$1").replace("-", "–")).join(", ");
+const onboard = (p, d) => (!p.from || d >= p.from) && (!p.to || d <= p.to);
+const rankIdx = (p) => { const i = (RANKS[p.group] || []).indexOf(p.rank); return i < 0 ? 99 : i; };
+const crewSort = (x, y) => (["dpo", "eng", "oth"].indexOf(x.group) - ["dpo", "eng", "oth"].indexOf(y.group)) || (rankIdx(x) - rankIdx(y)) || x.name.localeCompare(y.name);
+function shortRank(r) {
+  const m = r.match(/\(([^)]+)\)/); if (m) return m[1];
+  return { "Chief Engineer": "C/E", "Second Engineer": "2/E", "Third Engineer": "3/E", "Fourth Engineer": "4/E" }[r] || r || "—";
+}
+function shortName(n) { const w = n.trim().split(/\s+/); return w.length < 2 ? n : w[0][0] + ". " + w.slice(1).join(" "); }
+function renderCrewBar() {
+  const bar = $("crewbar");
+  if (!S.showCrew || !S.crew.length) { bar.hidden = true; return; }
+  const n = now(), m = toMin(n.time), on = [];
+  for (const p of S.crew.slice().sort(crewSort)) {
+    if (!onboard(p, n.date)) continue;
+    const w = parseWins(p.watch).find((r) => m >= r[0] && m < r[1]);
+    if (w) on.push({ p, until: w[1] });
+  }
+  const hm = (x) => String(Math.floor(x / 60) % 24).padStart(2, "0") + ":" + String(x % 60).padStart(2, "0");
+  bar.innerHTML = '<span class="cwl">On watch</span>' + (on.length ? on.map(({ p, until }) =>
+    '<span class="cw ' + p.group + '"><i>' + esc(shortRank(p.rank)) + "</i><b>" + esc(shortName(p.name)) + "</b><small>until " + hm(until) + "</small></span>").join("")
+    : '<span class="none">nobody – check watch patterns</span>') + '<span class="more">Crew ›</span>';
+  bar.hidden = false;
+}
+function renderCrewList() {
+  const t = now().date, people = S.crew.slice().sort((x, y) => (onboard(x, t) ? 0 : 1) - (onboard(y, t) ? 0 : 1) || crewSort(x, y));
+  $("crewList").innerHTML = people.length ? people.map((p) => {
+    const on = onboard(p, t), st = on ? '<span class="badge on">On board</span>' : p.from && t < p.from ? '<span class="badge">Joins ' + fmtDate(p.from) + "</span>" : '<span class="badge">Signed off</span>';
+    return '<div class="person" data-id="' + p.id + '"><div><b>' + esc(p.name) + "</b>" + st + '</div><div class="acts"><button class="b" data-act="edit">Edit</button>' + (on ? '<button class="b" data-act="off">Sign off</button>' : "") + "</div>" +
+      '<div class="sub"><span class="badge ' + p.group + '">' + GROUPS[p.group] + "</span> " + esc(p.rank || "") + '</div><div class="sub">' + esc(patternLabel(p.watch)) + "</div></div>";
+  }).join("") : '<p style="margin:0">No crew added yet.</p>';
+}
+function openCrew() { $("crewForm").hidden = true; $("crewMain").hidden = false; $("crewShow").checked = S.showCrew; renderCrewList(); if (!$("crewDlg").open) $("crewDlg").showModal(); }
+$("crewOpen").onclick = () => { $("setDlg").close(); openCrew(); };
+$("crewbar").onclick = openCrew;
+$("crewbar").onkeydown = (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); openCrew(); } };
+$("crewShow").onchange = (ev) => { S.showCrew = ev.target.checked; save(); renderCrewBar(); };
+$("crewDlg").addEventListener("close", () => { renderCrewBar(); });
+$("cfPattern").innerHTML = PATTERNS.map((x) => '<option value="' + x[0] + '">' + x[1] + "</option>").join("") + '<option value="custom">Other hours…</option>';
+function fillRanks() { $("rankList").innerHTML = RANKS[$("cfGroup").value].map((r) => '<option value="' + r + '">').join(""); }
+$("cfGroup").onchange = () => { fillRanks(); };
+$("cfPattern").onchange = () => { $("cfCustomBox").hidden = $("cfPattern").value !== "custom"; };
+let editId = null;
+function openForm(id) {
+  editId = id; const p = S.crew.find((x) => x.id === id) || { name: "", group: "dpo", rank: "", watch: "", from: "", to: "" };
+  $("cfName").value = p.name; $("cfGroup").value = p.group; fillRanks(); $("cfRank").value = p.rank;
+  $("cfPattern").value = p.watch; if ($("cfPattern").value !== p.watch) { $("cfPattern").value = "custom"; $("cfCustom").value = p.watch.replace(/-/g, "–"); } else $("cfCustom").value = "";
+  $("cfCustomBox").hidden = $("cfPattern").value !== "custom"; $("cfFrom").value = p.from; $("cfTo").value = p.to; $("cfDelete").hidden = !id;
+  $("crewMain").hidden = true; $("crewForm").hidden = false; $("crewDlg").scrollTop = 0; $("cfName").focus();
+}
+function parseCustom(txt) {
+  const out = [], f = (v) => (/^24([:.]?00)?$/.test(v.trim()) ? "24:00" : parseTime(v));
+  for (const tok of txt.split(/[,;]+/)) {
+    const t = tok.trim(); if (!t) continue;
+    const m = t.split(/\s*[-–]\s*/); if (m.length !== 2) return null;
+    const a = f(m[0]), b = f(m[1]); if (!a || !b || a === b) return null;
+    out.push(a + "-" + b);
+  }
+  return out.length ? out.join(",") : null;
+}
+$("crewAdd").onclick = () => openForm(null);
+$("cfCancel").onclick = openCrew;
+$("cfSave").onclick = () => {
+  const name = $("cfName").value.trim(); if (!name) return toast("Enter a name"), $("cfName").focus();
+  let watch = $("cfPattern").value;
+  if (watch === "custom") { watch = parseCustom($("cfCustom").value); if (watch === null) return toast("Watch hours look like 00-04, 12-16"), $("cfCustom").focus(); }
+  const q = { id: editId || uid(), name, group: $("cfGroup").value, rank: $("cfRank").value.trim(), watch, from: $("cfFrom").value, to: $("cfTo").value };
+  if (editId) S.crew[S.crew.findIndex((x) => x.id === editId)] = q; else S.crew.push(q);
+  save(); openCrew(); renderCrewBar();
+};
+$("cfDelete").onclick = () => {
+  const p = S.crew.find((x) => x.id === editId); if (!p) return;
+  if (!confirm("Delete " + p.name + " from the crew list?\n\nTheir past DP hours will disappear from reports. To keep them, use “Sign off” instead.")) return;
+  S.crew = S.crew.filter((x) => x.id !== editId); save(); openCrew(); renderCrewBar();
+};
+$("crewList").onclick = (ev) => {
+  const b = ev.target.closest("button"); if (!b) return;
+  const id = b.closest(".person").dataset.id, p = S.crew.find((x) => x.id === id); if (!p) return;
+  if (b.dataset.act === "edit") openForm(id);
+  else if (b.dataset.act === "off" && confirm("Sign off " + p.name + " today?\n\nThey stay in past reports and disappear from the on-watch bar.")) { p.to = now().date; save(); renderCrewList(); renderCrewBar(); }
 };
 
 /* ---------- start ---------- */
