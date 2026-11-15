@@ -92,6 +92,9 @@
   .kind input{accent-color:var(--gold);width:18px;height:18px}
   .contact form .btn{align-self:flex-start;margin-top:10px;border:0;cursor:pointer;font-family:var(--font)}
   .contact form .btn:disabled{opacity:.6;cursor:default}
+  .kofi-wrap{flex-basis:100%;margin-top:6px}
+  .contact a.kofi{color:var(--gold);font-weight:600;text-underline-offset:3px}
+  .contact a.kofi:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:4px}
   .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
   .status{margin:4px 0 0 !important;font-size:14px;min-height:1.5em}
   .status.ok{color:var(--gold)}
@@ -186,6 +189,7 @@
     <div class="mail">
       <span>Email:</span><code id="mailAddr">seatools.contact@protonmail.com</code>
       <button type="button" id="copyMail">Copy</button>
+      <span class="kofi-wrap">SeaTools is free. If it saves you time on board, <a class="kofi" data-goal="kofi-contact" href="https://ko-fi.com/seatools" target="_blank" rel="noopener">☕ buy me a coffee</a></span>
     </div>
   </section>
 
@@ -193,7 +197,7 @@
 </main>
 
 <footer>
-  <span>© 2026 Captain Mariusz Wasilewski · All rights reserved · <a href="about/">About &amp; terms</a> · <a href="#contact">Contact</a></span>
+  <span>© 2026 Captain Mariusz Wasilewski · All rights reserved · <a href="about/">About &amp; terms</a> · <a href="#contact">Contact</a> · <a data-goal="kofi-footer" href="https://ko-fi.com/seatools" target="_blank" rel="noopener">☕ Support SeaTools</a></span>
   <span id="net"></span>
 </footer>
 
@@ -283,6 +287,13 @@
     catch (e) { const r = document.createRange(); r.selectNodeContents(addr); const s = getSelection(); s.removeAllRanges(); s.addRange(r); copyBtn.textContent = "Selected"; }
     setTimeout(() => { copyBtn.textContent = "Copy"; }, 2000);
   });
+
+  // Count clicks on the Ko-fi links in GoatCounter (anonymous, no cookies).
+  document.querySelectorAll("[data-goal]").forEach((el) => el.addEventListener("click", () => {
+    if (window.goatcounter && window.goatcounter.count) {
+      window.goatcounter.count({ path: "click/" + el.dataset.goal, title: "Click: " + el.dataset.goal, event: true });
+    }
+  }));
 
   // Contact form: sends straight to the SeaTools inbox via FormSubmit (no mail app needed).
   const FORM_ENDPOINT = "https://formsubmit.co/ajax/seatools.contact@protonmail.com";
