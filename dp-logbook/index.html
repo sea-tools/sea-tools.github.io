@@ -183,7 +183,7 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
   #print #dpTbl td:first-child,#print #dpTbl th:first-child{width:auto;text-align:left;font-family:inherit;white-space:normal}
   #print tr{break-inside:avoid}
   .ps{display:flex;gap:40px;margin-top:22mm;break-inside:avoid}
-  .ps div{flex:1;border-top:1px solid #000;padding-top:4px;font-size:9.5pt}
+  .ps div{flex:0 1 95mm;border-top:1px solid #000;padding-top:4px;font-size:9.5pt}
 }
 
 /* crew bar + crew dialog */
@@ -956,7 +956,7 @@ $("dpPrint").onclick = () => {
   $("print").innerHTML = '<section class="pday"><div class="ph"><div class="pl'+'">' + phLogo() + '<h1>DP HOURS &amp; DP DAYS</h1></div><div>' + (S.company ? esc(S.company) + "<br>" : "") + (S.vessel ? "<b>" + esc(S.vessel) + "</b><br>" : "") +
     fmtDate(r.a) + " – " + fmtDate(r.b) + "<br>" + sub + "</div></div>" + cards +
     '<table id="dpTbl" class="' + (all ? "crewtbl" : "") + '">' + $("dpTbl").innerHTML + "</table>" +
-    '<div class="ps">' + (per ? "<div>" + esc(r.person.name) + " (signature)</div>" : all ? "" : "<div>DPO (name / signature)</div>") + "<div>Master (name / signature)</div></div></section>";
+    '<div class="ps"><div>Master (name / signature)</div></div></section>';
   $("dpDlg").close(); setTimeout(() => print(), 50);
 };
 
@@ -1124,7 +1124,7 @@ function printDays(dates, t1, t2) {   // t1 limits the first day, t2 the last da
   if (!body) return toast("No entries in this period"), false;
   $("print").innerHTML = '<section class="pday"><div class="ph"><div class="pl'+'">' + phLogo() + '<h1>DP LOGBOOK</h1></div><div>' + (S.company ? esc(S.company) + "<br>" : "") + (S.vessel ? "<b>" + esc(S.vessel) + "</b><br>" : "") +
     (one ? fmtDate(a, true) : fmtDate(a) + (t1 ? " " + t1 : "") + " – " + fmtDate(b) + (t2 ? " " + t2 : "") + "<br>Times: " + tz) + "</div></div>" + body +
-    '<div class="ps"><div>DPO (name / signature)</div><div>Master (name / signature)</div></div></section>';
+    '<div class="ps"><div>Master (name / signature)</div></div></section>';
   if (document.activeElement) document.activeElement.blur();
   setTimeout(() => print(), 50);
   return true;
