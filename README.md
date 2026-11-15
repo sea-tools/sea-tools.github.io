@@ -13,6 +13,7 @@ about/                O stronie, warunki korzystania, prywatność, wersje aplik
 dp-footprint/         DP Footprint Plot
 azimuth/              Azimuth (kalkulator nawigacyjny)
 port-clearance/       Port Clearance (FAL 1–7, Maritime Declaration of Health)
+dp-logbook/           DP Logbook (wpisy zdarzeń wg daty i czasu, światła HiPAP/RadaScan/CyScan, DP hours i DP days, wydruk, kopia zapasowa)
 ```
 
 ## Jak dodać nową aplikację
