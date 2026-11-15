@@ -607,7 +607,11 @@ function sortEntries(d) {
   }).map((x) => x[0]);
 }
 /* Location carries over to the next day while DP continues (DP is on at 00:00). After DP OFF it starts empty again. */
-function dpOnAtStart(date, evs) { let on = false; for (const e of evs) { if (e.date >= date) break; on = e.on; } return on; }
+function dpOnAtStart(date, evs) {  // DP state at 00:00 of the date; with no DP entry before it we assume the operation continues, only an explicit DP OFF stops the carry-over
+  let seen = false, on = false;
+  for (const e of evs) { if (e.date >= date) break; seen = true; on = e.on; }
+  return seen ? on : true;
+}
 function ownLoc(d) { const v = S.days[d]; return !!v && (v.loc.trim() !== "" || v.lo === true); }
 function effLoc(date, evs) {      // { text, from }  from = the earlier day it was carried over from ("" if typed on this day)
   evs = evs || dpEvents();
