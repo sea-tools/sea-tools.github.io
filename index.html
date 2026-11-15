@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SeaTools</title>
-<meta name="description" content="Free browser tools for ship's crews, starting with a DP footprint plot. Work on PC, iPad and phone, also offline.">
+<meta name="description" content="Free browser apps for ship's crews: FAL forms, ECDIS routes, DP logbook, DP footprint, navigation calculator and bolt torque. Work on PC, iPad and phone, also offline.">
 <meta name="theme-color" content="#14232d">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -69,6 +69,22 @@
            font:600 15px var(--font);cursor:pointer}
   @media (prefers-color-scheme:dark){.install{background:#e6edf2;color:#14232d}}
 
+  .contact{margin-top:48px;background:var(--navy);color:#fff;border-radius:16px;padding:28px;
+           display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px 32px}
+  .contact h3{font-size:19px;margin:6px 0 8px;line-height:1.25}
+  .contact p{margin:0 0 14px;color:#c5d1d9;font-size:15px;max-width:52ch}
+  .contact .eyebrow{color:var(--gold)}
+  .contact .btn{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:10px;
+                background:var(--gold);color:#14232d;font-weight:600;font-size:15px;text-decoration:none}
+  .contact .btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35)}
+  .contact .btn:focus-visible,.mail button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+  .contact .actions{display:flex;gap:10px;flex-wrap:wrap}
+  .mail{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.15);padding-top:18px;
+        font-size:14px;color:#c5d1d9}
+  .mail code{font-family:var(--mono);font-size:15px;color:#fff;user-select:all;word-break:break-all}
+  .mail button{min-height:36px;padding:0 14px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:transparent;
+               color:#fff;font:600 13px var(--font);cursor:pointer}
+
   .notice{margin:40px 0 0;padding:16px 20px;background:var(--paper);border:1px solid var(--line);border-left:5px solid var(--accent);
           border-radius:12px;color:var(--muted);font-size:14px;max-width:none}
   .notice b{color:var(--ink)}
@@ -122,11 +138,33 @@
     </div>
   </div>
 
+  <section class="contact" id="contact" aria-label="Contact">
+    <div>
+      <div class="eyebrow">For companies</div>
+      <h3>Need a tool for your fleet?</h3>
+      <p>Company forms prefilled for your vessels, your logo on reports, or a new app built around how your crews work. Tell me what slows your crews down.</p>
+      <a class="btn" data-goal="contact-company" href="mailto:seatools.contact@protonmail.com?subject=SeaTools%20for%20our%20fleet">Write about your fleet</a>
+    </div>
+    <div>
+      <div class="eyebrow">New tools</div>
+      <h3>Get new tools first</h3>
+      <p>New apps and features are on the way. Send a short email and you will hear about them first. Missing a tool on board? Suggest it.</p>
+      <div class="actions">
+        <a class="btn" data-goal="notify-me" href="mailto:seatools.contact@protonmail.com?subject=Notify%20me%20about%20new%20SeaTools">Notify me</a>
+        <a class="btn ghost" data-goal="suggest-tool" href="mailto:seatools.contact@protonmail.com?subject=Tool%20idea%20for%20SeaTools">Suggest a tool</a>
+      </div>
+    </div>
+    <div class="mail">
+      <span>Email:</span><code id="mailAddr">seatools.contact@protonmail.com</code>
+      <button type="button" id="copyMail">Copy</button>
+    </div>
+  </section>
+
   <p class="notice"><b>Aids only, not for sole reliance.</b> These apps do not replace official publications, charts, the ship's own instruments or the judgement of a qualified officer. Always verify results. Provided as is, without warranty. <a href="about/">About &amp; terms</a></p>
 </main>
 
 <footer>
-  <span>© 2026 Captain Mariusz Wasilewski · All rights reserved · <a href="about/">About &amp; terms</a></span>
+  <span>© 2026 Captain Mariusz Wasilewski · All rights reserved · <a href="about/">About &amp; terms</a> · <a href="#contact">Contact</a></span>
   <span id="net"></span>
 </footer>
 
@@ -207,6 +245,22 @@
     installEvt.prompt(); await installEvt.userChoice; installEvt = null; installBtn.hidden = true;
   });
   addEventListener("appinstalled", () => { installBtn.hidden = true; });
+
+  // Copy the contact address (falls back to selecting it).
+  const copyBtn = document.getElementById("copyMail");
+  copyBtn.addEventListener("click", async () => {
+    const addr = document.getElementById("mailAddr");
+    try { await navigator.clipboard.writeText(addr.textContent); copyBtn.textContent = "Copied"; }
+    catch (e) { const r = document.createRange(); r.selectNodeContents(addr); const s = getSelection(); s.removeAllRanges(); s.addRange(r); copyBtn.textContent = "Selected"; }
+    setTimeout(() => { copyBtn.textContent = "Copy"; }, 2000);
+  });
+
+  // Count clicks on contact buttons in GoatCounter (anonymous, no cookies).
+  document.querySelectorAll("[data-goal]").forEach((el) => el.addEventListener("click", () => {
+    if (window.goatcounter && window.goatcounter.count) {
+      window.goatcounter.count({ path: "click/" + el.dataset.goal, title: "Click: " + el.dataset.goal, event: true });
+    }
+  }));
 
   if ("serviceWorker" in navigator) {
     addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));

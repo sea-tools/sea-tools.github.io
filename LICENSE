@@ -1,0 +1,28 @@
+Copyright (c) 2026 Captain Mariusz Wasilewski. All rights reserved.
+
+SeaTools (https://sea-tools.github.io) and everything in this repository,
+including the apps, their design, text, images and source code, are protected
+by copyright. The source code is visible here only so that the site can be
+published. Visibility does not grant any licence.
+
+You may:
+  - use the apps on https://sea-tools.github.io free of charge, for private
+    and professional work, on board and ashore;
+  - share links to the site and print or export your own results.
+
+You may not, without the author's prior written permission:
+  - copy, modify, fork for redistribution, republish or host the apps or their
+    code elsewhere;
+  - sell, sublicense or include the apps or any part of their code in another
+    product or service, free or paid.
+
+Third-party components keep their own licences:
+  - plot-to-route/vendor/pdf.min.js and pdf.worker.min.js: PDF.js,
+    Apache License 2.0, https://github.com/mozilla/pdf.js
+
+THE APPS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. They are aids
+only and do not replace official publications, charts, the ship's own
+instruments or the judgement of a qualified officer. See
+https://sea-tools.github.io/about/ for the full terms.
+
+Permission requests: seatools.contact@protonmail.com
