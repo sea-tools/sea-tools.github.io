@@ -44,7 +44,19 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 :focus-visible{outline:0;box-shadow:0 0 0 4px var(--ring)}
 
 .wrap{max-width:1040px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) max(clamp(14px,4vw,40px),env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(clamp(14px,4vw,40px),env(safe-area-inset-left))}
-.top{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.top{display:flex;align-items:center;gap:14px;margin-bottom:6px;flex-wrap:wrap}
+.ctl{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.ctl select{width:auto;height:36px;font-size:14px}
+@media (max-width:640px){.ctl{width:100%;margin-left:0;justify-content:space-between}}
+.print-only{display:none}
+@media print{
+  body{background:#fff;color:#000}.wrap{padding:0;max-width:none}
+  .top,.desc,#c1,#c3,#c4,#help,.foot,.tools,#c2 .btns,.act,#over,#toast,#c2>h2,.wph span:last-child{display:none!important}
+  .card{box-shadow:none!important;padding:0!important;margin:0!important;background:#fff!important}
+  .print-only{display:block;margin-bottom:10px;font:600 13px var(--sans);color:#000}
+  .wph,.wp{grid-template-columns:30px 1fr 1.4fr 1.4fr 100px}.wph{color:#000}
+  .wp input{background:none!important;box-shadow:none!important;border:0!important;padding:0!important;height:auto!important;font-size:13px!important;color:#000!important}.lg,.lg b,.total{color:#000}
+}
 .top .back{flex:none;width:44px;height:44px;border-radius:50%;background:var(--surface);color:var(--accent);display:grid;place-items:center;text-decoration:none;box-shadow:var(--shadow);font-size:22px;line-height:1}
 .top .badge{width:52px;height:52px;border-radius:14px;flex:none;box-shadow:var(--shadow)}
 .top h1{margin:0;font:700 clamp(26px,4.4vw,38px)/1.1 var(--round);letter-spacing:-.02em}
@@ -132,8 +144,6 @@ pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);f
 .help ul,.help ol{margin:4px 0 8px;padding-left:20px}
 .help b{color:var(--ink)}
 .foot{margin-top:20px;font-size:12.5px;color:var(--dim);display:grid;gap:12px}
-.foot .row{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center}
-.foot select{width:auto;height:36px;font-size:14px}
 
 #over{position:fixed;inset:0;z-index:50;background:rgba(0,122,255,.88);color:#fff;display:grid;place-items:center;font:700 26px var(--round);text-align:center;padding:20px}
 #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,30px);opacity:0;background:#1c1c1e;color:#fff;padding:12px 18px;border-radius:14px;font-size:15px;max-width:90vw;transition:.3s var(--spring);pointer-events:none;z-index:60}
@@ -150,7 +160,9 @@ pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);f
     <a class="back" href="../" aria-label="SeaTools">‹</a>
     <svg class="badge" viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a84ff"/><stop offset="1" stop-color="#5e5ce6"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#bg)"/><g fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="6"><path d="M0 170h512M0 340h512M170 0v512M340 0v512"/></g><path d="M112 392 214 252 304 312 402 132" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 44"/><path d="M112 392 214 252 304 312 402 132" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><circle cx="214" cy="252" r="24" fill="#fff"/><circle cx="304" cy="312" r="24" fill="#fff"/><circle cx="112" cy="392" r="34" fill="#fff"/><circle cx="112" cy="392" r="20" fill="#30d158"/><circle cx="402" cy="132" r="34" fill="#fff"/><circle cx="402" cy="132" r="20" fill="#ff453a"/></svg>
     <div><p class="eyebrow" data-i="eyebrow">Bridge · ECDIS</p><h1>Plot to Route</h1></div>
+    <div class="ctl"><div class="seg" id="sTheme" role="group" aria-label="Appearance"></div><select id="sLang" aria-label="Language"><option value="en">English</option><option value="pl">Polski</option></select></div>
   </div>
+  <div id="printHead" class="print-only"></div>
   <p class="desc" data-i="desc"></p>
 
   <!-- 1 -->
@@ -203,6 +215,7 @@ pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);f
       <button class="btn" id="bAdd" data-i="add">+ Add waypoint</button>
       <button class="btn" id="bRev" data-i="rev">Reverse route</button>
       <button class="btn" id="bCopy" data-i="copy">Copy table</button>
+      <button class="btn" id="bPrint" data-i="print">Print list</button>
       <button class="btn dng" id="bClear" data-i="clear">Clear all</button>
     </div>
   </section>
@@ -224,18 +237,21 @@ pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);f
       <label class="field"><span data-i="r_author">Author (optional)</span><input type="text" id="rAuthor" autocomplete="off"></label>
       <label class="field"><span>IMO (<span data-i="opt">optional</span>)</span><input type="text" id="rImo" inputmode="numeric" maxlength="7" autocomplete="off"></label>
       <label class="field"><span>MMSI (<span data-i="opt">optional</span>)</span><input type="text" id="rMmsi" inputmode="numeric" maxlength="9" autocomplete="off"></label>
-      <label class="field"><span data-i="r_ver">RTZ version</span><select id="zVer"><option value="1.0">RTZ 1.0</option><option value="1.1">RTZ 1.1</option></select></label>
-      <label class="field"><span data-i="r_rad">Turn radius (NM)</span><input type="number" id="zRad" step="0.01" min="0" inputmode="decimal"></label>
+      <label class="field"><span data-i="r_ver">RTZ version</span><select id="zVer"><option value="1.0">RTZ 1.0</option><option value="1.1">RTZ 1.1</option><option value="1.2">RTZ 1.2</option></select></label>
+      <label class="field"><span data-i="r_rad">Turn radius (NM)</span><input type="number" id="zRad" step="0.01" min="0" max="5" inputmode="decimal"></label>
       <label class="field"><span data-i="r_xp">XTD port (NM)</span><input type="number" id="zXp" step="0.01" min="0" inputmode="decimal"></label>
       <label class="field"><span data-i="r_xs">XTD starboard (NM)</span><input type="number" id="zXs" step="0.01" min="0" inputmode="decimal"></label>
       <label class="field"><span data-i="r_geom">Leg type in the file</span><select id="zGeom"><option value="Loxodrome" data-i="o_lox">Rhumb line (Loxodrome)</option><option value="Orthodrome" data-i="o_ort">Great circle (Orthodrome)</option></select></label>
+      <label class="field"><span data-i="names">Waypoint names in the file</span><select id="zNames"></select></label>
     </div>
+    <p class="sub" id="fileHint" style="margin:12px 0 0"></p>
     <div class="btns">
       <button class="btn pri big" id="bRtz" data-i="dl_rtz">Download RTZ</button>
       <button class="btn big" id="bShare" hidden data-i="share">Share…</button>
       <button class="btn" id="bGpx" data-i="dl_gpx">GPX</button>
       <button class="btn" id="bCsv" data-i="dl_csv">CSV</button>
     </div>
+    <div id="rtzWarn"></div>
     <div class="note warn" data-i="verify"></div>
     <details class="adv"><summary data-i="preview">Show file contents</summary><pre id="xml"></pre></details>
   </section>
@@ -246,10 +262,6 @@ pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);f
   </section>
 
   <div class="foot">
-    <div class="row">
-      <div class="seg" id="sTheme" role="group"></div>
-      <select id="sLang" aria-label="Language"><option value="en">English</option><option value="pl">Polski</option></select>
-    </div>
     <p data-i="disc" style="margin:0"></p>
     <p style="margin:0">Plot to Route · © 2026 SeaTools<span id="aboutLink"></span></p>
   </div>
@@ -489,27 +501,44 @@ function parseCell(text,wantLat,o){
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const f7=v=>v.toFixed(7),f3=v=>(+v).toFixed(3);
 function wpName(w,i){return(w.name&&w.name.trim())||"WP "+(i+1)}
+function foldAscii(x){return String(x).replace(/ł/g,"l").replace(/Ł/g,"L").replace(/ø/g,"o").replace(/Ø/g,"O").replace(/æ/g,"ae").replace(/Æ/g,"AE").replace(/ß/g,"ss").replace(/đ/g,"d").replace(/Đ/g,"D").normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
+function simpleName(x,max){let n=foldAscii(x).replace(/[^A-Za-z0-9 .\-_\/()#+]/g," ").replace(/\s+/g," ").trim();if(max&&n.length>max)n=n.slice(0,max).trim();return n}
+// names written to the file: "asis" keeps them, "s20"/"s12" give plain ASCII, short and unique
+function exportNames(wps,o){
+  const max=o.names==="s12"?12:o.names==="s20"?20:0,used=new Set(),out=[];
+  wps.forEach((w,i)=>{let n=wpName(w,i);
+    if(max){n=simpleName(n,max)||"WP"+(i+1);const base=n;let k=2;
+      while(used.has(n.toLowerCase())){const suf="-"+k++;n=base.slice(0,max-suf.length).trim()+suf}used.add(n.toLowerCase())}
+    out.push(n)});
+  return out}
+// the file name has to equal routeName, so one cleaned string serves for both
+function safeRouteName(x,ascii){let n=String(x);if(ascii)n=foldAscii(n);
+  n=n.replace(/[\\\/:*?"<>|\u0000-\u001f]/g," ").replace(/\s+/g," ").trim().replace(/[. ]+$/,"").slice(0,60).trim();return n||"Route"}
+const normLon=v=>{while(v>=180)v-=360;while(v<-180)v+=360;return v};
+const fLat=v=>f7(Math.max(-90,Math.min(90,v)));
+const fLon=v=>{const t=f7(normLon(v));return +t>=180?f7(-180):t}; // the schema allows -180 but not +180
 function buildRTZ(wps,r,o){
-  const ns=o.ver==="1.1"?"http://www.cirm.org/RTZ/1/1":"http://www.cirm.org/RTZ/1/0";
-  const leg=`<leg starboardXTD="${f3(o.xtdS)}" portsideXTD="${f3(o.xtdP)}" geometryType="${o.geom}"/>`;
+  const ns="http://www.cirm.org/RTZ/1/"+({"1.0":"0","1.1":"1","1.2":"2"}[o.ver]||"0"),ver=ns.endsWith("2")?"1.2":ns.endsWith("1")?"1.1":"1.0";
+  const rad=Math.min(5,Math.max(0,o.radius||0)),cl=v=>Math.min(9.99,Math.max(0,v||0)),names=o.nameList||exportNames(wps,o),rev=ver==="1.2"?' revision="0"':"";
+  const leg=`<leg starboardXTD="${f3(cl(o.xtdS))}" portsideXTD="${f3(cl(o.xtdP))}" geometryType="${o.geom}"/>`;
   let a=`routeName="${esc(r.name||"Route")}"`;
   if(r.author)a+=` routeAuthor="${esc(r.author)}"`;
   if(r.vessel)a+=` vesselName="${esc(r.vessel)}"`;
   if(/^\d{7}$/.test(r.imo||""))a+=` vesselIMO="${r.imo}"`;
   if(/^\d{9}$/.test(r.mmsi||""))a+=` vesselMMSI="${r.mmsi}"`;
-  let x=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<route xmlns="${ns}" version="${o.ver}">\n  <routeInfo ${a}/>\n  <waypoints>\n`;
-  x+=`    <defaultWaypoint radius="${f3(o.radius)}">\n      ${leg}\n    </defaultWaypoint>\n`;
-  wps.forEach((w,i)=>{x+=`    <waypoint id="${i+1}" name="${esc(wpName(w,i))}" radius="${f3(o.radius)}">\n      <position lat="${f7(w.lat)}" lon="${f7(w.lon)}"/>\n`+(i>0?`      ${leg}\n`:"")+`    </waypoint>\n`});
+  let x=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<route xmlns="${ns}" version="${ver}">\n  <routeInfo ${a}/>\n  <waypoints>\n`;
+  x+=`    <defaultWaypoint radius="${f3(rad)}">\n      ${leg}\n    </defaultWaypoint>\n`;
+  wps.forEach((w,i)=>{x+=`    <waypoint id="${i+1}"${rev} name="${esc(names[i])}" radius="${f3(rad)}">\n      <position lat="${fLat(w.lat)}" lon="${fLon(w.lon)}"/>\n`+(i>0?`      ${leg}\n`:"")+`    </waypoint>\n`});
   return x+"  </waypoints>\n</route>\n"}
-function buildGPX(wps,r){
+function buildGPX(wps,r,names){names=names||wps.map(wpName);
   let x=`<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Plot to Route" xmlns="http://www.topografix.com/GPX/1/1">\n  <rte>\n    <name>${esc(r.name||"Route")}</name>\n`;
-  wps.forEach((w,i)=>{x+=`    <rtept lat="${f7(w.lat)}" lon="${f7(w.lon)}"><name>${esc(wpName(w,i))}</name></rtept>\n`});
+  wps.forEach((w,i)=>{x+=`    <rtept lat="${fLat(w.lat)}" lon="${fLon(w.lon)}"><name>${esc(names[i])}</name></rtept>\n`});
   return x+"  </rte>\n</gpx>\n"}
-function buildCSV(wps,fo,grid){
+function buildCSV(wps,fo,grid,names){names=names||wps.map(wpName);
   const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
   let x="No,Name,Latitude,Longitude,Lat_decimal,Lon_decimal,Easting,Northing,Grid\r\n";
   wps.forEach((w,i)=>{const[e,n]=latLonToGrid(w.lat,w.lon,grid);
-    x+=[i+1,q(wpName(w,i)),q(fmtCoord(w.lat,true,fo)),q(fmtCoord(w.lon,false,fo)),w.lat.toFixed(7),w.lon.toFixed(7),e.toFixed(2),n.toFixed(2),q(gridLabel(grid))].join(",")+"\r\n"});
+    x+=[i+1,q(names[i]),q(fmtCoord(w.lat,true,fo)),q(fmtCoord(w.lon,false,fo)),w.lat.toFixed(7),w.lon.toFixed(7),e.toFixed(2),n.toFixed(2),q(gridLabel(grid))].join(",")+"\r\n"});
   return x}
 function buildTSV(wps,fo){return wps.map((w,i)=>[i+1,wpName(w,i),fmtCoord(w.lat,true,fo),fmtCoord(w.lon,false,fo)].join("\t")).join("\n")}
 /* ===== CORE:END ===== */
@@ -538,7 +567,7 @@ c_name:"Name",c_leg:"Leg",lat:"Latitude",lon:"Longitude",east:"Easting (m)",nort
 add:"+ Add waypoint",rev:"Reverse route",copy:"Copy table",clear:"Clear all",
 h3:"Route check",dist:"Distances and bearings",rhumb:"Rhumb line",gc:"Great circle",map:"Route plot",
 hh:"Help",h4:"Route file for ECDIS (RTZ)",r_name:"Route name",r_vessel:"Vessel name (optional)",r_author:"Author (optional)",opt:"optional",
-r_ver:"RTZ version",r_rad:"Turn radius (NM)",r_xp:"XTD port (NM)",r_xs:"XTD starboard (NM)",r_geom:"Leg type in the file",
+r_ver:"RTZ version",names:"Waypoint names in the file",nm_s20:"Simplified: plain letters, max 20 characters (safest)",nm_s12:"Simplified: plain letters, max 12 characters",nm_asis:"As typed",print:"Print list",ph_note:"Positions in WGS84. Prepared with Plot to Route. Check against the chart before use.",fileHint:n=>`File name: ${n}.rtz. It must equal the route name, so it is set for you.`,w_rad:"Turn radius limited to 5 NM (the RTZ maximum).",w_xtd:"XTD limited to 9.99 NM (the RTZ maximum).",w_size:"The file is larger than 400 kB. Some ECDIS refuse that.",w_simpl:n=>`${n} waypoint name${n===1?" was":"s were"} simplified in the file (plain letters, short).`,w_rname:"The route name was cleaned for use as a file name (no \\ / : * ? \" < > | characters).",r_rad:"Turn radius (NM, max 5)",r_xp:"XTD port (NM)",r_xs:"XTD starboard (NM)",r_geom:"Leg type in the file",
 o_lox:"Rhumb line (Loxodrome)",o_ort:"Great circle (Orthodrome)",dl_rtz:"Download RTZ",share:"Share…",dl_gpx:"GPX",dl_csv:"CSV",preview:"Show file contents",
 verify:"Always check the imported route in the ECDIS: every waypoint, leg, XTD and the safety contour against the chart. The route must be verified and approved by the navigating officer before use.",
 disc:"An aid only. Always verify results against official publications and charts.",
@@ -561,7 +590,7 @@ ask_clear:"Remove all waypoints?",
 hlp:`<h3>How it works</h3><ol><li><b>Add coordinates:</b> drop a file, paste text or type them in. The app finds the positions itself.</li><li><b>Check the list and the plot.</b> Fix names or positions, change the order, choose how the coordinates are shown.</li><li><b>Download the RTZ</b> and import it in the ECDIS.</li></ol>
 <h3>What it understands</h3><ul><li><code>54°07.404'N 018°38.502'E</code>, <code>54 07.404 N 018 38.502 E</code>, <code>N 54 07.404 E 018 38.502</code></li><li><code>54°07'24.2"N 018°38'30.1"E</code>, <code>5407.404N 01838.502E</code> (NMEA style), <code>540724N 0183830E</code></li><li><code>54.12345 18.54321</code>, <code>54,12345; 18,54321</code>, <code>-3.5 55.2</code></li><li>Easting / Northing: <code>512345.5 5712345.2</code>, <code>E 512345 N 5712345</code>, <code>31U 512345 5712345</code></li><li>A name in front of the position: <code>WP3 54°07.4'N 018°38.5'E</code>. Several waypoints on one line, and a latitude and a longitude on two lines, also work.</li><li>Files: Word (.docx, text and tables), Excel (.xlsx), PDF with text, text and CSV, RTZ and GPX.</li></ul>
 <h3>Easting / Northing</h3><p>Choose the grid in <b>Reading options</b>: UTM (WGS84 / ETRS89 is the same for this purpose), UTM ED50 or British National Grid, and the zone. Easting / Northing is converted to WGS84 Lat / Lon. The RTZ file always holds WGS84 positions. ED50 is approximate (a few metres).</p>
-<h3>Importing in the ECDIS</h3><p>Copy the .rtz file to a USB stick or the ECDIS import folder, then use the route import function of the route manager. If the import fails, shorten the names (20 characters, no special characters) or try RTZ 1.0 / 1.1. After the import compare the route with the plot here.</p>
+<h3>Importing in the ECDIS</h3><p>Copy the .rtz file to a USB stick or the ECDIS import folder, then use the route import function of the route manager. After the import compare the route with the plot here.</p><h3>If your ECDIS refuses the file</h3><ol><li>Import a short test route first (2–3 waypoints).</li><li>Try another <b>RTZ version</b>: 1.0 first, then 1.1 or 1.2.</li><li>Keep <b>Waypoint names</b> on Simplified. Some systems reject accents and long names.</li><li>Do not rename the file. Its name has to equal the route name, and the app sets that for you.</li><li>As a last resort use <b>Print list</b> and enter the waypoints by hand.</li></ol><p>The file follows the official RTZ schema (checked against versions 1.0, 1.1 and 1.2). It has not been tested on every ECDIS.</p>
 <h3>Your data</h3><p>Files are read in this browser only and nothing is sent anywhere. The list is kept on this device until you clear it.</p>`
 },
 pl:{
@@ -583,7 +612,7 @@ c_name:"Nazwa",c_leg:"Odcinek",lat:"Szerokość",lon:"Długość",east:"Easting 
 add:"+ Dodaj punkt",rev:"Odwróć trasę",copy:"Kopiuj tabelę",clear:"Wyczyść wszystko",
 h3:"Kontrola trasy",dist:"Odległości i kursy",rhumb:"Loksodroma",gc:"Ortodroma",map:"Wykres trasy",
 hh:"Pomoc",h4:"Plik trasy dla ECDIS (RTZ)",r_name:"Nazwa trasy",r_vessel:"Nazwa statku (opcjonalnie)",r_author:"Autor (opcjonalnie)",opt:"opcjonalnie",
-r_ver:"Wersja RTZ",r_rad:"Promień zwrotu (NM)",r_xp:"XTD lewa burta (NM)",r_xs:"XTD prawa burta (NM)",r_geom:"Rodzaj odcinka w pliku",
+r_ver:"Wersja RTZ",names:"Nazwy punktów w pliku",nm_s20:"Uproszczone: zwykłe litery, maks. 20 znaków (najbezpieczniej)",nm_s12:"Uproszczone: zwykłe litery, maks. 12 znaków",nm_asis:"Tak jak wpisano",print:"Drukuj listę",ph_note:"Pozycje w WGS84. Przygotowano w Plot to Route. Przed użyciem sprawdź na mapie.",fileHint:n=>`Nazwa pliku: ${n}.rtz. Musi być równa nazwie trasy, więc ustawia się sama.`,w_rad:"Promień zwrotu ograniczono do 5 NM (maksimum w RTZ).",w_xtd:"XTD ograniczono do 9,99 NM (maksimum w RTZ).",w_size:"Plik jest większy niż 400 kB. Niektóre ECDIS tego nie przyjmą.",w_simpl:n=>`Uproszczone nazwy punktów w pliku: ${n} (zwykłe litery, krótsze).`,w_rname:"Nazwa trasy została oczyszczona na potrzeby nazwy pliku (bez znaków \\ / : * ? \" < > |).",r_rad:"Promień zwrotu (NM, maks. 5)",r_xp:"XTD lewa burta (NM)",r_xs:"XTD prawa burta (NM)",r_geom:"Rodzaj odcinka w pliku",
 o_lox:"Loksodroma (Loxodrome)",o_ort:"Ortodroma (Orthodrome)",dl_rtz:"Pobierz RTZ",share:"Udostępnij…",dl_gpx:"GPX",dl_csv:"CSV",preview:"Pokaż zawartość pliku",
 verify:"Zawsze sprawdź zaimportowaną trasę w ECDIS: każdy punkt, odcinek, XTD i izobatę bezpieczeństwa na mapie. Przed użyciem trasa musi być zweryfikowana i zatwierdzona przez oficera nawigacyjnego.",
 disc:"Tylko pomoc. Zawsze weryfikuj wyniki z oficjalnymi publikacjami i mapami.",
@@ -606,13 +635,13 @@ ask_clear:"Usunąć wszystkie punkty?",
 hlp:`<h3>Jak to działa</h3><ol><li><b>Dodaj współrzędne:</b> upuść plik, wklej tekst albo wpisz je. Aplikacja sama znajdzie pozycje.</li><li><b>Sprawdź listę i wykres.</b> Popraw nazwy lub pozycje, zmień kolejność, wybierz sposób wyświetlania współrzędnych.</li><li><b>Pobierz plik RTZ</b> i zaimportuj go w ECDIS.</li></ol>
 <h3>Co rozumie</h3><ul><li><code>54°07.404'N 018°38.502'E</code>, <code>54 07.404 N 018 38.502 E</code>, <code>N 54 07.404 E 018 38.502</code></li><li><code>54°07'24.2"N 018°38'30.1"E</code>, <code>5407.404N 01838.502E</code> (styl NMEA), <code>540724N 0183830E</code></li><li><code>54.12345 18.54321</code>, <code>54,12345; 18,54321</code>, <code>-3.5 55.2</code></li><li>Easting / Northing: <code>512345.5 5712345.2</code>, <code>E 512345 N 5712345</code>, <code>31U 512345 5712345</code></li><li>Nazwa przed pozycją: <code>WP3 54°07.4'N 018°38.5'E</code>. Działa też kilka punktów w jednym wierszu oraz szerokość i długość w dwóch kolejnych wierszach.</li><li>Pliki: Word (.docx, tekst i tabele), Excel (.xlsx), PDF z tekstem, tekst i CSV, RTZ i GPX.</li></ul>
 <h3>Easting / Northing</h3><p>Wybierz siatkę w <b>Opcjach wczytywania</b>: UTM (WGS84 / ETRS89 to tu to samo), UTM ED50 lub brytyjska BNG oraz strefę. Easting / Northing jest zamieniany na szerokość i długość WGS84. Plik RTZ zawsze zawiera pozycje WGS84. ED50 jest przybliżone (kilka metrów).</p>
-<h3>Import do ECDIS</h3><p>Skopiuj plik .rtz na pendrive lub do folderu importu ECDIS i użyj funkcji importu tras w menedżerze tras. Jeśli import się nie uda, skróć nazwy (20 znaków, bez znaków specjalnych) albo spróbuj RTZ 1.0 / 1.1. Po imporcie porównaj trasę z wykresem tutaj.</p>
+<h3>Import do ECDIS</h3><p>Skopiuj plik .rtz na pendrive lub do folderu importu ECDIS i użyj funkcji importu tras w menedżerze tras. Po imporcie porównaj trasę z wykresem tutaj.</p><h3>Jeśli ECDIS odrzuci plik</h3><ol><li>Najpierw zaimportuj krótką trasę próbną (2–3 punkty).</li><li>Spróbuj innej <b>wersji RTZ</b>: najpierw 1.0, potem 1.1 lub 1.2.</li><li>Zostaw <b>Nazwy punktów</b> na Uproszczonych. Niektóre systemy odrzucają polskie znaki i długie nazwy.</li><li>Nie zmieniaj nazwy pliku. Musi być równa nazwie trasy, a aplikacja ustawia to za Ciebie.</li><li>W ostateczności użyj <b>Drukuj listę</b> i wpisz punkty ręcznie.</li></ol><p>Plik jest zgodny z oficjalnym schematem RTZ (sprawdzony względem wersji 1.0, 1.1 i 1.2). Nie był testowany na każdym ECDIS.</p>
 <h3>Twoje dane</h3><p>Pliki są czytane tylko w tej przeglądarce i nic nie jest nigdzie wysyłane. Lista zostaje na tym urządzeniu, dopóki jej nie wyczyścisz.</p>`
 }};
 
 let S={lang:"en",theme:"auto",wps:[],fmt:"ddm",dec:3,hemi:"suffix",sym:true,pad:true,view:"ll",
   grid:{type:"utm",datum:"wgs84",zone:31,south:false},mode:"auto",order:"auto",enOrder:"auto",gc:false,
-  route:{name:"",author:"",vessel:"",imo:"",mmsi:""},rtz:{ver:"1.0",radius:0.5,xtdP:0.1,xtdS:0.1,geom:"Loxodrome"}};
+  route:{name:"",author:"",vessel:"",imo:"",mmsi:""},rtz:{ver:"1.0",radius:0.5,xtdP:0.1,xtdS:0.1,geom:"Loxodrome",names:"s20"}};
 try{const j=JSON.parse(localStorage.getItem(LS)||"{}");for(const k in j){if(k in S)S[k]=(typeof S[k]==="object"&&!Array.isArray(S[k])&&j[k])?Object.assign(S[k],j[k]):j[k]}}catch(e){}
 S.lang="en"; /* the app always opens in English; PL is chosen per session */
 if(S.theme!=="light"&&S.theme!=="dark")S.theme="auto";
@@ -648,7 +677,7 @@ function applyStatic(){
   $$("#sView button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===S.view));
   $$("#sGc button").forEach(b=>b.setAttribute("aria-pressed",(b.dataset.g==="1")===S.gc));
   $("#rName").value=S.route.name;$("#rName").placeholder=defName();$("#rVessel").value=S.route.vessel;$("#rAuthor").value=S.route.author;$("#rImo").value=S.route.imo;$("#rMmsi").value=S.route.mmsi;
-  $("#zVer").value=S.rtz.ver;$("#zRad").value=S.rtz.radius;$("#zXp").value=S.rtz.xtdP;$("#zXs").value=S.rtz.xtdS;$("#zGeom").value=S.rtz.geom;
+  $("#zVer").value=S.rtz.ver;$("#zRad").value=S.rtz.radius;$("#zXp").value=S.rtz.xtdP;$("#zXs").value=S.rtz.xtdS;$("#zGeom").value=S.rtz.geom;opts("#zNames",[["s20",t("nm_s20")],["s12",t("nm_s12")],["asis",t("nm_asis")]],S.rtz.names);
   const th=[["auto",{en:"Auto",pl:"Auto"}],["light",{en:"Light",pl:"Jasny"}],["dark",{en:"Dark",pl:"Ciemny"}]];
   $("#sTheme").innerHTML=th.map(([k,l])=>`<button data-th="${k}" aria-pressed="${S.theme===k}">${l[S.lang]}</button>`).join("");
   if(S.theme==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.dataset.theme=S.theme;
@@ -719,12 +748,19 @@ function renderWarn(L){
   $("#warns").innerHTML=W.map(([c,m])=>`<div class="note ${c}">${esc(m)}</div>`).join("")}
 
 /* ---------- RTZ ---------- */
-const routeInfo=()=>Object.assign({},S.route,{name:S.route.name.trim()||defName()});
-const rtzOpts=()=>({ver:S.rtz.ver,radius:+S.rtz.radius||0,xtdP:+S.rtz.xtdP||0,xtdS:+S.rtz.xtdS||0,geom:S.rtz.geom});
-const fileBase=()=>routeInfo().name.replace(/[\\/:*?"<>|\s]+/g,"_").replace(/^_+|_+$/g,"").slice(0,60)||"route";
-function renderRtz(){const v=valid(),ok=v.length>=2;
-  $("#xml").textContent=v.length?buildRTZ(v,routeInfo(),rtzOpts()):"";
-  ["#bRtz","#bGpx","#bCsv","#bShare"].forEach(s=>$(s).disabled=!ok)}
+const routeInfo=()=>Object.assign({},S.route,{name:safeRouteName(S.route.name.trim()||defName(),S.rtz.names!=="asis")});
+const rtzOpts=()=>({ver:S.rtz.ver,radius:+S.rtz.radius||0,xtdP:+S.rtz.xtdP||0,xtdS:+S.rtz.xtdS||0,geom:S.rtz.geom,names:S.rtz.names});
+const fileBase=()=>routeInfo().name;
+function renderRtz(){const v=valid(),ok=v.length>=2,o=rtzOpts(),xml=v.length?buildRTZ(v,routeInfo(),o):"",W=[];
+  $("#xml").textContent=xml;
+  ["#bRtz","#bGpx","#bCsv","#bShare"].forEach(s=>$(s).disabled=!ok);
+  $("#fileHint").textContent=t("fileHint")(fileBase());
+  if(o.radius>5)W.push(t("w_rad"));if(o.xtdP>=10||o.xtdS>=10)W.push(t("w_xtd"));
+  if(xml.length>400000)W.push(t("w_size"));
+  if(v.length&&o.names!=="asis"){const nl=exportNames(v,o),c=nl.filter((n,i)=>n!==wpName(v[i],i)).length;if(c)W.push(t("w_simpl")(c))}
+  const typed=(S.route.name||"").trim();if(typed&&typed!==routeInfo().name)W.push(t("w_rname"));
+  $("#rtzWarn").innerHTML=W.map(m=>`<div class="note warn">${esc(m)}</div>`).join("");
+  const rn=routeInfo().name;$("#printHead").innerHTML=`<div style="font:700 18px var(--round)">${esc(rn)}</div><div>${esc([S.route.vessel,new Date().toISOString().slice(0,10),"WGS84"].filter(Boolean).join(" · "))}</div><div style="font-weight:400">${esc(t("ph_note"))}</div>`}
 function download(name,data,mime){const b=new Blob([data],{type:mime||"application/octet-stream"}),a=document.createElement("a");
   a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
 const rtzFile=()=>({name:fileBase()+".rtz",data:buildRTZ(valid(),routeInfo(),rtzOpts())});
@@ -886,10 +922,10 @@ $("#sLang").onchange=e=>{S.lang=e.target.value;save();applyStatic()};
 const inp=(id,fn)=>$(id).addEventListener("input",e=>{fn(e.target.value);save();renderRtz()});
 inp("#rName",v=>S.route.name=v);inp("#rVessel",v=>S.route.vessel=v);inp("#rAuthor",v=>S.route.author=v);
 inp("#rImo",v=>S.route.imo=v.replace(/\D/g,""));inp("#rMmsi",v=>S.route.mmsi=v.replace(/\D/g,""));
-inp("#zVer",v=>S.rtz.ver=v);inp("#zRad",v=>S.rtz.radius=v);inp("#zXp",v=>S.rtz.xtdP=v);inp("#zXs",v=>S.rtz.xtdS=v);inp("#zGeom",v=>S.rtz.geom=v);
+inp("#zVer",v=>S.rtz.ver=v);inp("#zRad",v=>S.rtz.radius=v);inp("#zXp",v=>S.rtz.xtdP=v);inp("#zXs",v=>S.rtz.xtdS=v);inp("#zGeom",v=>S.rtz.geom=v);inp("#zNames",v=>S.rtz.names=v);$("#bPrint").onclick=()=>window.print();
 $("#bRtz").onclick=()=>{const f=rtzFile();download(f.name,f.data);toast(t("saved"))};
-$("#bGpx").onclick=()=>download(fileBase()+".gpx",buildGPX(valid(),routeInfo()));
-$("#bCsv").onclick=()=>download(fileBase()+".csv","﻿"+buildCSV(valid(),fo(),S.grid),"text/csv");
+$("#bGpx").onclick=()=>download(fileBase()+".gpx",buildGPX(valid(),routeInfo(),exportNames(valid(),rtzOpts())));
+$("#bCsv").onclick=()=>download(fileBase()+".csv","﻿"+buildCSV(valid(),fo(),S.grid,exportNames(valid(),rtzOpts())),"text/csv");
 try{const probe=new File(["x"],"a.rtz",{type:"application/xml"});if(navigator.canShare&&navigator.canShare({files:[probe]}))$("#bShare").hidden=false}catch(e){}
 $("#bShare").onclick=async()=>{const f=rtzFile();try{await navigator.share({files:[new File([f.data],f.name,{type:"application/xml"})],title:routeInfo().name})}catch(e){}};
 
