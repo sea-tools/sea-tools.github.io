@@ -64,6 +64,8 @@ select{appearance:none;-webkit-appearance:none;min-height:48px;border:0;border-r
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 1.5 6 6l4.5-4.5' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 14px center;text-overflow:ellipsis}
 .span2{grid-column:1/-1}
+select{width:100%;min-width:0}
+label{min-width:0}
 details.adv{grid-column:1/-1}
 details.adv summary{cursor:pointer;color:var(--accent);font-size:14px;font-weight:600;min-height:36px;display:flex;align-items:center}
 details.adv .form{margin-top:8px}
@@ -116,6 +118,17 @@ th:first-child,td:first-child{text-align:left}
 th{color:var(--muted);font-weight:600;font-size:12.5px}
 tr.cur td{background:var(--infobg);font-weight:650}
 .tblwrap{overflow-x:auto}
+.toolcard{margin-top:16px}
+.toolgrid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:center}
+@media (max-width:560px){.toolgrid{grid-template-columns:1fr;justify-items:center}}
+.toolicon svg{width:110px;height:110px;display:block;filter:drop-shadow(0 10px 10px rgba(0,0,0,.25))}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.tile{background:var(--fill);border-radius:16px;padding:12px 14px;min-width:0}
+.tile small{display:block;font-size:12px;color:var(--muted);font-weight:600}
+.tile b{display:block;font-size:28px;letter-spacing:-.03em;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.tile b.sm{font-size:17px;letter-spacing:-.01em;line-height:1.45}
+.toolnote{margin:12px 0 0;font-size:14px;color:var(--muted)} .toolnote+.toolnote{margin-top:6px}
+.toolnote.warn{background:var(--warnbg);color:var(--ink);border-radius:12px;padding:9px 12px}
 .foot{margin:22px 4px 0;font-size:12.5px;color:var(--muted);line-height:1.5}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
@@ -141,6 +154,13 @@ tr.cur td{background:var(--infobg);font-weight:650}
             <button data-type="stud" data-i="t_stud"></button>
           </div>
         </label>
+        <label class="span2" id="headRow"><span data-i="l_head"></span>
+          <div class="seg" id="headSeg">
+            <button data-head="hex" data-i="h_hex"></button>
+            <button data-head="allen" data-i="h_allen"></button>
+            <button data-head="torx" data-i="h_torx"></button>
+          </div>
+        </label>
         <label><span id="clsLbl"></span><select id="cls"></select></label>
         <label><span data-i="l_size"></span><select id="size"></select></label>
         <label class="span2"><span data-i="l_lube"></span><select id="lube"></select></label>
@@ -157,6 +177,8 @@ tr.cur td{background:var(--infobg);font-weight:650}
 
     <div class="card res" id="result"></div>
   </section>
+
+  <section class="card toolcard" id="toolCard"></section>
 
   <section class="wrenches">
     <div class="card">
@@ -177,6 +199,7 @@ tr.cur td{background:var(--infobg);font-weight:650}
   <details class="sec"><summary data-i="s_table"></summary><div id="tableBox"></div></details>
   <details class="sec"><summary data-i="s_calc"></summary><div id="calc"></div></details>
   <p class="foot" data-i="disclaimer"></p>
+  <p class="foot">Tight &amp; Right 1.1</p>
 </main>
 
 <script>
@@ -204,16 +227,36 @@ const LUBES=[{id:"dry",K:.20,mu:.15},{id:"oil",K:.15,mu:.11},{id:"cuni",K:.12,mu
 const PRELOADS=[{v:.7,id:"std"},{v:.5,id:"low"},{v:.9,id:"high"}];
 const MULTS=[1,3,5,10,25];
 // Hand wrenches (click type). step = one full turn of the handle (main scale division), 10 micro divisions per turn.
+// drive = square drive index in DRIVES
 const WRENCHES=[
-  {min:1,max:10,L:.20,step:1},{min:5,max:25,L:.25,step:5},{min:20,max:100,L:.40,step:10},{min:40,max:200,L:.50,step:10},
-  {min:60,max:340,L:.65,step:20},{min:150,max:700,L:1.0,step:50},{min:200,max:1000,L:1.2,step:50}];
+  {min:1,max:10,L:.20,step:1,drive:0},{min:5,max:25,L:.25,step:5,drive:0},{min:20,max:100,L:.40,step:10,drive:1},{min:40,max:200,L:.50,step:10,drive:2},
+  {min:60,max:340,L:.65,step:20,drive:2},{min:150,max:700,L:1.0,step:50,drive:3},{min:200,max:1000,L:1.2,step:50,drive:4}];
+// Square drive sizes of sockets and wrenches
+const DRIVES=["1/4″","3/8″","1/2″","3/4″","1″"];
+const driveForTorque=T=>T<=25?0:T<=110?1:T<=340?2:T<=800?3:4;
+// Hex key (Allen) size for socket head cap screws, ISO 4762 / DIN 912. No standard screw for M33 and M39.
+const ALLEN={5:4,6:5,8:6,10:8,12:10,14:12,16:14,18:14,20:17,22:17,24:19,27:19,30:22,36:27,42:32,48:36};
+// Torx (hexalobular) size for socket cap screws, ISO 14579. Listed here up to M14.
+const TORX={5:25,6:30,8:45,10:50,12:55,14:60};
+// Smallest square drive that normally carries the socket or bit of that size
+const minDriveHex=af=>af<=14?0:af<=22?1:af<=32?2:af<=55?3:4;
+const minDriveAllen=k=>k<=5?0:k<=10?1:k<=19?2:k<=27?3:4;
+const minDriveTorx=n=>n<=30?0:n<=55?1:2;
 
 /* ============ TEXT (EN / PL) ============ */
 const TX={
 en:{
  title:"Tight & Right",subtitle:"Bolts, nuts & studs – ISO metric",
  h_fastener:"Fastener",l_type:"What are you tightening?",t_bolt:"Bolt / screw",t_nut:"Nut",t_stud:"Stud",
- l_class_bolt:"Strength class (head marking)",l_class_nut:"Nut class (marking on nut)",l_size:"Thread (size × pitch)",g_coarse:"Coarse thread",g_fine:"Fine thread",r_thread:"Thread",r_k:"Nut factor K (used)",r_af:"Spanner / socket (AF)",r_vs:(c)=>`Compared with coarse ${c}`,w_fine:(n)=>`Fine thread ${n}: check the pitch with a thread gauge before you tighten. Fine threads need the same pitch on bolt and nut and are damaged more easily by cross-threading.`,l_lube:"Thread condition / lubricant",
+ l_class_bolt:"Strength class (head marking)",l_class_nut:"Nut class (marking on nut)",l_head:"Head type",h_hex:"Hex head",h_allen:"Allen (hex socket)",h_torx:"Torx",h_tool:"Suggested tool",tool_size:"Size",tool_drive:"Drive",tool_type:"Socket",ty_hex:"6-point socket",ty_allen:"Hex bit socket",ty_torx:"Torx bit socket",
+ n_hex:(af,din)=>`Use a 6-point (hexagon) socket, standard length. Choose a deep socket for studs and long thread ends. A ring spanner of ${af} mm also fits${din?` (older DIN parts: ${din} mm)`:""}.`,
+ n_allen:(k)=>`Use a hex bit socket (Allen bit) of ${k} mm. Push it fully into the screw head and keep it square to the screw. Socket head cap screws are normally class 12.9, check the marking on the head.`,
+ n_torx:(n)=>`Use a Torx bit socket T${n}, exactly this size. A worn or loose bit rounds the screw. Torx cap screws are normally class 12.9, check the marking on the head.`,
+ n_adapter:(a,b)=>`Your wrench has a ${a} drive and this socket needs ${b}: fit a ${a} female to ${b} male adapter. An adapter or extension in line with the wrench does not change the torque. An offset or crow-foot does, see Instructions.`,
+ n_mult:"With a torque multiplier the drive shown is for the multiplier output, not for the hand wrench.",
+ na_allen:"There is no standard socket head cap screw in this thread. The tool for a hex head bolt is shown instead.",
+ na_torx:"Torx cap screws are listed here only up to M14. The tool for a hex head bolt is shown instead.",
+ l_size:"Thread (size × pitch)",g_coarse:"Coarse thread",g_fine:"Fine thread",r_thread:"Thread",r_k:"Nut factor K (used)",r_af:"Spanner / socket (AF)",r_vs:(c)=>`Compared with coarse ${c}`,w_fine:(n)=>`Fine thread ${n}: check the pitch with a thread gauge before you tighten. Fine threads need the same pitch on bolt and nut and are damaged more easily by cross-threading.`,l_lube:"Thread condition / lubricant",
  l_adv:"Advanced: preload level, torque multiplier",l_preload:"Preload (% of yield)",l_mult:"Torque multiplier",
  mult_none:"None (hand wrench only)",
  lube_dry:"Dry, as supplied (K 0.20)",lube_oil:"Light oil / engine oil (K 0.15)",lube_cuni:"Copper / nickel anti-seize (K 0.12)",lube_moly:"MoS₂ paste (K 0.10)",
@@ -237,7 +280,7 @@ en:{
  st_unlock:"1 Unlock",st_set:"2 Turn to set",st_lock:"3 Lock",
  lcd_set:"SET",lcd_hold:"HOLD",demo:"▶ Simulate tightening",demo_stop:"■ Reset",
  s_how:"Instructions",s_table:"Table: all sizes for this class",s_calc:"How the value is calculated",
- tb_size:"Thread",tb_t:"Torque Nm",tb_f:"Preload kN",
+ tb_size:"Thread",tb_allen:"Allen mm",tb_torx:"Torx",tb_t:"Torque Nm",tb_f:"Preload kN",
  disclaimer:"Guide values for ISO metric coarse and fine threads, calculated – not copied from a maker's table. Always use the torque from the equipment manual, the maker or the class-approved procedure if one exists; it overrides this app. Never rely on this app alone for safety-critical joints.",
  how:`
 <h3>0 · Before you start</h3>
@@ -276,6 +319,16 @@ en:{
 </ul>
 <h3>5 · Large sizes</h3>
 <p>Above about 600–1000 Nm a hand wrench is not practical. Use a <b>torque multiplier</b> (set the wrench to the torque ÷ ratio, fit the reaction arm against a solid point and stay clear of it) or a <b>hydraulic torque wrench / bolt tensioner</b> following the maker's procedure.</p>
+<h3>7 · Choosing the socket or bit</h3>
+<ul>
+<li><b>Hex head bolts and nuts:</b> a 6-point socket of the size shown (across flats). A 12-point socket grips the corners and can round them off at high torque. Seat the socket fully before you pull.</li>
+<li><b>Drive size follows the torque:</b> 1/4″ up to about 25 Nm, 3/8″ up to 110 Nm, 1/2″ up to 340 Nm, 3/4″ up to 800 Nm, 1″ above. Large sockets are not made in small drives, so the app may ask for an adapter (small drive female to large drive male). An adapter or extension in line with the wrench does not change the torque.</li>
+<li><b>Allen (hex socket) screws:</b> use a hex bit socket of the size shown (ISO 4762). Clean paint and dirt out of the socket first and push the bit in all the way. Do not use a hex key with a pipe on it for the final torque. Socket head screws are normally class 12.9.</li>
+<li><b>Torx screws:</b> use exactly the Torx size shown (ISO 14579). Do not mix Torx with Torx Plus (TP) or with a worn bit. The app lists Torx up to M14.</li>
+<li><b>External Torx (E-Torx):</b> some engine flange bolts have an external Torx head, marked with an E size on the socket (for example E14). That size is not listed here, take it from the manual or from the part.</li>
+<li><b>Final torque:</b> use a hand socket and the torque wrench, not an impact gun. Impact sockets (thick, black) can be used on a torque wrench, thin chrome sockets must not be used with an impact gun.</li>
+<li><b>Tight spaces:</b> a crow-foot or offset changes the real torque. Set T × L ÷ (L + E) as in section 4.</li>
+</ul>
 <h3>6 · Coarse or fine thread</h3>
 <ul>
 <li><b>How to tell:</b> measure the outer diameter with calipers and the pitch with a thread gauge (or count threads over 10 mm). M10 × 1.5 is coarse, M10 × 1.25 and M10 × 1 are fine. Marking “M10” alone always means coarse.</li>
@@ -295,7 +348,15 @@ en:{
 pl:{
  title:"Tight & Right",subtitle:"Śruby, nakrętki i szpilki – gwint metryczny ISO",
  h_fastener:"Element złączny",l_type:"Co dokręcasz?",t_bolt:"Śruba",t_nut:"Nakrętka",t_stud:"Szpilka",
- l_class_bolt:"Klasa wytrzymałości (znak na łbie)",l_class_nut:"Klasa nakrętki (znak na nakrętce)",l_size:"Gwint (rozmiar × skok)",g_coarse:"Gwint zwykły",g_fine:"Gwint drobnozwojny",r_thread:"Gwint",r_k:"Współczynnik K (użyty)",r_af:"Klucz / nasadka (rozmiar)",r_vs:(c)=>`W porównaniu z gwintem zwykłym ${c}`,w_fine:(n)=>`Gwint drobny ${n}: przed dokręceniem sprawdź skok sprawdzianem do gwintów. Śruba i nakrętka muszą mieć ten sam skok, a gwint drobny łatwiej uszkodzić przy krzywym nakręcaniu.`,l_lube:"Stan gwintu / smarowanie",
+ l_class_bolt:"Klasa wytrzymałości (znak na łbie)",l_class_nut:"Klasa nakrętki (znak na nakrętce)",l_head:"Rodzaj łba",h_hex:"Sześciokątny",h_allen:"Imbus (Allen)",h_torx:"Torx",h_tool:"Sugerowane narzędzie",tool_size:"Rozmiar",tool_drive:"Napęd",tool_type:"Nasadka",ty_hex:"Nasadka 6-kątna",ty_allen:"Nasadka z końcówką imbus",ty_torx:"Nasadka z końcówką Torx",
+ n_hex:(af,din)=>`Użyj nasadki sześciokątnej (6-punktowej), standardowej długości. Do szpilek i długich końców gwintu weź nasadkę długą. Pasuje też klucz oczkowy ${af} mm${din?` (starsze elementy DIN: ${din} mm)`:""}.`,
+ n_allen:(k)=>`Użyj nasadki z końcówką imbusową ${k} mm. Wsuń ją do końca w łeb śruby i trzymaj prosto. Śruby z łbem walcowym i gniazdem sześciokątnym mają zwykle klasę 12.9, sprawdź znak na łbie.`,
+ n_torx:(n)=>`Użyj nasadki z końcówką Torx T${n}, dokładnie tego rozmiaru. Zużyta lub luźna końcówka zniszczy śrubę. Śruby Torx mają zwykle klasę 12.9, sprawdź znak na łbie.`,
+ n_adapter:(a,b)=>`Twój klucz ma napęd ${a}, a ta nasadka wymaga ${b}: użyj przejściówki ${a} (żeńskie) na ${b} (męskie). Przejściówka lub przedłużka w osi klucza nie zmienia momentu. Nasadka otwarta lub kolanowa zmienia, patrz Instrukcja.`,
+ n_mult:"Przy mnożniku momentu pokazany napęd dotyczy wyjścia mnożnika, a nie klucza ręcznego.",
+ na_allen:"Dla tego gwintu nie ma znormalizowanej śruby z łbem walcowym i imbusem. Pokazuję narzędzie do śruby z łbem sześciokątnym.",
+ na_torx:"Śruby Torx są tu wymienione tylko do M14. Pokazuję narzędzie do śruby z łbem sześciokątnym.",
+ l_size:"Gwint (rozmiar × skok)",g_coarse:"Gwint zwykły",g_fine:"Gwint drobnozwojny",r_thread:"Gwint",r_k:"Współczynnik K (użyty)",r_af:"Klucz / nasadka (rozmiar)",r_vs:(c)=>`W porównaniu z gwintem zwykłym ${c}`,w_fine:(n)=>`Gwint drobny ${n}: przed dokręceniem sprawdź skok sprawdzianem do gwintów. Śruba i nakrętka muszą mieć ten sam skok, a gwint drobny łatwiej uszkodzić przy krzywym nakręcaniu.`,l_lube:"Stan gwintu / smarowanie",
  l_adv:"Zaawansowane: poziom napięcia, mnożnik momentu",l_preload:"Napięcie wstępne (% granicy plastyczności)",l_mult:"Mnożnik momentu",
  mult_none:"Brak (tylko klucz ręczny)",
  lube_dry:"Na sucho, jak z fabryki (K 0,20)",lube_oil:"Lekki olej / olej silnikowy (K 0,15)",lube_cuni:"Pasta miedziowa / niklowa (K 0,12)",lube_moly:"Pasta MoS₂ (K 0,10)",
@@ -319,7 +380,7 @@ pl:{
  st_unlock:"1 Odblokuj",st_set:"2 Przekręć",st_lock:"3 Zablokuj",
  lcd_set:"NASTAW",lcd_hold:"HOLD",demo:"▶ Symuluj dokręcanie",demo_stop:"■ Reset",
  s_how:"Instrukcja",s_table:"Tabela: wszystkie rozmiary dla tej klasy",s_calc:"Jak liczona jest wartość",
- tb_size:"Gwint",tb_t:"Moment Nm",tb_f:"Napięcie kN",
+ tb_size:"Gwint",tb_allen:"Imbus mm",tb_torx:"Torx",tb_t:"Moment Nm",tb_f:"Napięcie kN",
  disclaimer:"Wartości orientacyjne dla gwintu metrycznego ISO, zwykłego i drobnozwojnego, obliczone, a nie przepisane z tabeli producenta. Zawsze stosuj moment z instrukcji urządzenia, od producenta lub z procedury zatwierdzonej przez klasę, jeśli taka istnieje – ma pierwszeństwo przed tą aplikacją. Nie opieraj się wyłącznie na niej przy połączeniach krytycznych dla bezpieczeństwa.",
  how:`
 <h3>0 · Zanim zaczniesz</h3>
@@ -358,6 +419,16 @@ pl:{
 </ul>
 <h3>5 · Duże rozmiary</h3>
 <p>Powyżej ok. 600–1000 Nm klucz ręczny jest niepraktyczny. Użyj <b>mnożnika momentu</b> (ustaw klucz na moment ÷ przełożenie, oprzyj ramię reakcyjne o twardy punkt i trzymaj się z dala) albo <b>klucza hydraulicznego / napinacza śrub</b> zgodnie z procedurą producenta.</p>
+<h3>7 · Dobór nasadki lub końcówki</h3>
+<ul>
+<li><b>Śruby i nakrętki z łbem sześciokątnym:</b> nasadka 6-punktowa o pokazanym rozmiarze (na płask). Nasadka 12-punktowa łapie za naroża i przy dużym momencie może je zaokrąglić. Osadź nasadkę do końca, zanim pociągniesz.</li>
+<li><b>Napęd zależy od momentu:</b> 1/4″ do ok. 25 Nm, 3/8″ do 110 Nm, 1/2″ do 340 Nm, 3/4″ do 800 Nm, 1″ powyżej. Duże nasadki nie występują w małych napędach, więc aplikacja może poprosić o przejściówkę (mały napęd żeński, duży męski). Przejściówka lub przedłużka w osi klucza nie zmienia momentu.</li>
+<li><b>Śruby imbusowe (Allen):</b> nasadka z końcówką imbusową o pokazanym rozmiarze (ISO 4762). Najpierw wyczyść gniazdo z farby i brudu i wsuń końcówkę do końca. Do końcowego momentu nie używaj klucza imbusowego z rurą. Śruby z gniazdem mają zwykle klasę 12.9.</li>
+<li><b>Śruby Torx:</b> użyj dokładnie pokazanego rozmiaru Torx (ISO 14579). Nie mieszaj Torx z Torx Plus (TP) i nie używaj zużytej końcówki. Aplikacja wymienia Torx do M14.</li>
+<li><b>Zewnętrzny Torx (E-Torx):</b> niektóre śruby kołnierzowe w silnikach mają zewnętrzny łeb Torx, oznaczony na nasadce literą E z liczbą (np. E14). Tego rozmiaru tu nie podaję, weź go z instrukcji lub z części.</li>
+<li><b>Końcowy moment:</b> ręczna nasadka i klucz dynamometryczny, nie klucz udarowy. Nasadki udarowe (grube, czarne) można stosować z kluczem dynamometrycznym, cienkich chromowanych nie wolno używać z kluczem udarowym.</li>
+<li><b>Ciasne miejsca:</b> nasadka otwarta lub kolanowa zmienia rzeczywisty moment. Ustaw T × L ÷ (L + E) jak w punkcie 4.</li>
+</ul>
 <h3>6 · Gwint zwykły czy drobny</h3>
 <ul>
 <li><b>Jak rozpoznać:</b> zmierz suwmiarką średnicę zewnętrzną, a skok sprawdzianem do gwintów (albo policz zwoje na 10 mm). M10 × 1,5 to gwint zwykły, M10 × 1,25 i M10 × 1 to gwinty drobne. Samo oznaczenie „M10” zawsze oznacza gwint zwykły.</li>
@@ -378,7 +449,7 @@ pl:{
 /* ============ STATE ============ */
 const $=id=>document.getElementById(id);
 const LS="tight-right-v1";
-let S={lang:"en",type:"bolt",cls:"8.8",size:"M16",lube:"dry",nu:.7,mult:1,unit:"nm"};
+let S={lang:"en",type:"bolt",head:"hex",cls:"8.8",size:"M16",lube:"dry",nu:.7,mult:1,unit:"nm"};
 try{Object.assign(S,JSON.parse(localStorage.getItem(LS)||"{}"))}catch(e){}
 if(!THREADS.some(x=>x.id===S.size))S.size="M16";
 const save=()=>{try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}};
@@ -424,6 +495,7 @@ function applyStatic(){
   document.querySelectorAll("[data-i]").forEach(n=>{n.textContent=t(n.dataset.i)});
   document.querySelectorAll("[data-lang]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.lang===S.lang));
   document.querySelectorAll("[data-type]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.type===S.type));
+  document.querySelectorAll("[data-head]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.head===S.head));
   document.querySelectorAll("[data-u]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.u===S.unit));
   $("how").innerHTML=t("how");$("calc").innerHTML=t("calc");
   $("demo").textContent=demoRunning?t("demo_stop"):t("demo");
@@ -632,6 +704,38 @@ function demo(){
 
 /* ============ RENDER ============ */
 let lastKey="";
+function toolIcon(kind){
+  const hexp=(R,rot)=>[0,1,2,3,4,5].map(i=>{const a=(60*i+rot)*Math.PI/180;return (50+R*Math.cos(a)).toFixed(1)+","+(50+R*Math.sin(a)).toFixed(1)}).join(" ");
+  let hole;
+  if(kind==="torx"){const pts=[];for(let i=0;i<180;i++){const a=i/180*Math.PI*2,rr=21*(1+.17*Math.cos(6*a));pts.push((50+rr*Math.cos(a)).toFixed(1)+","+(50+rr*Math.sin(a)).toFixed(1))}
+    hole=`<polygon points="${pts.join(" ")}" fill="#15161a"/><polygon points="${pts.join(" ")}" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="1"/>`}
+  else if(kind==="allen")hole=`<polygon points="${hexp(20,0)}" fill="#15161a"/><polygon points="${hexp(20,0)}" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="1"/>`;
+  else hole=`<polygon points="${hexp(28,30)}" fill="#15161a"/><polygon points="${hexp(28,30)}" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="1"/>`;
+  const ring=kind==="hex"?`<circle cx="50" cy="50" r="40" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2"/>`:`<circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.5"/>`;
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="tgrad" cx=".35" cy=".28" r=".9"><stop offset="0" stop-color="#fdfdfe"/><stop offset=".55" stop-color="#b3bdc6"/><stop offset="1" stop-color="#6a7580"/></radialGradient></defs><circle cx="50" cy="50" r="46" fill="url(#tgrad)" stroke="#566673" stroke-width="1.5"/>${ring}${hole}</svg>`;
+}
+function renderTool(r,wrench,ratio){
+  const th=r.s,d=th.d;
+  let kind=S.type==="bolt"?S.head:"hex",warn="";
+  if(kind==="allen"&&!ALLEN[d]){kind="hex";warn=t("na_allen")}
+  else if(kind==="torx"&&!TORX[d]){kind="hex";warn=t("na_torx")}
+  let size,min,note;
+  if(kind==="allen"){size=ALLEN[d];min=minDriveAllen(size);note=t("n_allen")(size)}
+  else if(kind==="torx"){size=TORX[d];min=minDriveTorx(size);note=t("n_torx")(size)}
+  else{size=th.af;min=minDriveHex(size);note=t("n_hex")(size,AF_DIN[d])}
+  const base=(ratio>1||!wrench)?driveForTorque(r.T):wrench.drive;
+  const drive=Math.max(base,min);
+  const label=kind==="torx"?"T"+size:size+" mm";
+  $("toolCard").innerHTML=`<h2>${t("h_tool")} · ${thLabel(th,S.lang)}</h2>
+    <div class="toolgrid"><div class="toolicon">${toolIcon(kind)}</div><div>
+    <div class="tiles"><div class="tile"><small>${t("tool_size")}</small><b>${label}</b></div>
+    <div class="tile"><small>${t("tool_drive")}</small><b>${DRIVES[drive]}</b></div>
+    <div class="tile"><small>${t("tool_type")}</small><b class="sm">${t("ty_"+kind)}</b></div></div>
+    ${warn?`<p class="toolnote warn">${warn}</p>`:""}
+    <p class="toolnote">${note}</p>
+    ${min>base&&ratio===1?`<p class="toolnote">${t("n_adapter")(DRIVES[base],DRIVES[min])}</p>`:""}
+    ${ratio>1?`<p class="toolnote">${t("n_mult")}</p>`:""}</div></div>`;
+}
 function render(animate){
   const r=calc(S.cls,S.size,S.lube,S.nu);
   const ratio=S.mult, inNm=r.T/ratio;
@@ -641,6 +745,7 @@ function render(animate){
   const cNut=CLASSES.find(c=>c.id===r.c.id).nut;
 
   // note + warnings
+  $("headRow").style.display=S.type==="bolt"?"":"none";
   $("typeNote").className="note";
   $("typeNote").textContent=S.type==="bolt"?t("note_bolt")(r.c.id):S.type==="nut"?t("note_nut")(cNut,r.c.id):t("note_stud")(r.c.id);
   const W=[];
@@ -681,13 +786,16 @@ function render(animate){
   $("digitalBox").style.display=wrench||inNm>0?"":"none";
   showDigital(setNm);
 
+  // suggested tool
+  renderTool(r,wrench,ratio);
+
   // table for all sizes
   let rows="";
-  [false,true].forEach(f=>{rows+=`<tr><th colspan="4" style="text-align:left;padding-top:12px">${t(f?"g_fine":"g_coarse")}</th></tr>`;
+  [false,true].forEach(f=>{rows+=`<tr><th colspan="6" style="text-align:left;padding-top:12px">${t(f?"g_fine":"g_coarse")}</th></tr>`;
     THREADS.filter(x=>x.fine===f).forEach(th=>{const x=calc(S.cls,th.id,S.lube,S.nu);
-      rows+=`<tr class="${th.id===S.size?"cur":""}"><td>${thLabel(th,S.lang)}</td><td>${th.af}</td><td>${fmtT(x.T)}</td><td>${fmt(x.F/1000,1)}</td></tr>`})});
+      rows+=`<tr class="${th.id===S.size?"cur":""}"><td>${thLabel(th,S.lang)}</td><td>${th.af}</td><td>${ALLEN[th.d]||"–"}</td><td>${TORX[th.d]?"T"+TORX[th.d]:"–"}</td><td>${fmtT(x.T)}</td><td>${fmt(x.F/1000,1)}</td></tr>`})});
   $("tableBox").innerHTML=`<p>${S.type==="nut"?`${S.lang==="pl"?"Nakrętka":"Nut"} ${cNut} → ${r.c.id}`:r.c.id} · ${t("lube_"+S.lube)} · ν ${Math.round(S.nu*100)} %</p>
-    <div class="tblwrap"><table><thead><tr><th>${t("tb_size")}</th><th>AF mm</th><th>${t("tb_t")}</th><th>${t("tb_f")}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    <div class="tblwrap"><table><thead><tr><th>${t("tb_size")}</th><th>AF mm</th><th>${t("tb_allen")}</th><th>${t("tb_torx")}</th><th>${t("tb_t")}</th><th>${t("tb_f")}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   save();
 }
 
@@ -695,6 +803,7 @@ function render(animate){
 function bind(){
   document.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{S.lang=b.dataset.lang;applyStatic();labelsText();stepBar(2);render(false)});
   document.querySelectorAll("[data-type]").forEach(b=>b.onclick=()=>{S.type=b.dataset.type;applyStatic();render(false)});
+  document.querySelectorAll("[data-head]").forEach(b=>b.onclick=()=>{S.head=b.dataset.head;applyStatic();render(false)});
   document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{S.unit=b.dataset.u;applyStatic();render(false)});
   $("cls").onchange=e=>{S.cls=e.target.value;render(true)};
   $("size").onchange=e=>{S.size=e.target.value;render(true)};
