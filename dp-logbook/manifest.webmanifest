@@ -1,0 +1,12 @@
+{
+  "name": "DP Logbook",
+  "short_name": "DP Logbook",
+  "start_url": "./",
+  "scope": "./",
+  "display": "minimal-ui",
+  "background_color": "#14232d",
+  "theme_color": "#14232d",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
