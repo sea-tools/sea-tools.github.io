@@ -124,7 +124,7 @@ table.g tr.off td:not(.ob):not(:last-child) input,table.g tr.off td.num{opacity:
 .page{position:absolute;left:0;top:0;transform-origin:0 0}
 .page svg{position:absolute;left:0;top:0;display:block}
 .f{position:absolute;display:flex;align-items:flex-start;font:10pt/1.15 Arial,"Liberation Sans",Helvetica,sans-serif;color:#000;white-space:pre-wrap}
-.f.c{align-items:center;font-size:9pt;padding:0 2pt}
+.f.c{align-items:center;font-size:9pt;padding:0 2pt;white-space:nowrap}
 .f.vc{align-items:center}
 .f.ar{text-align:right}.f.ac{text-align:center}
 .e{flex:1 1 auto;min-width:0;min-height:1.15em;outline:none;border-radius:1.5pt;position:relative}
@@ -366,6 +366,18 @@ const count=a=>a.filter(rowUsed).length;
 const onB=r=>rowUsed(r)&&!r.off;                 // crew row that is filled in and ticked "On board"
 const countOn=a=>a.filter(onB).length;
 function listFor(src){const n=used(D[src]),a=[];for(let i=0;i<n;i++){if(!(src==='crew'&&D.crew[i]&&D.crew[i].off))a.push(i)}return a}   // row numbers that appear on the forms
+/* the same person written twice (other order, capitals, accents, a date of birth in only one of the lists) is one person */
+const nameKey=r=>[r.family,r.given].filter(Boolean).join(' ').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().split(' ').filter(Boolean).sort().join(' ');
+const idKey=r=>String(r.idNo||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+function samePerson(a,b){const n=nameKey(a);if(!n||n!==nameKey(b))return false;
+  if(a.dob&&b.dob&&a.dob!==b.dob)return false;                                  // same name, different birth date: two people
+  const x=idKey(a),y=idKey(b);if(x&&y&&x!==y)return false;                      // different document numbers: two people
+  return true}
+function mergePerson(x,r,overwrite){let n=0;Object.keys(r).forEach(k=>{if(k==='off')return;const v=r[k];if(v==null||v==='')return;
+    if(overwrite||!String(x[k]||'').trim()){if(x[k]!==v){x[k]=v;n++}}});if(!r.off)delete x.off;return n}
+function dedupePeople(list,overwrite){const out=[];let removed=0;
+  list.forEach(r=>{if(!rowUsed(r)){out.push(r);return}const x=out.find(e=>rowUsed(e)&&samePerson(e,r));if(x){mergePerson(x,r,overwrite);removed++}else out.push(r)});
+  return{list:out,removed}}
 const autoCnt=()=>D.voy.cnt==='auto'||(D.voy.cnt!=='manual'&&!(D.voy.nCrew||D.voy.nPax||D.voy.pob));
 function comp(k){const c=countOn(D.crew),p=count(D.pax);
   if(k==='#crew')return c?String(c):'';
@@ -382,10 +394,40 @@ function recTitle(r){const d=r.data,m=d.voy.mode==='arrival'?'Arrival':'Departur
 
 /* ---------- paper rendering ---------- */
 const svgCache={};
-function svgFor(id){if(svgCache[id])return svgCache[id];const F=FORMS[id];let d='';
-  for(const[x0,y0,x1,y1]of F.lines)d+=`M${x0} ${y0}L${x1} ${y1}`;
-  let t='';for(const[x,y,s,fl,txt]of F.texts)t+=`<text x="${x}" y="${y}" font-size="${s}"${fl.includes('b')?' font-weight="bold"':''}${fl.includes('i')?' font-style="italic"':''}>${esc(txt)}</text>`;
-  return svgCache[id]=`<svg xmlns="http://www.w3.org/2000/svg" width="${F.w}pt" height="${F.h}pt" viewBox="0 0 ${F.w} ${F.h}"><path d="${d}" fill="none" stroke="#000" stroke-width=".5" stroke-linecap="square"/><g font-family="Arial,'Liberation Sans',Helvetica,sans-serif" fill="#000">${t}</g></svg>`}
+/* The columns of a table adapt to what is written in them: a long surname gets a wider column, taken from columns that have room to spare.
+   The printed grid (vertical lines) and the column headings move with the columns. */
+const MEAS=document.createElement('canvas').getContext('2d');
+const tw=(txt,pt,bold)=>{MEAS.font=(bold?'bold ':'')+'100px Arial,"Liberation Sans",Helvetica,sans-serif';return MEAS.measureText(txt).width*pt/100};
+function layoutFor(id){const S=SPEC[id],t=S&&S.table,F=FORMS[id];if(!t)return null;
+  const cols=t.cols,base=t.fs||9,L=listFor(t.src),rows=L.map(i=>D[t.src][i]).filter(Boolean),w0=cols.map(c=>c[2]-c[1]),oldB=[cols[0][1],...cols.map(c=>c[2])];
+  const bottom=t.top+t.n*t.rh;let bandTop=null;
+  F.lines.forEach(l=>{if(l[1]===l[3]&&l[1]<t.top-5&&Math.abs(l[0]-oldB[0])<1.5&&Math.abs(l[2]-oldB[oldB.length-1])<1.5&&(bandTop===null||l[1]>bandTop))bandTop=l[1]});
+  if(bandTop===null)return null;
+  const colOf=x=>{for(let j=0;j<cols.length;j++)if(x>=oldB[j]-0.6&&x<oldB[j+1]-0.6)return j;return -1};
+  const need=cols.map(([k])=>{if(!k)return 0;let m=0;
+    if(k==='#')m=tw(String(L.length||1),base);
+    else rows.forEach(r=>{const date=k.startsWith('d:'),key=date?k.slice(2):k;let v=String(r[key]==null?'':r[key]);if(date)v=fmt(v);if(v)m=Math.max(m,tw(v,base))});
+    return m?m+5:0});
+  const floor=cols.map(()=>0);
+  F.texts.forEach(([x,y,sz,fl,txt])=>{if(y>bandTop&&y<t.top){const j=colOf(x);if(j>=0)floor[j]=Math.max(floor[j],Math.min(w0[j],x-oldB[j]+tw(txt,sz,fl.includes('b'))+2.5))}});
+  const want=cols.map((c,j)=>Math.max(floor[j],need[j],12)),w=w0.slice();let dt=0,Sp=0;
+  const def=want.map((x,j)=>x>w0[j]+0.01?x-w0[j]:0),spare=want.map((x,j)=>x<w0[j]-0.01?w0[j]-x:0);
+  def.forEach(x=>dt+=x);spare.forEach(x=>Sp+=x);
+  if(dt>0&&Sp>0){const lent=Math.min(dt,Sp);cols.forEach((c,j)=>{if(def[j])w[j]=w0[j]+def[j]*lent/dt;else if(spare[j])w[j]=w0[j]-spare[j]*lent/Sp})}
+  const xs=[oldB[0]];w.forEach(x=>xs.push(xs[xs.length-1]+x));xs[xs.length-1]=oldB[oldB.length-1];
+  const key=xs.map(x=>x.toFixed(1)).join(',');
+  if(xs.every((x,j)=>Math.abs(x-oldB[j])<0.05))return{key:'orig',cols,lines:F.lines,texts:F.texts};
+  const bIdx=x=>oldB.findIndex(b=>Math.abs(b-x)<0.7),lines=[];
+  F.lines.forEach(l=>{const[x0,y0,x1,y1]=l,j=bIdx(x0);
+    if(x0===x1&&j>0&&j<oldB.length-1&&Math.max(y0,y1)>bandTop-0.5&&Math.min(y0,y1)<bottom+0.5){const a=Math.min(y0,y1),b=Math.max(y0,y1);
+      if(a<bandTop-0.5)lines.push([x0,a,x0,bandTop]);lines.push([xs[j],Math.max(a,bandTop),xs[j],Math.min(b,bottom)]);if(b>bottom+0.5)lines.push([x0,bottom,x0,b])}
+    else lines.push(l)});
+  const texts=F.texts.map(tx=>{if(tx[1]>bandTop&&tx[1]<t.top){const j=colOf(tx[0]);if(j>=0)return[tx[0]+(xs[j]-oldB[j]),tx[1],tx[2],tx[3],tx[4]]}return tx});
+  return{key,cols:cols.map(([k],j)=>[k,xs[j],xs[j+1]]),lines,texts}}
+function svgFor(id,lay){const ck=id+(lay?'|'+lay.key:'');if(svgCache[ck])return svgCache[ck];const F=FORMS[id],LN=lay?lay.lines:F.lines,TX=lay?lay.texts:F.texts;let d='';
+  for(const[x0,y0,x1,y1]of LN)d+=`M${x0} ${y0}L${x1} ${y1}`;
+  let t='';for(const[x,y,s,fl,txt]of TX)t+=`<text x="${x}" y="${y}" font-size="${s}"${fl.includes('b')?' font-weight="bold"':''}${fl.includes('i')?' font-style="italic"':''}>${esc(txt)}</text>`;
+  return svgCache[ck]=`<svg xmlns="http://www.w3.org/2000/svg" width="${F.w}pt" height="${F.h}pt" viewBox="0 0 ${F.w} ${F.h}"><path d="${d}" fill="none" stroke="#000" stroke-width=".5" stroke-linecap="square"/><g font-family="Arial,'Liberation Sans',Helvetica,sans-serif" fill="#000">${t}</g></svg>`}
 let extraPages={};
 function pagesOf(id){if(id==='mdh')return mdhLayout().pages;const t=SPEC[id].table;if(!t)return 1;return Math.max(1,Math.ceil(listFor(t.src).length/t.n))+(extraPages[id]||0)}
 function mkPart(spec,int,ph){
@@ -409,17 +451,17 @@ function seps(f){$$('.sep',f).forEach(s=>{const a=s.previousElementSibling,b=s.n
 function sheet(w,h,land){const s=el('div','sheet'+(land?' land':''));s.style.width=w+'pt';s.style.height=h+'pt';return s}
 function renderDoc(id,int){
   if(id==='mdh')return renderMDH(int);
-  const S=SPEC[id],F=FORMS[id],n=pagesOf(id),out=[];
+  const S=SPEC[id],F=FORMS[id],n=pagesOf(id),out=[],lay=layoutFor(id);
   for(let p=0;p<n;p++){
     const sh=sheet(S.land?A4[1]:A4[0],S.land?A4[0]:A4[1],S.land),pg=el('div','page'+(int?' int':''));
-    pg.style.width=F.w+'pt';pg.style.height=F.h+'pt';pg.innerHTML=svgFor(id);
+    pg.style.width=F.w+'pt';pg.style.height=F.h+'pt';pg.innerHTML=svgFor(id,lay);
     for(const m in S.boxes||{}){const[x,y,w,h]=S.boxes[m],b=el('div','box',D.voy.mode===m?'X':'');b.dataset.mode=m;
       b.style.cssText=`left:${x}pt;top:${y}pt;width:${w}pt;height:${h}pt`;pg.append(b)}
     for(const def of S.fields)pg.append(mkField(def,int,p,n));
     const t=S.table;
     const L=t?listFor(t.src):[];
     if(t)for(let r=0;r<t.n;r++){const idx=p*t.n+r,oi=idx<L.length?L[idx]:(t.src==='crew'?used(D.crew)+(idx-L.length):idx),row=D[t.src][oi];
-      for(const[c,x0,x1]of t.cols){if(!c)continue;
+      for(const[c,x0,x1]of (lay?lay.cols:t.cols)){if(!c)continue;
         const f=el('div','f c');f.style.cssText=`left:${x0+.4}pt;top:${t.top+r*t.rh+.4}pt;width:${x1-x0-.8}pt;height:${t.rh-.8}pt`+(t.fs?`;font-size:${t.fs}pt`:'');
         if(c==='#'){const s=el('span','e ro',rowUsed(row)?String(idx+1):'');s.dataset.no=t.src+'.'+oi;f.append(s)}
         else{const date=c.startsWith('d:'),key=t.src+'.'+oi+'.'+(date?c.slice(2):c);f.append(mkPart((date?'d:':'')+key,int))}
@@ -458,8 +500,17 @@ function renderMDH(int){const F=FORMS.mdh,sc=A4[0]/F.w,L=mdhLayout(),shift=(L.on
     pg.append(mdhRow(MJ[0],120+r*MPITCH,int,i))}
   return out}
 function ynPaint(root){$$('.yn',root).forEach(s=>{const on=gp(D,s.dataset.yk)===s.dataset.v;s.classList.toggle('on',on);s.textContent=on?'X':s.dataset.dots})}
-function fit(f){if(!f||!f.classList.contains('f'))return;f.style.fontSize='';
-  if(!f.textContent)return;let s=parseFloat(getComputedStyle(f).fontSize);const min=s*.42,H=f.clientHeight+1.5;
+function fitCell(f){const e=f.querySelector('.e');if(!e)return;const base=parseFloat(getComputedStyle(f).fontSize),cs=getComputedStyle(f),avail=f.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-0.6;
+  const width=()=>{const r=document.createRange();r.selectNodeContents(e);return r.getBoundingClientRect().width};
+  let w=width();if(w<=avail)return;let k=avail/w;e.style.transformOrigin='left center';
+  if(k>=0.8){e.style.transform='scaleX('+k+')';return}                                                           // 1. squeeze the letters sideways (up to 20 %)
+  if(f.clientHeight>=base*2.4&&k<0.62){f.style.whiteSpace='normal';f.style.fontSize=base+'px';                      // 2. a cell with room for two lines: wrap at spaces
+    let s=base,i=0;const over=()=>f.scrollWidth>f.clientWidth+1.5||e.offsetHeight>f.clientHeight+1.5||e.scrollWidth>e.clientWidth+1.5;
+    while(over()&&s>base*.7&&i++<20){s*=.95;f.style.fontSize=s+'px'}if(!over())return;f.style.whiteSpace='';}
+  const sc=Math.max(k/0.8,0.7);f.style.fontSize=base*sc+'px';w=width();k=Math.min(1,avail/w);                         // 3. smaller letters, never below 70 %
+  if(k<1)e.style.transform='scaleX('+Math.max(k,0.6)+')'}
+function fit(f){if(!f||!f.classList.contains('f'))return;f.style.fontSize='';const e0=f.querySelector('.e');if(e0&&f.classList.contains('c')){e0.style.transform='';f.style.whiteSpace=''}
+  if(!f.textContent)return;if(f.classList.contains('c')){fitCell(f);return}let s=parseFloat(getComputedStyle(f).fontSize);const min=s*.42,H=f.clientHeight+1.5;
   const over=()=>f.scrollWidth>f.clientWidth+1.5||[...f.children].some(c=>c.offsetHeight>H||c.scrollWidth>c.clientWidth+1.5);
   let i=0;while(over()&&s>min&&i++<40){s*=.94;f.style.fontSize=s+'px'}}
 const fitAll=root=>$$('.f',root).forEach(fit);
@@ -547,7 +598,7 @@ function gridHTML(src,cols){if(!AR(src).length)AR(src).push({});
   const OB=src==='crew';
   let h=`<div class="tblwrap"><table class="g" data-src="${src}"><thead><tr>${OB?'<th class="ob">On board</th>':''}<th>#</th>${cols.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>`;
   AR(src).forEach((r,i)=>{h+=`<tr${OB&&r.off?' class="off"':''}>${OB?`<td class="ob"><input type="checkbox" data-ob="${i}"${r.off?'':' checked'} aria-label="On board"></td>`:''}<td class="num">${i+1}</td>`+cols.map((c,j)=>`<td><input data-k="${src}.${i}.${c[0]}" data-r="${i}" data-c="${j}" type="${c[2]==='date'?'date':'text'}" value="${esc(r[c[0]])}" style="--mw:${c[3]||110}px"${c[2]&&c[2]!=='date'?` list="${c[2]}"`:''} autocomplete="off"></td>`).join('')+`<td><button class="del" data-del="${i}" title="Delete row" aria-label="Delete row ${i+1}">×</button></td></tr>`});
-  return h+`</tbody></table></div><div class="gbar"><button class="btn" data-add="1">+ Add row</button><button class="btn" data-add="5">+ 5 rows</button>${['crew','pax','stores','cargo','dg'].includes(src)?'<button class="btn" data-act="impdlg">Import from file…</button>':''}<span class="sp"></span><span class="note">Tip: paste rows straight from Excel.</span><button class="btn red" data-clear="1">Clear list</button></div>`}
+  return h+`</tbody></table></div><div class="gbar"><button class="btn" data-add="1">+ Add row</button><button class="btn" data-add="5">+ 5 rows</button>${['crew','pax','stores','cargo','dg'].includes(src)?'<button class="btn" data-act="impdlg">Import from file…</button>':''}${src==='crew'||src==='pax'?'<button class="btn" data-act="dedupe" title="Merge people who appear more than once">Remove duplicates</button>':''}<span class="sp"></span><span class="note">Tip: paste rows straight from Excel.</span><button class="btn red" data-clear="1">Clear list</button></div>`}
 let GRID=null;
 function gridEd(src,cols,title,hint,extra){GRID={src,cols};
   view.innerHTML=`<div class="ed wide">${extra&&extra.top||''}${card(title,gridHTML(src,cols),hint)}${extra&&extra.bottom||''}${LISTS}</div>`}
@@ -592,6 +643,10 @@ const ACT={
   obAll(){D.crew.forEach(r=>{delete r.off});syncMdh();touch();reGrid()},
   obNone(){D.crew.forEach(r=>{if(rowUsed(r))r.off='1'});syncMdh();touch();reGrid()},
   impdlg(){importDlg()},
+  dedupe(t){const src=GRID&&GRID.src;if(src!=='crew'&&src!=='pax')return;const r=dedupePeople(D[src]);
+    if(!r.removed){$('#saved').textContent='No duplicates found';return}
+    if(!confirm(r.removed+' duplicate '+(r.removed===1?'entry':'entries')+' found. Merge them into one each? Empty fields are filled from the duplicates.'))return;
+    D[src]=r.list;if(src==='crew')syncMdh();touch();reGrid();$('#saved').textContent=r.removed+' duplicate'+(r.removed===1?'':'s')+' removed'},
   allno(){['q1','q2','q3','q4','q5','q6','q7','q8','q9','affected','reinsp'].forEach(k=>D.mdh[k]='no');touch();EDIT.health()}
 };
 const EDIT={
@@ -743,11 +798,11 @@ function applyImport(){const F=IMP.F;if(!F)return;const fill=$('input[name=impfi
     const keys=LISTKEYS[kind],rows=t.rows.map(r=>{const o={};keys.forEach(k=>{if(r[k]!=null&&r[k]!=='')o[k]=r[k]});return o});
     let added=0,updated=0;
     if(mode==='replace'){D[kind]=rows;added=rows.length}
-    else{const list=D[kind].filter(rowUsed),sig=r=>[r.family,r.given,r.dob].map(x=>String(x||'').trim().toLowerCase()).join('|');
-      D[kind]=list;
-      rows.forEach(r=>{if(kind==='crew'||kind==='pax'){const x=list.find(e=>sig(e)===sig(r));if(x){if(set(x,r,keys))updated++;return}}
-        else{const x=list.find(e=>JSON.stringify(keys.map(k=>e[k]||''))===JSON.stringify(keys.map(k=>r[k]||'')));if(x)return}
+    else{const list=D[kind].filter(rowUsed);D[kind]=list;
+      rows.forEach(r=>{if(kind==='crew'||kind==='pax'){const x=list.find(e=>samePerson(e,r));if(x){if(mergePerson(x,r,!fill))updated++;return}}
+        else{const sg=e=>JSON.stringify(LISTKEYS[kind].map(k=>String(e[k]||'').trim().toLowerCase())),x=list.find(e=>sg(e)===sg(r));if(x)return}
         list.push(r);added++})}
+    if(kind==='crew'||kind==='pax'){const d=dedupePeople(D[kind],!fill);D[kind]=d.list;if(mode==='replace')added=Math.max(0,added-d.removed)}
     done.push(`${KIND_NAME[kind].toLowerCase()}: ${added} added`+(updated?`, ${updated} updated`:''))});
   if(D.crew.length)syncMdh();touch();save();dlg.close();
   const shown=F.tables.some(t=>t.kind==='stores')&&!F.tables.some(t=>/crew|pax|person/.test(t.kind))?'stores':F.tables.length?(F.tables[0].kind==='pax'?'pax':'crew'):'voyage';
