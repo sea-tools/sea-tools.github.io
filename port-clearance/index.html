@@ -746,9 +746,9 @@ $('#setBtn').onclick=settings;
 const IMP={parts:[],errors:[],F:null,open:false};
 const KIND_NAME={crew:'Crew',pax:'Passengers',person:'People (crew or passengers?)',stores:"Ship's stores",cargo:'Cargo',dg:'Dangerous goods'};
 function importDlg(){IMP.parts=[];IMP.errors=[];IMP.F=null;IMP.open=true;
-  sheetDlg('Import from documents',`<p class="note" style="font-size:13.5px;margin:0 0 6px">Drop Word, Excel, CSV or PDF files here: crew list, passenger list, stores, cargo, an earlier clearance… The program looks for the crew, passengers, stores, cargo, ship and port call and shows what it found before anything is used. Nothing leaves this computer.</p>
+  sheetDlg('Import from documents',`<p class="note" style="font-size:13.5px;margin:0 0 6px">Drop Word, Excel, CSV or PDF files here (old .doc and .xls too): crew list, passenger list, stores, cargo, an earlier clearance… The program looks for the crew, passengers, stores, cargo, ship and port call and shows what it found before anything is used. Nothing leaves this computer.</p>
     <div class="impdrop" id="impDrop"><b>Drop files here</b><span>or</span><button class="btn" data-impfile="1">Choose files…</button></div>
-    <input type="file" id="impFile" multiple hidden accept=".docx,.xlsx,.xlsm,.csv,.tsv,.txt,.pdf">
+    <input type="file" id="impFile" multiple hidden accept=".docx,.doc,.xlsx,.xlsm,.xls,.ods,.odt,.rtf,.csv,.tsv,.txt,.pdf">
     <textarea id="impPaste" rows="3" placeholder="…or paste text copied from Word, Excel or a PDF"></textarea>
     <div style="margin-bottom:6px"><button class="btn" data-impread="1">Read the pasted text</button></div>
     <div id="impOut"></div>`,
