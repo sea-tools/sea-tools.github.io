@@ -569,7 +569,10 @@ function render0(){const isDoc=!!SPEC[cur],tools=$('#tools');tools.innerHTML='';
   if(isDoc){
     if(SPEC[cur].boxes||cur==='f1'){const s=el('span','seg');s.innerHTML=`<button data-m="arrival">Arrival</button><button data-m="departure">Departure</button>`;
       $$('button',s).forEach(b=>{b.classList.toggle('on',b.dataset.m===D.voy.mode);b.onclick=()=>{D.voy.mode=b.dataset.m;touch();render()}});tools.append(s)}
-    if(SPEC[cur].table){const b=el('button','btn','+ Page');b.title='Add a blank page to this form';b.onclick=()=>{extraPages[cur]=(extraPages[cur]||0)+1;paper(true);badges()};tools.append(b)}
+    if(SPEC[cur].table){const b=el('button','btn','+ Page'),m=el('button','btn','− Page');b.title='Add a blank page to this form';m.title='Remove the last blank page you added';
+      const upd=()=>{m.disabled=!(extraPages[cur]>0)};
+      b.onclick=()=>{extraPages[cur]=(extraPages[cur]||0)+1;upd();paper(true);badges()};
+      m.onclick=()=>{if(extraPages[cur]>0){extraPages[cur]--;upd();paper(true);badges()}};upd();tools.append(b,m)}
     if(cur==='mdh'){const b=el('button','btn','+ Line');b.title='Add a line for another person who joined';b.onclick=()=>{extraPages.mdh=mdhLayout().n+1;paper(true);badges()};tools.append(b)}
     paper()}
   else EDIT[cur]()}
