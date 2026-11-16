@@ -231,6 +231,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
       <h1 id="title"></h1>
       <span id="saved">Saved on this device</span>
       <span id="tools" class="row"></span>
+      <button class="btn" id="impBtn" type="button" title="Add people, stores, cargo… from Word, Excel, CSV or PDF files to this clearance">Import…</button>
       <button class="btn" id="doneBtn" type="button">Mark as done</button>
       <button class="btn pri" id="printBtn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4.5 6V2h7v4M4.5 11.5H2.5v-5h11v5h-2M4.5 9.5h7V14h-7z"/></svg>Print</button>
     </div>
@@ -365,7 +366,11 @@ const used=a=>{let n=0;a.forEach((r,i)=>{if(rowUsed(r))n=i+1});return n};
 const count=a=>a.filter(rowUsed).length;
 const onB=r=>rowUsed(r)&&!r.off;                 // crew row that is filled in and ticked "On board"
 const countOn=a=>a.filter(onB).length;
-function listFor(src){const n=used(D[src]),a=[];for(let i=0;i<n;i++){if(!(src==='crew'&&D.crew[i]&&D.crew[i].off))a.push(i)}return a}   // row numbers that appear on the forms
+const RANKS=[/^(master|captain|capt|cpt|ship'?s? master)$/,/^(chief (officer|mate)|c\/?o|1st (officer|mate)|first (officer|mate)|ch\.? ?(off|mate)|1\/o)$/,/^(2nd|second|2\/o|2o) ?(officer|mate|off)?$/,/^(3rd|third|3\/o|3o) ?(officer|mate|off)?$/,/^(chief engineer|c\/?e|ch\.? ?eng(ineer)?)$/,/^(2nd|second|2\/e|2e) ?(engineer|eng)?$/,/^(3rd|third|3\/e|3e) ?(engineer|eng)?$/,/^(eto|electro[- ]?technical officer|electrotechnical officer)$/,/^(ab|a\/b|able (bodied )?(seaman|seafarer)|able seaman)$/,/^(chief cook|ch\.? ?cook|head cook)$/];
+const rankNo=r=>{const t=String(r&&r.rank||'').toLowerCase().replace(/\s+/g,' ').replace(/[.]+$/,'').trim();for(let i=0;i<RANKS.length;i++)if(RANKS[i].test(t))return i;return 99};
+function listFor(src){const n=used(D[src]),a=[];for(let i=0;i<n;i++){if(!(src==='crew'&&D.crew[i]&&D.crew[i].off))a.push(i)}
+  if(src==='crew')a.sort((x,y)=>rankNo(D.crew[x])-rankNo(D.crew[y])||x-y);     // crew lists: Master, Chief Officer, 2nd/3rd Officer, Chief/2nd/3rd Engineer, ETO, AB, Chief Cook, then everybody else
+  return a}   // row numbers that appear on the forms
 /* the same person written twice (other order, capitals, accents, a date of birth in only one of the lists) is one person */
 const nameKey=r=>[r.family,r.given].filter(Boolean).join(' ').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().split(' ').filter(Boolean).sort().join(' ');
 const idKey=r=>String(r.idNo||'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -714,7 +719,7 @@ function records(){const n=st=>store.records.filter(r=>st==='all'||(st==='done')
 $('#recBtn').onclick=records;
 dlg.addEventListener('input',e=>{if(e.target.id==='recQ'){RQ.q=e.target.value;drawRecs()}});
 dlg.addEventListener('change',e=>{if(e.target.id==='recSort'){RQ.sort=e.target.value;drawRecs()}});
-function lockUi(){const lk=isDone(REC);[...$('#view').children].forEach(c=>c.inert=lk);$('#tools').inert=lk;$('#doneBar').hidden=!lk;
+function lockUi(){const lk=isDone(REC);[...$('#view').children].forEach(c=>c.inert=lk);$('#tools').inert=lk;$('#impBtn').disabled=lk;$('#doneBar').hidden=!lk;
   const b=$('#doneBtn');b.textContent=lk?'✓ Done':'Mark as done';b.classList.toggle('on',lk);b.title=lk?'Marked as done and locked. Click to reopen it as a draft.':'Mark this clearance as finished'}
 function setDone(on){REC.status=on?'done':'';REC.updated=Date.now();save();lockUi();$('#saved').textContent=on?'Marked as done':'Reopened as draft'}
 $('#doneBtn').onclick=()=>setDone(!isDone(REC));
@@ -826,6 +831,7 @@ function applyImport(){const F=IMP.F;if(!F)return;const fill=$('input[name=impfi
 /* ---------- printing ---------- */
 const isSafari=/^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
 function hasData(id){const t=SPEC[id].table;if(t)return(t.src==='crew'?countOn(D.crew):count(D[t.src]))>0;if(id==='mdh')return D.voy.mode==='arrival';return true}
+$('#impBtn').onclick=()=>importDlg();
 $('#printBtn').onclick=()=>{const isDoc=!!SPEC[cur];
   sheetDlg('Print',DOCS.map(id=>`<label class="chk"><input type="checkbox" data-doc="${id}"${(isDoc?id===cur:hasData(id))?' checked':''}><span><b>${SPEC[id].no}</b> &nbsp;${esc(SPEC[id].name)}</span><small>${pagesOf(id)} page${pagesOf(id)>1?'s':''} · ${SPEC[id].land?'landscape':'portrait'}</small></label>`).join('')+
    `<label class="chk" style="margin-top:6px"><input type="checkbox" id="rot"${isSafari?' checked':''}><span>Turn landscape forms onto upright A4 sheets</span></label><p class="note" style="margin:6px 0 0">Print on A4 at 100% scale, without headers and footers. Choose “Save as PDF” in the print window to keep a PDF.</p>`,
