@@ -13,6 +13,8 @@
 <script src="../assets/stats.js" defer></script>
 <script src="../assets/install.js" defer></script>
 <script src="../assets/shared.js" defer></script>
+<script src="../assets/docread.js" defer></script>
+<script src="import.js" defer></script>
 <style id="pageStyle"></style>
 <style>
 :root{
@@ -203,6 +205,13 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
 .rq{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}.rq input{flex:1;min-width:180px;border:0;background:var(--fill);border-radius:9px;padding:9px 11px;font-size:14px}.rq select{border:0;background:var(--fill);border-radius:9px;padding:9px 10px;font-size:14px}
 .rchips{display:flex;gap:6px;margin-bottom:6px}.rchips button{border:0;background:var(--fill);border-radius:980px;padding:5px 13px;font-size:13px;font-weight:500}.rchips button.on{background:var(--accent);color:var(--accent-ink)}
 #recList .li{flex-wrap:wrap}#recList .li .tt{flex:1 1 100%}#recList .li .tt b{white-space:normal}.shpill[hidden]{display:none}.badge{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px;margin-right:6px;background:var(--fill);color:var(--muted)}.badge.done{background:#1a8a3c;color:#fff}
+.impdrop{border:2px dashed var(--line);border-radius:12px;padding:16px;text-align:center;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;margin:6px 0 10px}
+.impdrop.over{border-color:var(--accent);background:var(--fill)}
+#impPaste{width:100%;border:0;background:var(--fill);border-radius:9px;padding:9px 11px;font:13px var(--font);resize:vertical;margin-bottom:8px}
+.impsec{border-top:1px solid var(--line);padding:12px 0}.impsec label.h{display:flex;gap:10px;align-items:flex-start;font-weight:600;font-size:14.5px;cursor:pointer}
+.impsec input[type=checkbox]{width:18px;height:18px;margin-top:2px;flex:none}.impsec .pv{margin:6px 0 0 28px;font-size:12.5px;color:var(--muted);line-height:1.5}
+.impsec .opt{margin:8px 0 0 28px;display:flex;gap:14px;flex-wrap:wrap;font-size:13px;align-items:center}.impsec .warn{margin:6px 0 0 28px;font-size:12.5px;color:#b7791f}
+.impopts{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:13.5px}.imperr{color:var(--danger);font-size:13px;margin:6px 0}
 </style>
 </head>
 <body>
@@ -538,7 +547,7 @@ function gridHTML(src,cols){if(!AR(src).length)AR(src).push({});
   const OB=src==='crew';
   let h=`<div class="tblwrap"><table class="g" data-src="${src}"><thead><tr>${OB?'<th class="ob">On board</th>':''}<th>#</th>${cols.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>`;
   AR(src).forEach((r,i)=>{h+=`<tr${OB&&r.off?' class="off"':''}>${OB?`<td class="ob"><input type="checkbox" data-ob="${i}"${r.off?'':' checked'} aria-label="On board"></td>`:''}<td class="num">${i+1}</td>`+cols.map((c,j)=>`<td><input data-k="${src}.${i}.${c[0]}" data-r="${i}" data-c="${j}" type="${c[2]==='date'?'date':'text'}" value="${esc(r[c[0]])}" style="--mw:${c[3]||110}px"${c[2]&&c[2]!=='date'?` list="${c[2]}"`:''} autocomplete="off"></td>`).join('')+`<td><button class="del" data-del="${i}" title="Delete row" aria-label="Delete row ${i+1}">×</button></td></tr>`});
-  return h+`</tbody></table></div><div class="gbar"><button class="btn" data-add="1">+ Add row</button><button class="btn" data-add="5">+ 5 rows</button><span class="sp"></span><span class="note">Tip: paste rows straight from Excel.</span><button class="btn red" data-clear="1">Clear list</button></div>`}
+  return h+`</tbody></table></div><div class="gbar"><button class="btn" data-add="1">+ Add row</button><button class="btn" data-add="5">+ 5 rows</button>${['crew','pax','stores','cargo','dg'].includes(src)?'<button class="btn" data-act="impdlg">Import from file…</button>':''}<span class="sp"></span><span class="note">Tip: paste rows straight from Excel.</span><button class="btn red" data-clear="1">Clear list</button></div>`}
 let GRID=null;
 function gridEd(src,cols,title,hint,extra){GRID={src,cols};
   view.innerHTML=`<div class="ed wide">${extra&&extra.top||''}${card(title,gridHTML(src,cols),hint)}${extra&&extra.bottom||''}${LISTS}</div>`}
@@ -582,6 +591,7 @@ const ACT={
   joincrew(){syncMdh();touch();reGrid()},
   obAll(){D.crew.forEach(r=>{delete r.off});syncMdh();touch();reGrid()},
   obNone(){D.crew.forEach(r=>{if(rowUsed(r))r.off='1'});syncMdh();touch();reGrid()},
+  impdlg(){importDlg()},
   allno(){['q1','q2','q3','q4','q5','q6','q7','q8','q9','affected','reinsp'].forEach(k=>D.mdh[k]='no');touch();EDIT.health()}
 };
 const EDIT={
@@ -629,7 +639,7 @@ function drawRecs(){const box=$('#recList');if(!box)return;const rs=recRows();
 function records(){const n=st=>store.records.filter(r=>st==='all'||(st==='done')===isDone(r)).length;
   sheetDlg('Saved clearances',`<div class="rq"><input id="recQ" type="search" placeholder="Search port, ship, voyage, date…" value="${esc(RQ.q)}" autocomplete="off"><select id="recSort"><option value="edited">Newest edited</option><option value="date">Port call date – newest first</option><option value="dateAsc">Port call date – oldest first</option><option value="port">Port A–Z</option></select></div>
     <div class="rchips"><button data-rst="all">All (${n('all')})</button><button data-rst="draft">Draft (${n('draft')})</button><button data-rst="done">Done (${n('done')})</button></div><div id="recList"></div>`,
-  `<button class="btn" data-new="blank">New, empty</button><button class="btn pri" data-new="keep">New clearance for this ship</button>`);
+  `<button class="btn" data-new="import">New from documents…</button><button class="btn" data-new="blank">New, empty</button><button class="btn pri" data-new="keep">New clearance for this ship</button>`);
   $('#recSort').value=RQ.sort;drawRecs()}
 $('#recBtn').onclick=records;
 dlg.addEventListener('input',e=>{if(e.target.id==='recQ'){RQ.q=e.target.value;drawRecs()}});
@@ -648,7 +658,7 @@ dlg.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return
   else if(d.new){const b=blank();if(d.new==='keep'){const c=x=>JSON.parse(JSON.stringify(x));b.ship=c(D.ship);b.crew=c(D.crew);b.stores=c(D.stores);b.dgx=c(D.dgx);
       if(D.voy.mode==='arrival')Object.assign(b.voy,{mode:'departure',port:D.voy.port,agent:D.voy.agent,lastPort:D.voy.lastPort,nextPort:D.voy.nextPort,voyageNo:D.voy.voyageNo});
       else Object.assign(b.voy,{mode:'arrival',port:D.voy.nextPort,lastPort:D.voy.port,voyageNo:D.voy.voyageNo})}
-    const n={id:uid(),updated:Date.now(),data:b};store.records.push(n);openRec(n.id);save();dlg.close();go(d.new==='keep'?'voyage':'ship')}
+    const n={id:uid(),updated:Date.now(),data:b};store.records.push(n);openRec(n.id);save();if(d.new==='import'){go('ship');importDlg();return}dlg.close();go(d.new==='keep'?'voyage':'ship')}
   else if(d.exp){download(d.exp==='all'?{app:'port-clearance',version:1,records:store.records,settings:store.settings}:{app:'port-clearance',version:1,records:[REC]},d.exp==='all'?'port-clearance-backup':(recTitle(REC).replace(/[^\w]+/g,'-').replace(/^-|-$/g,'')||'clearance'))}
   else if(d.imp){const f=$('#file');f.accept='.json,application/json';f.onchange=()=>{const fl=f.files[0];if(!fl)return;fl.text().then(t=>{const j=JSON.parse(t);if(!j||!Array.isArray(j.records))throw 0;
       let last;j.records.forEach(r=>{if(!r||!r.data)return;const n={id:uid(),updated:r.updated||Date.now(),data:merge(blank(),r.data)};store.records.push(n);last=n});
@@ -659,9 +669,14 @@ dlg.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return
   else if(d.done){const r=store.records.find(x=>x.id===d.done);if(!r)return;r.status=isDone(r)?'':'done';r.updated=Date.now();save();if(r.id===REC.id)lockUi();drawRecs()}
   else if(d.print){save();openRec(d.print);dlg.close();go('ship');setTimeout(()=>$('#printBtn').click(),80)}
   else if(d.shared){if(window.SeaShared)SeaShared.open()}
+  else if(d.impdlg){importDlg()}
+  else if(d.impfile){$('#impFile').click()}
+  else if(d.impread){readPasted()}
+  else if(d.impapply){applyImport()}
   else if(d.doprint){const ids=$$('#dlg input[data-doc]:checked').map(i=>i.dataset.doc);if(!ids.length)return;const rot=$('#rot').checked;dlg.close();doPrint(ids,rot)}});
 function download(obj,name){const a=el('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(obj,null,1)],{type:'application/json'}));a.download=name+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
 $('#backupBtn').onclick=()=>sheetDlg('Backup',`<p class="note" style="font-size:13.500px;margin:0 0 12px">Everything is saved automatically in this browser on this device. Export a file to keep a copy, or to move your clearances to another computer or iPad.</p>
+  <div class="li"><div class="tt"><b>Import from documents</b><small>Fill this clearance from Word, Excel, CSV or PDF files: crew, passengers, stores, cargo, ship, port call</small></div><button class="x" data-impdlg="1">Choose…</button></div>
   <div class="li"><div class="tt"><b>Shared database file</b><small>Keep all clearances in one file on a shared network drive, so other computers use them too</small></div><button class="x" data-shared="1">Set up…</button></div>
   <div class="li"><div class="tt"><b>This clearance</b><small>${esc(recTitle(REC))}</small></div><button class="x" data-exp="one">Export file</button></div>
   <div class="li"><div class="tt"><b>All clearances</b><small>${store.records.length} saved, with settings</small></div><button class="x" data-exp="all">Export file</button></div>
@@ -671,6 +686,72 @@ function settings(){const f=store.settings.dateFmt,o=(v,l)=>`<option value="${v}
   <div class="li"><div class="tt"><b>Signature image</b><small>${store.settings.sig?'Printed in the signature box of every form':'Optional – a photo or scan of the master’s signature'}</small></div>${store.settings.sig?`<img src="${store.settings.sig}" alt="" style="height:34px;background:#fff;border-radius:6px;padding:2px"><button class="x" data-sigrm="1">Remove</button>`:`<button class="x" data-sigadd="1">Choose image…</button>`}</div>`);
   $('#dfmt').onchange=e=>{store.settings.dateFmt=e.target.value;save();nav();render()}}
 $('#setBtn').onclick=settings;
+
+/* ---------- import from documents ---------- */
+const IMP={parts:[],errors:[],F:null,open:false};
+const KIND_NAME={crew:'Crew',pax:'Passengers',person:'People (crew or passengers?)',stores:"Ship's stores",cargo:'Cargo',dg:'Dangerous goods'};
+function importDlg(){IMP.parts=[];IMP.errors=[];IMP.F=null;IMP.open=true;
+  sheetDlg('Import from documents',`<p class="note" style="font-size:13.5px;margin:0 0 6px">Drop Word, Excel, CSV or PDF files here: crew list, passenger list, stores, cargo, an earlier clearance… The program looks for the crew, passengers, stores, cargo, ship and port call and shows what it found before anything is used. Nothing leaves this computer.</p>
+    <div class="impdrop" id="impDrop"><b>Drop files here</b><span>or</span><button class="btn" data-impfile="1">Choose files…</button></div>
+    <input type="file" id="impFile" multiple hidden accept=".docx,.xlsx,.xlsm,.csv,.tsv,.txt,.pdf">
+    <textarea id="impPaste" rows="3" placeholder="…or paste text copied from Word, Excel or a PDF"></textarea>
+    <div style="margin-bottom:6px"><button class="btn" data-impread="1">Read the pasted text</button></div>
+    <div id="impOut"></div>`,
+    `<button class="btn" data-close>Cancel</button><button class="btn pri" data-impapply="1" id="impGo" disabled>Import selected</button>`)}
+dlg.addEventListener('close',()=>{IMP.open=false});
+dlg.addEventListener('dragover',e=>{if(IMP.open&&$('#impDrop')){e.preventDefault();$('#impDrop').classList.add('over')}});
+dlg.addEventListener('dragleave',e=>{const z=$('#impDrop');if(z&&!dlg.contains(e.relatedTarget))z.classList.remove('over')});
+dlg.addEventListener('drop',e=>{if(IMP.open&&$('#impDrop')){e.preventDefault();$('#impDrop').classList.remove('over');readFiles(e.dataTransfer.files)}});
+dlg.addEventListener('change',e=>{if(e.target.id==='impFile'){readFiles(e.target.files);e.target.value=''}});
+async function readFiles(files){files=[...files||[]];if(!files.length)return;
+  if(!window.DocRead||!window.PCImport){IMP.errors.push('The reader is not loaded yet, try again in a moment.');renderImp();return}
+  $('#impOut').innerHTML='<p class="note">Reading…</p>';
+  for(const f of files){try{const text=await DocRead.read(f);IMP.parts.push(PCImport.parse(text,f.name))}catch(err){IMP.errors.push(err.message||String(err))}}
+  IMP.F=PCImport.merge(IMP.parts);renderImp()}
+function readPasted(){const t=($('#impPaste')||{}).value||'';if(!t.trim())return;IMP.parts.push(PCImport.parse(DocRead.tabs(t),'pasted text'));IMP.F=PCImport.merge(IMP.parts);renderImp()}
+function personLine(r){return[[r.family,r.given].filter(Boolean).join(' '),r.rank,r.nat,r.dob&&fmt(r.dob)].filter(Boolean).join(' · ')}
+const rowLine={crew:personLine,pax:personLine,person:personLine,stores:r=>[r.article,r.qty].filter(Boolean).join(' · '),cargo:r=>[r.bl,r.desc||r.marks,r.weight].filter(Boolean).join(' · '),dg:r=>[r.un,r.psn,r.cls].filter(Boolean).join(' · ')};
+function renderImp(){const F=IMP.F||{ship:{},voy:{},tables:[],sources:[]},out=$('#impOut');if(!out)return;
+  const nShip=Object.keys(F.ship).length,nVoy=Object.keys(F.voy).length;let h='';
+  if(IMP.errors.length)h+=IMP.errors.map(m=>`<div class="imperr">${esc(m)}</div>`).join('');
+  const found=nShip||nVoy||F.tables.length;
+  if(!found){h+=IMP.parts.length?'<p class="note" style="margin:10px 0">Nothing recognisable was found. The files need a header row such as <b>Family name · Given names · Rank · Nationality</b> (or <b>Name of article · Quantity</b>), or labelled lines such as <b>Name of ship: …</b>, <b>Port of arrival: …</b>. You can also add more files above.</p>':'';out.innerHTML=h;$('#impGo').disabled=true;return}
+  h+=`<div class="impopts"><label><input type="radio" name="impfill" value="fill" checked> Only fill empty fields</label><label><input type="radio" name="impfill" value="over"> Overwrite fields that already have a value</label></div>`;
+  const kv=(o,names)=>Object.keys(o).map(k=>`${names[k]||k}: <b>${esc(k==='date'?fmt(o[k]):o[k])}</b>`).join(' · ');
+  if(nShip)h+=`<div class="impsec"><label class="h"><input type="checkbox" data-imp="ship" checked><span>Vessel details<div class="pv" style="margin-left:0">${kv(F.ship,{name:'Name',type:'Type',imo:'IMO',callSign:'Call sign',flag:'Flag',master:'Master',gt:'GT',nt:'NT',registry:'Registry'})}</div></span></label></div>`;
+  if(nVoy)h+=`<div class="impsec"><label class="h"><input type="checkbox" data-imp="voy" checked><span>Voyage and port call<div class="pv" style="margin-left:0">${kv(F.voy,{mode:'Mode',port:'Port',date:'Date',lastPort:'Last port',nextPort:'Next port',voyageNo:'Voyage no.',agent:'Agent'})}</div></span></label></div>`;
+  const seen={};
+  F.tables.forEach((t,i)=>{const tk=t.kind==='person'?'crew':t.kind,isFirst=!seen[tk];seen[tk]=1;const first=t.rows.slice(0,4).map(r=>esc((rowLine[t.kind]||rowLine.crew)(r))).join('<br>')+(t.rows.length>4?`<br>… and ${t.rows.length-4} more`:'');
+    const isP=t.kind==='crew'||t.kind==='pax'||t.kind==='person',have={crew:D.crew,pax:D.pax,stores:D.stores,cargo:D.cargo,dg:D.dg}[t.kind==='person'?'crew':t.kind],hasRows=have&&count(have)>0;
+    h+=`<div class="impsec"><label class="h"><input type="checkbox" data-imp="t${i}" checked><span>${KIND_NAME[t.kind]} – ${t.rows.length} ${isP?'people':'rows'} <small style="font-weight:400;color:var(--muted)">from ${esc(t.from)}</small></span></label>
+      <div class="pv">${first}</div>
+      <div class="opt">${isP?`<label>These are <select data-kind="${i}"><option value="crew"${t.kind!=='pax'?' selected':''}>crew</option><option value="pax"${t.kind==='pax'?' selected':''}>passengers</option></select></label>`:''}
+        <label><input type="radio" name="impmode${i}" value="add" ${hasRows||!isFirst?'checked':''}> Add to the list</label><label><input type="radio" name="impmode${i}" value="replace" ${hasRows||!isFirst?'':'checked'}> Replace the list</label></div>
+      ${t.warn.length?`<div class="warn">Check: ${esc(t.warn.join('; '))}</div>`:''}${t.unknown.length?`<div class="pv">Columns not used: ${esc(t.unknown.join(', '))}</div>`:''}</div>`});
+  out.innerHTML=h;$('#impGo').disabled=false}
+const PERSONKEYS=['family','given','rank','nat','dob','pob','gender','idType','idNo','idState','idExp','effects'],PAXKEYS=['family','given','nat','dob','pob','gender','idType','idNo','idState','idExp','embark','visa','disembark','transit'];
+const LISTKEYS={crew:PERSONKEYS,pax:PAXKEYS,stores:['article','qty','loc'],cargo:['bl','marks','desc','weight','meas'],dg:['stow','ref','marks','un','psn','cls','pg','addl','pkgs','mass','ems']};
+function applyImport(){const F=IMP.F;if(!F)return;const fill=$('input[name=impfill]:checked',dlg).value==='fill',done=[];
+  const set=(obj,src,keys)=>{let n=0;keys.forEach(k=>{if(src[k]!=null&&src[k]!==''&&(!fill||!String(obj[k]||'').trim())){if(obj[k]!==src[k])n++;obj[k]=src[k]}});return n};
+  const on=k=>{const c=$(`input[data-imp="${k}"]`,dlg);return c&&c.checked};
+  if(on('ship')){const n=set(D.ship,F.ship,Object.keys(F.ship));if(n)done.push('vessel details');}
+  if(on('voy')){const v=F.voy,keep=v.mode&&(!fill||!D.voy.port);if(keep)D.voy.mode=v.mode;const n=set(D.voy,v,Object.keys(v).filter(k=>k!=='mode'));if(n||keep)done.push('port call')}
+  const replaced={};
+  F.tables.forEach((t,i)=>{if(!on('t'+i))return;
+    let kind=t.kind;if(kind==='person')kind='crew';const sel=$(`select[data-kind="${i}"]`,dlg);if(sel)kind=sel.value;
+    let mode=($(`input[name="impmode${i}"]:checked`,dlg)||{}).value||'add';if(mode==='replace'){if(replaced[kind])mode='add';replaced[kind]=1}
+    const keys=LISTKEYS[kind],rows=t.rows.map(r=>{const o={};keys.forEach(k=>{if(r[k]!=null&&r[k]!=='')o[k]=r[k]});return o});
+    let added=0,updated=0;
+    if(mode==='replace'){D[kind]=rows;added=rows.length}
+    else{const list=D[kind].filter(rowUsed),sig=r=>[r.family,r.given,r.dob].map(x=>String(x||'').trim().toLowerCase()).join('|');
+      D[kind]=list;
+      rows.forEach(r=>{if(kind==='crew'||kind==='pax'){const x=list.find(e=>sig(e)===sig(r));if(x){if(set(x,r,keys))updated++;return}}
+        else{const x=list.find(e=>JSON.stringify(keys.map(k=>e[k]||''))===JSON.stringify(keys.map(k=>r[k]||'')));if(x)return}
+        list.push(r);added++})}
+    done.push(`${KIND_NAME[kind].toLowerCase()}: ${added} added`+(updated?`, ${updated} updated`:''))});
+  if(D.crew.length)syncMdh();touch();save();dlg.close();
+  const shown=F.tables.some(t=>t.kind==='stores')&&!F.tables.some(t=>/crew|pax|person/.test(t.kind))?'stores':F.tables.length?(F.tables[0].kind==='pax'?'pax':'crew'):'voyage';
+  go(['crew','pax','stores','cargo','dg','voyage','ship'].includes(shown)?shown:'crew');const msg=done.length?'Imported – '+done.join('; '):'Nothing was changed';$('#saved').textContent=msg;setTimeout(()=>{$('#saved').textContent=msg},600)}
 
 /* ---------- printing ---------- */
 const isSafari=/^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
