@@ -366,7 +366,11 @@ const used=a=>{let n=0;a.forEach((r,i)=>{if(rowUsed(r))n=i+1});return n};
 const count=a=>a.filter(rowUsed).length;
 const onB=r=>rowUsed(r)&&!r.off;                 // crew row that is filled in and ticked "On board"
 const countOn=a=>a.filter(onB).length;
-function listFor(src){const n=used(D[src]),a=[];for(let i=0;i<n;i++){if(!(src==='crew'&&D.crew[i]&&D.crew[i].off))a.push(i)}return a}   // row numbers that appear on the forms
+const RANKS=[/^(master|captain|capt|cpt|ship'?s? master)$/,/^(chief (officer|mate)|c\/?o|1st (officer|mate)|first (officer|mate)|ch\.? ?(off|mate)|1\/o)$/,/^(2nd|second|2\/o|2o) ?(officer|mate|off)?$/,/^(3rd|third|3\/o|3o) ?(officer|mate|off)?$/,/^(chief engineer|c\/?e|ch\.? ?eng(ineer)?)$/,/^(2nd|second|2\/e|2e) ?(engineer|eng)?$/,/^(3rd|third|3\/e|3e) ?(engineer|eng)?$/,/^(eto|electro[- ]?technical officer|electrotechnical officer)$/,/^(ab|a\/b|able (bodied )?(seaman|seafarer)|able seaman)$/,/^(chief cook|ch\.? ?cook|head cook)$/];
+const rankNo=r=>{const t=String(r&&r.rank||'').toLowerCase().replace(/\s+/g,' ').replace(/[.]+$/,'').trim();for(let i=0;i<RANKS.length;i++)if(RANKS[i].test(t))return i;return 99};
+function listFor(src){const n=used(D[src]),a=[];for(let i=0;i<n;i++){if(!(src==='crew'&&D.crew[i]&&D.crew[i].off))a.push(i)}
+  if(src==='crew')a.sort((x,y)=>rankNo(D.crew[x])-rankNo(D.crew[y])||x-y);     // crew lists: Master, Chief Officer, 2nd/3rd Officer, Chief/2nd/3rd Engineer, ETO, AB, Chief Cook, then everybody else
+  return a}   // row numbers that appear on the forms
 /* the same person written twice (other order, capitals, accents, a date of birth in only one of the lists) is one person */
 const nameKey=r=>[r.family,r.given].filter(Boolean).join(' ').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().split(' ').filter(Boolean).sort().join(' ');
 const idKey=r=>String(r.idNo||'').toLowerCase().replace(/[^a-z0-9]/g,'');
