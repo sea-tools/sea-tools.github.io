@@ -12,6 +12,7 @@
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}))}</script>
 <script src="../assets/stats.js" defer></script>
 <script src="../assets/install.js" defer></script>
+<script src="../assets/shared.js" defer></script>
 <style>
 :root{
   --bg:#eef1f4; --card:#fff; --ink:#14232d; --muted:#5d6c77; --line:#d3dae0; --fill:#eef1f4;
@@ -35,6 +36,8 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 #top{background:var(--navy);color:#fff;padding:calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left))}
 #top .in{max-width:860px;margin:0 auto;display:flex;align-items:center;gap:10px}
 #top .ttl{flex:1;min-width:0}
+.sdot{border:0;border-radius:999px;padding:2px 9px;margin-left:6px;font:600 11px var(--font);vertical-align:middle;background:rgba(255,255,255,.16);color:#c5d1d9;cursor:pointer}
+.sdot.ok{background:#1a8a3c;color:#fff}.sdot.bad{background:#b7791f;color:#fff}
 #top .back{color:#c5d1d9;text-decoration:none;font-size:26px;line-height:1;padding:6px 8px 8px 0;flex:none}
 #logo{height:36px;max-width:110px;object-fit:contain;background:#fff;border-radius:8px;padding:3px 7px;flex:none}
 @media (max-width:520px){#logo{height:32px;max-width:64px;padding:3px 5px}}
@@ -225,7 +228,7 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
 <header id="top"><div class="in">
   <a href="../" class="back" aria-label="All apps" title="All apps">‹</a>
   <img id="logo" alt="" hidden>
-  <div class="ttl"><h1>DP Logbook</h1><div id="vesselLbl"></div></div>
+  <div class="ttl"><h1>DP Logbook <button id="sharedDot" class="sdot" hidden type="button"></button></h1><div id="vesselLbl"></div></div>
   <button class="tb" id="daysBtn">Days</button>
   <button class="tb" id="printBtn">Print</button>
   <button class="tb" id="setBtn" aria-label="Settings" title="Settings">⚙</button>
@@ -400,6 +403,8 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
     <div class="btns" style="margin-top:8px"><button class="b" id="resetEvents">Reset list to defaults</button></div>
 
     <h3>Data</h3>
+    <div class="btns" style="margin-bottom:6px"><button class="b" id="sharedBtn">Shared file…</button></div>
+    <p id="sharedNote">Keep the logbook in one file on a shared network drive, so other computers use the same data. Edge or Chrome on a PC.</p>
     <div class="btns">
       <button class="b" id="csv">Export CSV</button>
       <button class="b" id="backup">Save backup file</button>
@@ -567,6 +572,7 @@ let saveFailed = false;
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); saveFailed = false; }
   catch (e) { if (!saveFailed) { saveFailed = true; toast("Could not save – browser storage is full or blocked"); } }
+  if (window.SeaShared) SeaShared.changed();
 }
 
 /* ---------- time ---------- */
@@ -1212,7 +1218,7 @@ $("file").onchange = async (ev) => {
 };
 function impDone(msg) { impData = null; save(); $("impDlg").close(); $("setDlg").close(); goto(now().date); toast(msg); }
 $("impReplace").onclick = () => {
-  if (!impData || !confirm("Delete the logbook on this device and load the file instead?")) return;
+  if (!impData || !confirm("Delete the logbook on this device and load the file instead?" + sharedWarn())) return;
   snap(); const ev = S.events; S = impData; if (!S.events.length) S.events = ev; impDone("Logbook replaced from backup");
 };
 $("impMerge").onclick = () => {
@@ -1234,7 +1240,7 @@ $("impMerge").onclick = () => {
   impDone(added + (added === 1 ? " entry" : " entries") + " added from backup");
 };
 $("wipe").onclick = () => {
-  if (!confirm("Delete ALL logbook entries on this device?\nThis cannot be undone. Save a backup file first if unsure.")) return;
+  if (!confirm("Delete ALL logbook entries on this device?\nThis cannot be undone. Save a backup file first if unsure." + sharedWarn())) return;
   snap(); S.days = {}; save(); $("setDlg").close(); goto(now().date); toast("All entries deleted", "Undo", undo);
 };
 
@@ -1354,6 +1360,67 @@ $("crewList").onclick = (ev) => {
 };
 
 /* ---------- start ---------- */
+/* ---------- shared file (optional, see assets/shared.js) ---------- */
+const sharedWarn = () => (window.SeaShared && SeaShared.linked()) ? "\n\nA shared file is linked: this is also removed for the other computers." : "";
+function sharedSnapshot() {       // the logbook as small records: every entry, every day's location, every crew member, settings
+  const r = {};
+  for (const d of Object.keys(S.days)) {
+    const v = S.days[d];
+    for (const e of v.entries) if (e.t || e.text.trim()) r["e:" + e.id] = { date: d, t: e.t, text: e.text };
+    if (v.loc.trim() || v.lo) r["l:" + d] = { loc: v.loc, lo: !!v.lo };
+  }
+  for (const p of S.crew) r["c:" + p.id] = { name: p.name, group: p.group, rank: p.rank, watch: p.watch, from: p.from, to: p.to };
+  r.lt = { port: !!S.lights.port, stbd: !!S.lights.stbd, rada: !!S.lights.rada, cy: !!S.lights.cy };
+  r.cfg = { vessel: S.vessel, company: S.company, tz: S.tz, events: S.events, dpMin: S.dpMin, dpWin: S.dpWin, showCrew: S.showCrew, printCrew: S.printCrew };
+  if (S.logo) r.logo = { logo: S.logo };
+  return r;
+}
+let renderPending = false;
+function sharedApply(ch) {        // records that arrived from the shared file (null = deleted there)
+  const touched = new Set();
+  for (const id of Object.keys(ch)) {
+    const rec = ch[id], kind = id.slice(0, 2), key = id.slice(2);
+    if (kind === "e:") {
+      for (const d of Object.keys(S.days)) { const es = S.days[d].entries, i = es.findIndex((x) => x.id === key); if (i >= 0) { es.splice(i, 1); touched.add(d); } }
+      if (rec) { const day = S.days[rec.date] || (S.days[rec.date] = { loc: "", entries: [] }); day.entries.push({ id: key, t: rec.t, text: rec.text }); touched.add(rec.date); }
+    } else if (kind === "l:") {
+      const day = S.days[key] || (rec ? (S.days[key] = { loc: "", entries: [] }) : null);
+      if (day) { day.loc = rec ? rec.loc : ""; if (rec && rec.lo) day.lo = true; else delete day.lo; touched.add(key); }
+    } else if (kind === "c:") {
+      const i = S.crew.findIndex((p) => p.id === key);
+      if (rec) { const p = Object.assign({ id: key }, rec); if (i >= 0) S.crew[i] = p; else S.crew.push(p); } else if (i >= 0) S.crew.splice(i, 1);
+    } else if (id === "lt") { if (rec) Object.assign(S.lights, rec); }
+    else if (id === "cfg") { if (rec) Object.assign(S, rec); }
+    else if (id === "logo") S.logo = rec ? rec.logo : "";
+  }
+  S = normalise(S);
+  touched.forEach((d) => { if (S.days[d]) { sortEntries(S.days[d]); if (d !== cur) prune(d); } });
+  save();
+  const a = document.activeElement;                      // never pull the field away from somebody who is typing
+  if (a && a.matches && a.matches("input,textarea") && a.closest("#list,#loc")) renderPending = true; else { render(); tick(); }
+  if ($("crewDlg").open) renderCrewList();
+}
+document.addEventListener("focusout", () => setTimeout(() => {
+  const a = document.activeElement;
+  if (renderPending && !(a && a.closest && a.closest("#list,#loc"))) { renderPending = false; render(); tick(); }
+}, 250));
+let sharedAsked = false;
+function sharedUi(i) {            // the small pill in the header and the button in Settings
+  const dot = $("sharedDot");
+  dot.hidden = !i.linked; dot.className = "sdot" + (i.state === "ok" ? " ok" : i.state === "perm" || i.state === "error" ? " bad" : "");
+  dot.textContent = i.state === "ok" ? "⇄ shared" : i.state === "perm" ? "⇄ reconnect" : i.state === "error" ? "⇄ offline" : "⇄ syncing";
+  dot.title = i.text;
+  $("sharedBtn").textContent = i.linked ? "Shared file: " + i.text.replace(/^Shared – /, "") : "Shared file…";
+  if (i.state === "perm" && !sharedAsked) { sharedAsked = true; toast("The shared file needs a click to reconnect", "Reconnect", () => SeaShared.reconnect()); }
+}
+$("sharedBtn").onclick = () => { if (window.SeaShared) SeaShared.open(); };
+$("sharedDot").onclick = () => { if (window.SeaShared) SeaShared.open(); };
+addEventListener("DOMContentLoaded", () => {
+  if (!window.SeaShared) return;
+  SeaShared.init({ app: "dp-logbook", title: "DP Logbook", snapshot: sharedSnapshot, apply: sharedApply });
+  SeaShared.onState(sharedUi); sharedUi(SeaShared.info());
+});
+
 addEventListener("pagehide", () => { prune(cur); save(); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) tick(); });
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});   // ask the browser not to clear the logbook
