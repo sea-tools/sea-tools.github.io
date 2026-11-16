@@ -378,8 +378,8 @@ function samePerson(a,b){const n=nameKey(a);if(!n||n!==nameKey(b))return false;
   if(a.dob&&b.dob&&a.dob!==b.dob)return false;                                  // same name, different birth date: two people
   const x=idKey(a),y=idKey(b);if(x&&y&&x!==y)return false;                      // different document numbers: two people
   return true}
-function mergePerson(x,r,overwrite){let n=0;Object.keys(r).forEach(k=>{if(k==='off')return;const v=r[k];if(v==null||v==='')return;
-    if(overwrite||!String(x[k]||'').trim()){if(x[k]!==v){x[k]=v;n++}}});if(!r.off)delete x.off;return n}
+function mergePerson(x,r,overwrite,keepOff){let n=0;Object.keys(r).forEach(k=>{if(k==='off')return;const v=r[k];if(v==null||v==='')return;
+    if(overwrite||!String(x[k]||'').trim()){if(x[k]!==v){x[k]=v;n++}}});if(!keepOff&&!r.off)delete x.off;return n}
 function dedupePeople(list,overwrite){const out=[];let removed=0;
   list.forEach(r=>{if(!rowUsed(r)){out.push(r);return}const x=out.find(e=>rowUsed(e)&&samePerson(e,r));if(x){mergePerson(x,r,overwrite);removed++}else out.push(r)});
   return{list:out,removed}}
@@ -809,6 +809,7 @@ function renderImp(){const F=IMP.F||{ship:{},voy:{},tables:[],sources:[]},out=$(
     h+=`<div class="impsec"><label class="h"><input type="checkbox" data-imp="t${i}" checked><span>${KIND_NAME[t.kind]} – ${t.rows.length} ${isP?'people':'rows'} <small style="font-weight:400;color:var(--muted)">from ${esc(t.from)}</small></span></label>
       <div class="pv">${first}</div>
       <div class="opt">${isP?`<label>These are <select data-kind="${i}"><option value="crew"${t.kind!=='pax'?' selected':''}>crew</option><option value="pax"${t.kind==='pax'?' selected':''}>passengers</option></select></label>`:''}
+        ${isP?`<label title="Leave this off to import everybody into the crew database and tick the people who sail yourself (Crew → On board)"><input type="checkbox" name="impboard${i}"> Put them on the crew list (On board)</label>`:''}
         <label><input type="radio" name="impmode${i}" value="add" ${hasRows||!isFirst?'checked':''}> Add to the list</label><label><input type="radio" name="impmode${i}" value="replace" ${hasRows||!isFirst?'':'checked'}> Replace the list</label></div>
       ${t.warn.length?`<div class="warn">Check: ${esc(t.warn.join('; '))}</div>`:''}${t.unknown.length?`<div class="pv">Columns not used: ${esc(t.unknown.join(', '))}</div>`:''}</div>`});
   out.innerHTML=h;$('#impGo').disabled=false}
@@ -823,11 +824,11 @@ function applyImport(){const F=IMP.F;if(!F)return;const fill=$('input[name=impfi
   F.tables.forEach((t,i)=>{if(!on('t'+i))return;
     let kind=t.kind;if(kind==='person')kind='crew';const sel=$(`select[data-kind="${i}"]`,dlg);if(sel)kind=sel.value;
     let mode=($(`input[name="impmode${i}"]:checked`,dlg)||{}).value||'add';if(mode==='replace'){if(replaced[kind])mode='add';replaced[kind]=1}
-    const keys=LISTKEYS[kind],rows=t.rows.map(r=>{const o={};keys.forEach(k=>{if(r[k]!=null&&r[k]!=='')o[k]=r[k]});return o});
+    const board=!!($(`input[name="impboard${i}"]`,dlg)||{}).checked,keys=LISTKEYS[kind],rows=t.rows.map(r=>{const o={};keys.forEach(k=>{if(r[k]!=null&&r[k]!=='')o[k]=r[k]});if(kind==='crew'&&!board)o.off=true;return o});   // new people go to the crew database; who is on board is chosen by hand unless asked
     let added=0,updated=0;
     if(mode==='replace'){D[kind]=rows;added=rows.length}
     else{const list=D[kind].filter(rowUsed);D[kind]=list;
-      rows.forEach(r=>{if(kind==='crew'||kind==='pax'){const x=list.find(e=>samePerson(e,r));if(x){if(mergePerson(x,r,!fill))updated++;return}}
+      rows.forEach(r=>{if(kind==='crew'||kind==='pax'){const x=list.find(e=>samePerson(e,r));if(x){if(mergePerson(x,r,!fill,true))updated++;if(kind==='crew'&&board)delete x.off;return}}
         else{const sg=e=>JSON.stringify(LISTKEYS[kind].map(k=>String(e[k]||'').trim().toLowerCase())),x=list.find(e=>sg(e)===sg(r));if(x)return}
         list.push(r);added++})}
     if(kind==='crew'||kind==='pax'){const d=dedupePeople(D[kind],!fill);D[kind]=d.list;if(mode==='replace')added=Math.max(0,added-d.removed)}
