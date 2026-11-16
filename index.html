@@ -8,7 +8,6 @@
 <meta name="theme-color" content="#14232d">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="manifest" href="manifest.webmanifest">
 <style>
   :root{
     --bg:#e9eef2; --paper:#ffffff; --ink:#14232d; --muted:#586873; --line:#c9d2d9;
@@ -65,9 +64,6 @@
   .howto{margin:8px 0 0;padding:0;list-style:none;color:var(--muted);font-size:14px}
   .howto li{margin:0 0 6px}
   .howto b{color:var(--ink);font-weight:600}
-  .install{margin-top:10px;min-height:44px;padding:0 18px;border:0;border-radius:10px;background:var(--navy);color:#fff;
-           font:600 15px var(--font);cursor:pointer}
-  @media (prefers-color-scheme:dark){.install{background:#e6edf2;color:#14232d}}
 
   .contact{margin-top:48px;background:var(--navy);color:#fff;border-radius:16px;padding:28px;
            display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px 32px}
@@ -147,14 +143,15 @@
       <p>What you enter in the apps is saved in this browser only and is never sent anywhere. The site only counts anonymous visits, without cookies. Use each app's export or print to keep a copy.</p>
     </div>
     <div>
-      <h3>Add to your home screen</h3>
-      <p>Give an app its own icon on any tablet or phone. Open the app first, then:</p>
+      <h3>Install one app at a time</h3>
+      <p>Each app installs on its own, with its own icon and window. Open the app you want first (not this page), then:</p>
       <ul class="howto">
         <li><b>iPad / iPhone:</b> in Safari tap Share, then “Add to Home Screen”.</li>
-        <li><b>Android:</b> in Chrome tap the ⋮ menu, then “Add to Home screen” or “Install app”.</li>
-        <li><b>PC:</b> in Chrome or Edge click the install icon in the address bar.</li>
+        <li><b>Android:</b> in Chrome tap the ⋮ menu, then “Install app” or “Add to Home screen”.</li>
+        <li><b>PC / Mac, Edge:</b> click the install icon at the right end of the address bar, or ⋮ → Apps → “Install this site as an app”.</li>
+        <li><b>PC / Mac, Chrome:</b> click the install icon in the address bar, or ⋮ → Save and share → “Install page as app”.</li>
       </ul>
-      <button id="install" class="install" hidden>Install on this device</button>
+      <p>To remove an installed app, uninstall it like any other app on your device.</p>
     </div>
   </div>
 
@@ -268,16 +265,6 @@
   const net = document.getElementById("net");
   const showNet = () => { net.textContent = navigator.onLine ? "● online" : "○ offline – using saved copy"; };
   addEventListener("online", showNet); addEventListener("offline", showNet); showNet();
-
-  // Android / Chrome / Edge: show a one-tap install button when the browser allows it.
-  let installEvt = null;
-  const installBtn = document.getElementById("install");
-  addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; installBtn.hidden = false; });
-  installBtn.addEventListener("click", async () => {
-    if (!installEvt) return;
-    installEvt.prompt(); await installEvt.userChoice; installEvt = null; installBtn.hidden = true;
-  });
-  addEventListener("appinstalled", () => { installBtn.hidden = true; });
 
   // Copy the contact address (falls back to selecting it).
   const copyBtn = document.getElementById("copyMail");
