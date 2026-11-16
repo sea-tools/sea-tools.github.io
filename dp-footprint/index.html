@@ -330,6 +330,7 @@ function lsGet(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}if(k===KEYS&&window.SeaShared)SeaShared.changed()}
 
 let S=(()=>{const c=lsGet(KEY);return c?merge(c):example()})();
+const EX0=S.example?JSON.stringify(S):null;      // the example data as loaded: the banner goes away as soon as anything is changed
 let mode='set',drag=null;
 const dial=$('#dial');
 const get=p=>p.split('.').reduce((o,k)=>o==null?o:o[k],S);
@@ -425,6 +426,7 @@ function render(){
   dial.classList.toggle('plot',mode==='plot');
   $('#modeHint').textContent=mode==='plot'?'Tap the dial to mark the vessel position relative to the setpoint (center).':
     S.headUp?'Head up: bow fixed at the top. Drag the arrows, or tap anything to type values.':'Drag the ship to set heading. Drag the arrows for wind, current and waves. Tap any of them to type values.';
+  if(S.example&&EX0&&JSON.stringify(S)!==EX0)S.example=false;
   $('#exBanner').hidden=!S.example;
   capText();lsSet(KEY,S);
 }
