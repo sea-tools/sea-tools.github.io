@@ -290,7 +290,7 @@ const SPEC={
   [42.15,134.3,275,12.4,'ship.name'],[325.3,134.3,148,12.4,'ship.imo'],[481.6,134.3,133,12.4,'ship.callSign'],[623.05,134.3,165,12.4,'voy.voyageNo'],
   [42.15,159.4,275,12.4,'voy.port'],[325.3,159.4,148,12.4,'d:voy.date'],[481.6,159.4,133,12.4,'ship.flag'],[623.05,159.4,165,12.4,'voy.lastPort'],
   [42.15,509.5,745,20.5,SIGN,{ph:['date']}]],
-  table:{src:'crew',top:211.25,rh:28.75,n:10,cols:[['#',36.7,71.8],['family',71.8,142.7],['given',142.7,192.3],['rank',192.3,249],['nat',249,319.8],['d:dob',319.8,369.5],['pob',369.5,419.1],['gender',419.1,475.8],['idType',475.8,539.6],['idNo',539.6,617.6],['idState',617.6,709.7],['d:idExp',709.7,790.7]]}},
+  table:{src:'crew',top:211.25,rh:28.75,n:10,min:14.2,cols:[['#',36.7,71.8],['family',71.8,142.7],['given',142.7,192.3],['rank',192.3,249],['nat',249,319.8],['d:dob',319.8,369.5],['pob',369.5,419.1],['gender',419.1,475.8],['idType',475.8,539.6],['idNo',539.6,617.6],['idState',617.6,709.7],['d:idExp',709.7,790.7]]}},
  f6:{no:'FAL 6',name:'Passenger List',land:1,boxes:{arrival:[370.3,107.55,15.8,22.7],departure:[454.2,107.55,18.7,22.7]},fields:[
   [538,107.55,22.7,22.7,'@page',{al:'c',vc:1}],
   [70.05,142.5,260,18.5,'ship.name'],[338.25,142.5,160,18.5,'ship.imo'],[506.85,142.5,280,18.5,'ship.callSign'],
@@ -424,12 +424,24 @@ function layoutFor(id){const S=SPEC[id],t=S&&S.table,F=FORMS[id];if(!t)return nu
     else lines.push(l)});
   const texts=F.texts.map(tx=>{if(tx[1]>bandTop&&tx[1]<t.top){const j=colOf(tx[0]);if(j>=0)return[tx[0]+(xs[j]-oldB[j]),tx[1],tx[2],tx[3],tx[4]]}return tx});
   return{key,cols:cols.map(([k],j)=>[k,xs[j],xs[j+1]]),lines,texts}}
-function svgFor(id,lay){const ck=id+(lay?'|'+lay.key:'');if(svgCache[ck])return svgCache[ck];const F=FORMS[id],LN=lay?lay.lines:F.lines,TX=lay?lay.texts:F.texts;let d='';
-  for(const[x0,y0,x1,y1]of LN)d+=`M${x0} ${y0}L${x1} ${y1}`;
+function svgFor(id,lay,g){const ck=id+(lay?'|'+lay.key:'')+(g?'|'+g.rh.toFixed(2)+'x'+g.nl:'');if(svgCache[ck])return svgCache[ck];const F=FORMS[id],TX=lay?lay.texts:F.texts;let LN=lay?lay.lines:F.lines;
+  if(g){const t=SPEC[id].table,bot=t.top+t.n*t.rh,nb=t.top+g.nl*g.rh,xa=t.cols[0][1],xb=t.cols[t.cols.length-1][2],o=[];     // rows resized / trimmed: redraw the row lines and cut the column lines
+    LN.forEach(l=>{const[x0,y0,x1,y1]=l;
+      if(y0===y1&&y0>t.top+.5&&y0<bot-.5&&x0<=xa+1.5&&x1>=xb-1.5)return;
+      if(x0===x1&&x0>=xa-1.5&&x0<=xb+1.5){const a=Math.min(y0,y1),b=Math.max(y0,y1);
+        if(a<bot-.6&&b>=bot-.6&&b>t.top&&nb<bot-.5){o.push([x0,a,x0,nb]);if(b>bot+.5)o.push([x0,bot,x0,b]);return}}
+      o.push(l)});
+    for(let k=1;k<=g.nl;k++){const y=t.top+k*g.rh;o.push([xa,y,xb,y])}
+    LN=o}
+  let d='';for(const[x0,y0,x1,y1]of LN)d+=`M${x0} ${y0}L${x1} ${y1}`;
   let t='';for(const[x,y,s,fl,txt]of TX)t+=`<text x="${x}" y="${y}" font-size="${s}"${fl.includes('b')?' font-weight="bold"':''}${fl.includes('i')?' font-style="italic"':''}>${esc(txt)}</text>`;
   return svgCache[ck]=`<svg xmlns="http://www.w3.org/2000/svg" width="${F.w}pt" height="${F.h}pt" viewBox="0 0 ${F.w} ${F.h}"><path d="${d}" fill="none" stroke="#000" stroke-width=".5" stroke-linecap="square"/><g font-family="Arial,'Liberation Sans',Helvetica,sans-serif" fill="#000">${t}</g></svg>`}
 let extraPages={};
-function pagesOf(id){if(id==='mdh')return mdhLayout().pages;const t=SPEC[id].table;if(!t)return 1;return Math.max(1,Math.ceil(listFor(t.src).length/t.n))+(extraPages[id]||0)}
+function tgeom(id){const t=SPEC[id].table;if(!t)return null;const L=listFor(t.src).length,avail=t.n*t.rh;      // how the rows of a list are spread over the pages
+  if(!t.min||!L)return{trim:false,L,pages:Math.max(1,Math.ceil(L/t.n))};
+  const cap=Math.max(t.n,Math.floor(avail/t.min+1e-6)),pages=Math.ceil(L/cap),per=Math.ceil(L/pages);
+  return{trim:true,L,pages,per,rh:Math.min(t.rh,avail/per),cap}}
+function pagesOf(id){if(id==='mdh')return mdhLayout().pages;const t=SPEC[id].table;if(!t)return 1;return tgeom(id).pages+(extraPages[id]||0)}
 function mkPart(spec,int,ph){
   if(spec==='@sig'){if(!store.settings.sig)return null;const i=el('img','sig');i.src=store.settings.sig;i.alt='';return i}
   let date=false;if(spec.startsWith('d:')){date=true;spec=spec.slice(2)}
@@ -454,15 +466,18 @@ function renderDoc(id,int){
   const S=SPEC[id],F=FORMS[id],n=pagesOf(id),out=[],lay=layoutFor(id);
   for(let p=0;p<n;p++){
     const sh=sheet(S.land?A4[1]:A4[0],S.land?A4[0]:A4[1],S.land),pg=el('div','page'+(int?' int':''));
-    pg.style.width=F.w+'pt';pg.style.height=F.h+'pt';pg.innerHTML=svgFor(id,lay);
+    const t=S.table,G=t?tgeom(id):null,dataPage=G&&p<G.pages;
+    let rh=t?t.rh:0,nr=t?t.n:0,start=t?p*t.n:0,g=null;
+    if(G&&G.trim){if(dataPage){rh=G.rh;nr=Math.min(G.per,G.L-p*G.per);start=p*G.per;const nl=nr+(int&&(nr+1)*rh<=t.n*t.rh+.01?1:0);g={rh,nl};nr=nl}   // only the rows that are used (a spare typing row on screen)
+      else start=G.L+(p-G.pages)*t.n}
+    pg.style.width=F.w+'pt';pg.style.height=F.h+'pt';pg.innerHTML=svgFor(id,lay,g);
     for(const m in S.boxes||{}){const[x,y,w,h]=S.boxes[m],b=el('div','box',D.voy.mode===m?'X':'');b.dataset.mode=m;
       b.style.cssText=`left:${x}pt;top:${y}pt;width:${w}pt;height:${h}pt`;pg.append(b)}
     for(const def of S.fields)pg.append(mkField(def,int,p,n));
-    const t=S.table;
     const L=t?listFor(t.src):[];
-    if(t)for(let r=0;r<t.n;r++){const idx=p*t.n+r,oi=idx<L.length?L[idx]:(t.src==='crew'?used(D.crew)+(idx-L.length):idx),row=D[t.src][oi];
+    if(t)for(let r=0;r<nr;r++){const idx=start+r,oi=idx<L.length?L[idx]:(t.src==='crew'?used(D.crew)+(idx-L.length):idx),row=D[t.src][oi];
       for(const[c,x0,x1]of (lay?lay.cols:t.cols)){if(!c)continue;
-        const f=el('div','f c');f.style.cssText=`left:${x0+.4}pt;top:${t.top+r*t.rh+.4}pt;width:${x1-x0-.8}pt;height:${t.rh-.8}pt`+(t.fs?`;font-size:${t.fs}pt`:'');
+        const f=el('div','f c');f.style.cssText=`left:${x0+.4}pt;top:${t.top+r*rh+.4}pt;width:${x1-x0-.8}pt;height:${rh-.8}pt`+(t.fs?`;font-size:${t.fs}pt`:'');
         if(c==='#'){const s=el('span','e ro',rowUsed(row)?String(idx+1):'');s.dataset.no=t.src+'.'+oi;f.append(s)}
         else{const date=c.startsWith('d:'),key=t.src+'.'+oi+'.'+(date?c.slice(2):c);f.append(mkPart((date?'d:':'')+key,int))}
         pg.append(f)}}
