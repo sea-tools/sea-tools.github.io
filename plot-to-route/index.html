@@ -139,7 +139,6 @@ details.adv .grid{margin-top:8px}
 
 #map{width:100%;height:auto;display:block;border-radius:14px;background:var(--field)}
 #map text{font:600 11px var(--sans);fill:var(--ink);paint-order:stroke;stroke:var(--surface);stroke-width:3px}
-pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);font:12px/1.45 var(--mono);overflow:auto;max-height:320px;white-space:pre}
 .help h3{margin:16px 0 6px;font:700 16px var(--round)}
 .help p,.help li{font-size:15px;color:var(--dim);margin:0 0 6px}
 .help ul,.help ol{margin:4px 0 8px;padding-left:20px}
@@ -255,7 +254,6 @@ pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);f
     </div>
     <div id="rtzWarn"></div>
     <div class="note warn" data-i="verify"></div>
-    <details class="adv"><summary data-i="preview">Show file contents</summary><pre id="xml"></pre></details>
   </section>
 
   <section class="card help" id="help">
@@ -570,7 +568,7 @@ add:"+ Add waypoint",rev:"Reverse route",copy:"Copy table",clear:"Clear all",
 h3:"Route check",dist:"Distances and bearings",rhumb:"Rhumb line",gc:"Great circle",map:"Route plot",
 hh:"Help",h4:"Route file for ECDIS (RTZ)",r_name:"Route name",r_vessel:"Vessel name (optional)",r_author:"Author (optional)",opt:"optional",
 r_ver:"RTZ version",names:"Waypoint names in the file",nm_s20:"Simplified: plain letters, max 20 characters (safest)",nm_s12:"Simplified: plain letters, max 12 characters",nm_asis:"As typed",print:"Print list",ph_note:"Positions in WGS84. Prepared with Plot to Route. Check against the chart before use.",fileHint:n=>`File name: ${n}.rtz. It must equal the route name, so it is set for you.`,w_rad:"Turn radius limited to 5 NM (the RTZ maximum).",w_xtd:"XTD limited to 9.99 NM (the RTZ maximum).",w_size:"The file is larger than 400 kB. Some ECDIS refuse that.",w_simpl:n=>`${n} waypoint name${n===1?" was":"s were"} simplified in the file (plain letters, short).`,w_rname:"The route name was cleaned for use as a file name (no \\ / : * ? \" < > | characters).",r_rad:"Turn radius (NM, max 5)",r_xp:"XTD port (NM)",r_xs:"XTD starboard (NM)",r_geom:"Leg type in the file",
-o_lox:"Rhumb line (Loxodrome)",o_ort:"Great circle (Orthodrome)",dl_rtz:"Download RTZ",share:"Share…",dl_gpx:"GPX",dl_csv:"CSV",preview:"Show file contents",
+o_lox:"Rhumb line (Loxodrome)",o_ort:"Great circle (Orthodrome)",dl_rtz:"Download RTZ",share:"Share…",dl_gpx:"GPX",dl_csv:"CSV",
 verify:"Always check the imported route in the ECDIS: every waypoint, leg, XTD and the safety contour against the chart. The route must be verified and approved by the navigating officer before use.",
 disc:"An aid only. Always verify results against official publications and charts.",
 undo:"Undo",
@@ -615,7 +613,7 @@ add:"+ Dodaj punkt",rev:"Odwróć trasę",copy:"Kopiuj tabelę",clear:"Wyczyść
 h3:"Kontrola trasy",dist:"Odległości i kursy",rhumb:"Loksodroma",gc:"Ortodroma",map:"Wykres trasy",
 hh:"Pomoc",h4:"Plik trasy dla ECDIS (RTZ)",r_name:"Nazwa trasy",r_vessel:"Nazwa statku (opcjonalnie)",r_author:"Autor (opcjonalnie)",opt:"opcjonalnie",
 r_ver:"Wersja RTZ",names:"Nazwy punktów w pliku",nm_s20:"Uproszczone: zwykłe litery, maks. 20 znaków (najbezpieczniej)",nm_s12:"Uproszczone: zwykłe litery, maks. 12 znaków",nm_asis:"Tak jak wpisano",print:"Drukuj listę",ph_note:"Pozycje w WGS84. Przygotowano w Plot to Route. Przed użyciem sprawdź na mapie.",fileHint:n=>`Nazwa pliku: ${n}.rtz. Musi być równa nazwie trasy, więc ustawia się sama.`,w_rad:"Promień zwrotu ograniczono do 5 NM (maksimum w RTZ).",w_xtd:"XTD ograniczono do 9,99 NM (maksimum w RTZ).",w_size:"Plik jest większy niż 400 kB. Niektóre ECDIS tego nie przyjmą.",w_simpl:n=>`Uproszczone nazwy punktów w pliku: ${n} (zwykłe litery, krótsze).`,w_rname:"Nazwa trasy została oczyszczona na potrzeby nazwy pliku (bez znaków \\ / : * ? \" < > |).",r_rad:"Promień zwrotu (NM, maks. 5)",r_xp:"XTD lewa burta (NM)",r_xs:"XTD prawa burta (NM)",r_geom:"Rodzaj odcinka w pliku",
-o_lox:"Loksodroma (Loxodrome)",o_ort:"Ortodroma (Orthodrome)",dl_rtz:"Pobierz RTZ",share:"Udostępnij…",dl_gpx:"GPX",dl_csv:"CSV",preview:"Pokaż zawartość pliku",
+o_lox:"Loksodroma (Loxodrome)",o_ort:"Ortodroma (Orthodrome)",dl_rtz:"Pobierz RTZ",share:"Udostępnij…",dl_gpx:"GPX",dl_csv:"CSV",
 verify:"Zawsze sprawdź zaimportowaną trasę w ECDIS: każdy punkt, odcinek, XTD i izobatę bezpieczeństwa na mapie. Przed użyciem trasa musi być zweryfikowana i zatwierdzona przez oficera nawigacyjnego.",
 disc:"Tylko pomoc. Zawsze weryfikuj wyniki z oficjalnymi publikacjami i mapami.",
 undo:"Cofnij",
@@ -754,7 +752,6 @@ const routeInfo=()=>Object.assign({},S.route,{name:safeRouteName(S.route.name.tr
 const rtzOpts=()=>({ver:S.rtz.ver,radius:+S.rtz.radius||0,xtdP:+S.rtz.xtdP||0,xtdS:+S.rtz.xtdS||0,geom:S.rtz.geom,names:S.rtz.names});
 const fileBase=()=>routeInfo().name;
 function renderRtz(){const v=valid(),ok=v.length>=2,o=rtzOpts(),xml=v.length?buildRTZ(v,routeInfo(),o):"",W=[];
-  $("#xml").textContent=xml;
   ["#bRtz","#bGpx","#bCsv","#bShare"].forEach(s=>$(s).disabled=!ok);
   $("#fileHint").textContent=t("fileHint")(fileBase());
   if(o.radius>5)W.push(t("w_rad"));if(o.xtdP>=10||o.xtdS>=10)W.push(t("w_xtd"));
