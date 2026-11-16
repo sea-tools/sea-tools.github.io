@@ -231,6 +231,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
       <h1 id="title"></h1>
       <span id="saved">Saved on this device</span>
       <span id="tools" class="row"></span>
+      <button class="btn" id="impBtn" type="button" title="Add people, stores, cargo… from Word, Excel, CSV or PDF files to this clearance">Import…</button>
       <button class="btn" id="doneBtn" type="button">Mark as done</button>
       <button class="btn pri" id="printBtn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4.5 6V2h7v4M4.5 11.5H2.5v-5h11v5h-2M4.5 9.5h7V14h-7z"/></svg>Print</button>
     </div>
@@ -714,7 +715,7 @@ function records(){const n=st=>store.records.filter(r=>st==='all'||(st==='done')
 $('#recBtn').onclick=records;
 dlg.addEventListener('input',e=>{if(e.target.id==='recQ'){RQ.q=e.target.value;drawRecs()}});
 dlg.addEventListener('change',e=>{if(e.target.id==='recSort'){RQ.sort=e.target.value;drawRecs()}});
-function lockUi(){const lk=isDone(REC);[...$('#view').children].forEach(c=>c.inert=lk);$('#tools').inert=lk;$('#doneBar').hidden=!lk;
+function lockUi(){const lk=isDone(REC);[...$('#view').children].forEach(c=>c.inert=lk);$('#tools').inert=lk;$('#impBtn').disabled=lk;$('#doneBar').hidden=!lk;
   const b=$('#doneBtn');b.textContent=lk?'✓ Done':'Mark as done';b.classList.toggle('on',lk);b.title=lk?'Marked as done and locked. Click to reopen it as a draft.':'Mark this clearance as finished'}
 function setDone(on){REC.status=on?'done':'';REC.updated=Date.now();save();lockUi();$('#saved').textContent=on?'Marked as done':'Reopened as draft'}
 $('#doneBtn').onclick=()=>setDone(!isDone(REC));
@@ -826,6 +827,7 @@ function applyImport(){const F=IMP.F;if(!F)return;const fill=$('input[name=impfi
 /* ---------- printing ---------- */
 const isSafari=/^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
 function hasData(id){const t=SPEC[id].table;if(t)return(t.src==='crew'?countOn(D.crew):count(D[t.src]))>0;if(id==='mdh')return D.voy.mode==='arrival';return true}
+$('#impBtn').onclick=()=>importDlg();
 $('#printBtn').onclick=()=>{const isDoc=!!SPEC[cur];
   sheetDlg('Print',DOCS.map(id=>`<label class="chk"><input type="checkbox" data-doc="${id}"${(isDoc?id===cur:hasData(id))?' checked':''}><span><b>${SPEC[id].no}</b> &nbsp;${esc(SPEC[id].name)}</span><small>${pagesOf(id)} page${pagesOf(id)>1?'s':''} · ${SPEC[id].land?'landscape':'portrait'}</small></label>`).join('')+
    `<label class="chk" style="margin-top:6px"><input type="checkbox" id="rot"${isSafari?' checked':''}><span>Turn landscape forms onto upright A4 sheets</span></label><p class="note" style="margin:6px 0 0">Print on A4 at 100% scale, without headers and footers. Choose “Save as PDF” in the print window to keep a PDF.</p>`,
