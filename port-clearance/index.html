@@ -409,26 +409,29 @@ function layoutFor(id){const S=SPEC[id],t=S&&S.table,F=FORMS[id];if(!t)return nu
   F.lines.forEach(l=>{if(l[1]===l[3]&&l[1]<t.top-5&&Math.abs(l[0]-oldB[0])<1.5&&Math.abs(l[2]-oldB[oldB.length-1])<1.5&&(bandTop===null||l[1]>bandTop))bandTop=l[1]});
   if(bandTop===null)return null;
   const colOf=x=>{for(let j=0;j<cols.length;j++)if(x>=oldB[j]-0.6&&x<oldB[j+1]-0.6)return j;return -1};
-  const need=cols.map(([k])=>{if(!k)return 0;let m=0;
+  const raw=cols.map(([k])=>{if(!k)return 0;let m=0;
     if(k==='#')m=tw(String(L.length||1),base);
     else rows.forEach(r=>{const date=k.startsWith('d:'),key=date?k.slice(2):k;let v=String(r[key]==null?'':r[key]);if(date)v=fmt(v);if(v)m=Math.max(m,tw(v,base))});
-    return m?m+5:0});
+    return m});
   const floor=cols.map(()=>0);
   F.texts.forEach(([x,y,sz,fl,txt])=>{if(y>bandTop&&y<t.top){const j=colOf(x);if(j>=0)floor[j]=Math.max(floor[j],Math.min(w0[j],x-oldB[j]+tw(txt,sz,fl.includes('b'))+2.5))}});
-  const want=cols.map((c,j)=>Math.max(floor[j],need[j],12)),w=w0.slice();let dt=0,Sp=0;
+  const wantAt=q=>cols.map((c,j)=>Math.max(floor[j],raw[j]?raw[j]*q+7:0,12)),W0=w0.reduce((a,b)=>a+b,0);
+  let kf=1;while(kf>0.55&&wantAt(kf).reduce((a,b)=>a+b,0)>W0+0.01)kf=Math.round((kf-0.01)*100)/100;      // everything too wide: one smaller type size for the WHOLE table, so all columns look alike
+  const want=wantAt(kf),w=w0.slice();let dt=0,Sp=0;
   const def=want.map((x,j)=>x>w0[j]+0.01?x-w0[j]:0),spare=want.map((x,j)=>x<w0[j]-0.01?w0[j]-x:0);
   def.forEach(x=>dt+=x);spare.forEach(x=>Sp+=x);
   if(dt>0&&Sp>0){const lent=Math.min(dt,Sp);cols.forEach((c,j)=>{if(def[j])w[j]=w0[j]+def[j]*lent/dt;else if(spare[j])w[j]=w0[j]-spare[j]*lent/Sp})}
   const xs=[oldB[0]];w.forEach(x=>xs.push(xs[xs.length-1]+x));xs[xs.length-1]=oldB[oldB.length-1];
   const key=xs.map(x=>x.toFixed(1)).join(',');
-  if(xs.every((x,j)=>Math.abs(x-oldB[j])<0.05))return{key:'orig',cols,lines:F.lines,texts:F.texts};
+  const fs=kf<1?base*kf:0;
+  if(xs.every((x,j)=>Math.abs(x-oldB[j])<0.05))return{key:'orig',fs,cols,lines:F.lines,texts:F.texts};
   const bIdx=x=>oldB.findIndex(b=>Math.abs(b-x)<0.7),lines=[];
   F.lines.forEach(l=>{const[x0,y0,x1,y1]=l,j=bIdx(x0);
     if(x0===x1&&j>0&&j<oldB.length-1&&Math.max(y0,y1)>bandTop-0.5&&Math.min(y0,y1)<bottom+0.5){const a=Math.min(y0,y1),b=Math.max(y0,y1);
       if(a<bandTop-0.5)lines.push([x0,a,x0,bandTop]);lines.push([xs[j],Math.max(a,bandTop),xs[j],Math.min(b,bottom)]);if(b>bottom+0.5)lines.push([x0,bottom,x0,b])}
     else lines.push(l)});
   const texts=F.texts.map(tx=>{if(tx[1]>bandTop&&tx[1]<t.top){const j=colOf(tx[0]);if(j>=0)return[tx[0]+(xs[j]-oldB[j]),tx[1],tx[2],tx[3],tx[4]]}return tx});
-  return{key,cols:cols.map(([k],j)=>[k,xs[j],xs[j+1]]),lines,texts}}
+  return{key,fs,cols:cols.map(([k],j)=>[k,xs[j],xs[j+1]]),lines,texts}}
 function svgFor(id,lay,g){const ck=id+(lay?'|'+lay.key:'')+(g?'|'+g.rh.toFixed(2)+'x'+g.nl:'');if(svgCache[ck])return svgCache[ck];const F=FORMS[id],TX=lay?lay.texts:F.texts;let LN=lay?lay.lines:F.lines;
   if(g){const t=SPEC[id].table,bot=t.top+t.n*t.rh,nb=t.top+g.nl*g.rh,xa=t.cols[0][1],xb=t.cols[t.cols.length-1][2],o=[];     // rows resized / trimmed: redraw the row lines and cut the column lines
     LN.forEach(l=>{const[x0,y0,x1,y1]=l;
@@ -482,7 +485,8 @@ function renderDoc(id,int){
     const L=t?listFor(t.src):[];
     if(t)for(let r=0;r<nr;r++){const idx=start+r,oi=idx<L.length?L[idx]:(t.src==='crew'?used(D.crew)+(idx-L.length):idx),row=D[t.src][oi];
       for(const[c,x0,x1]of (lay?lay.cols:t.cols)){if(!c)continue;
-        const f=el('div','f c');f.style.cssText=`left:${x0+.4}pt;top:${t.top+r*rh+.4}pt;width:${x1-x0-.8}pt;height:${rh-.8}pt`+(t.fs?`;font-size:${t.fs}pt`:'');
+        const f=el('div','f c');f.style.cssText=`left:${x0+.4}pt;top:${t.top+r*rh+.4}pt;width:${x1-x0-.8}pt;height:${rh-.8}pt`+(lay&&lay.fs?`;font-size:${lay.fs}pt`:t.fs?`;font-size:${t.fs}pt`:'');
+        {const z=lay&&lay.fs||t.fs;if(z)f.dataset.fs=z}
         if(c==='#'){const s=el('span','e ro',rowUsed(row)?String(idx+1):'');s.dataset.no=t.src+'.'+oi;f.append(s)}
         else{const date=c.startsWith('d:'),key=t.src+'.'+oi+'.'+(date?c.slice(2):c);f.append(mkPart((date?'d:':'')+key,int))}
         pg.append(f)}}
@@ -521,7 +525,8 @@ function renderMDH(int){const F=FORMS.mdh,sc=A4[0]/F.w,L=mdhLayout(),shift=(L.on
   return out}
 function ynPaint(root){$$('.yn',root).forEach(s=>{const on=gp(D,s.dataset.yk)===s.dataset.v;s.classList.toggle('on',on);s.textContent=on?'X':s.dataset.dots})}
 function fitCell(f){const e=f.querySelector('.e');if(!e)return;const base=parseFloat(getComputedStyle(f).fontSize),cs=getComputedStyle(f),avail=f.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-0.6;
-  const width=()=>{const r=document.createRange();r.selectNodeContents(e);return r.getBoundingClientRect().width};
+  const zm=f.getBoundingClientRect().width/(f.offsetWidth||1)||1;   // the preview is zoomed: measure the text and the cell in the same units
+  const width=()=>{const r=document.createRange();r.selectNodeContents(e);return r.getBoundingClientRect().width/zm};
   let w=width();if(w<=avail)return;let k=avail/w;e.style.transformOrigin='left center';
   if(k>=0.8){e.style.transform='scaleX('+k+')';return}                                                           // 1. squeeze the letters sideways (up to 20 %)
   if(f.clientHeight>=base*2.4&&k<0.62){f.style.whiteSpace='normal';f.style.fontSize=base+'px';                      // 2. a cell with room for two lines: wrap at spaces
@@ -529,9 +534,9 @@ function fitCell(f){const e=f.querySelector('.e');if(!e)return;const base=parseF
     while(over()&&s>base*.7&&i++<20){s*=.95;f.style.fontSize=s+'px'}if(!over())return;f.style.whiteSpace='';}
   const sc=Math.max(k/0.8,0.7);f.style.fontSize=base*sc+'px';w=width();k=Math.min(1,avail/w);                         // 3. smaller letters, never below 70 %
   if(k<1)e.style.transform='scaleX('+Math.max(k,0.6)+')'}
-function fit(f){if(!f||!f.classList.contains('f'))return;f.style.fontSize='';const e0=f.querySelector('.e');if(e0&&f.classList.contains('c')){e0.style.transform='';f.style.whiteSpace=''}
+function fit(f){if(!f||!f.classList.contains('f'))return;f.style.fontSize=f.dataset.fs?f.dataset.fs+'pt':'';const e0=f.querySelector('.e');if(e0&&f.classList.contains('c')){e0.style.transform='';f.style.whiteSpace=''}
   if(!f.textContent)return;if(f.classList.contains('c')){fitCell(f);return}let s=parseFloat(getComputedStyle(f).fontSize);const min=s*.42,H=f.clientHeight+1.5;
-  const over=()=>f.scrollWidth>f.clientWidth+1.5||[...f.children].some(c=>c.offsetHeight>H||c.scrollWidth>c.clientWidth+1.5);
+  const over=()=>f.scrollWidth>f.clientWidth+1.5||[...f.children].some(c=>!c.classList.contains('sig')&&(c.offsetHeight>H||c.scrollWidth>c.clientWidth+1.5));
   let i=0;while(over()&&s>min&&i++<40){s*=.94;f.style.fontSize=s+'px'}}
 const fitAll=root=>$$('.f',root).forEach(fit);
 
