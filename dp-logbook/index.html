@@ -990,7 +990,7 @@ $("dpPrint").onclick = () => {
 
 /* ---------- suggestions ---------- */
 let sug = null;
-function history() {            // distinct hand-typed events, most recent first
+function typedHistory() {            // distinct hand-typed events, most recent first
   const known = new Set(S.events.map((x) => x.trim().toLowerCase()));
   const out = [];
   for (const d of Object.keys(S.days).sort().reverse()) {
@@ -1009,7 +1009,7 @@ function openSug(t) {
   const evs = S.events.map((x) => x.trim()).filter(Boolean);
   const exact = evs.some((x) => x.toLowerCase() === q);
   const a = (!q || exact) ? evs.filter((x) => x.toLowerCase() !== q) : evs.filter(match);
-  const h = history().filter((s) => (!q || exact) ? s.toLowerCase() !== q : match(s)).slice(0, q && !exact ? 30 : 8);
+  const h = typedHistory().filter((s) => (!q || exact) ? s.toLowerCase() !== q : match(s)).slice(0, q && !exact ? 30 : 8);
   if (!a.length && !h.length) { closeSug(); return; }
   if (!sug) {
     sug = document.createElement("div"); sug.id = "sug";

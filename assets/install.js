@@ -10,10 +10,12 @@
 
   var lang = ((document.documentElement.lang || navigator.language || "en") + "").slice(0, 2).toLowerCase() === "pl" ? "pl" : "en";
   var T = {
-    en: { title: "Install ", via: "Installs in %b on this device only, as its own app with its own icon.", install: "Install", later: "Not now", ok: "Got it",
+    en: { none: "Nothing to install here. The app may already be installed on this device. You can also use the browser menu: Edge ⋮ → Apps → Install this site as an app; Chrome ⋮ → Save and share → Install page as app.",
+          unsupported: "This browser cannot install apps. Open this page in Chrome, Edge or Safari.", title: "Install ", via: "Installs in %b on this device only, as its own app with its own icon.", install: "Install", later: "Not now", ok: "Got it",
           ios: "Tap Share, then “Add to Home Screen”. It is saved on this device only.", mac: "In Safari choose File → Add to Dock. It is saved on this Mac only.",
           here: "this browser" },
-    pl: { title: "Zainstaluj ", via: "Instaluje się w %b, tylko na tym urządzeniu, jako osobna aplikacja z własną ikoną.", install: "Zainstaluj", later: "Nie teraz", ok: "OK",
+    pl: { none: "Nie ma tu czego instalować. Aplikacja może być już zainstalowana na tym urządzeniu. Możesz też użyć menu przeglądarki: Edge ⋮ → Aplikacje → Zainstaluj tę witrynę jako aplikację; Chrome ⋮ → Zapisz i udostępnij → Zainstaluj stronę jako aplikację.",
+          unsupported: "Ta przeglądarka nie potrafi instalować aplikacji. Otwórz tę stronę w Chrome, Edge lub Safari.", title: "Zainstaluj ", via: "Instaluje się w %b, tylko na tym urządzeniu, jako osobna aplikacja z własną ikoną.", install: "Zainstaluj", later: "Nie teraz", ok: "OK",
           ios: "Dotknij Udostępnij, potem „Dodaj do ekranu początkowego”. Zapisze się tylko na tym urządzeniu.", mac: "W Safari wybierz Plik → Dodaj do Docka. Zapisze się tylko na tym Macu.",
           here: "tej przeglądarce" }
   }[lang];
@@ -22,6 +24,9 @@
   var isIOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);     // iPadOS reports itself as a Mac
   var isMacSafari = !isIOS && /Macintosh/.test(ua) && /Safari/.test(ua) && !/Chrome|CriOS|Edg|OPR|Firefox/.test(ua);
 
+  var explicit = /[?&]install=1(&|$)/.test(location.search);       // opened with the "Install" button of a tile on the home page
+  if (explicit && history.replaceState) history.replaceState(null, "", location.pathname + location.search.replace(/([?&])install=1&?/, "$1").replace(/[?&]$/, "") + location.hash);
+  var canHere = /Chrome\/|CriOS|Edg\/|OPR\/|SamsungBrowser/.test(ua) && !/Firefox/.test(ua) || isIOS || isMacSafari;
   var app = (location.pathname.replace(/^\/|\/$/g, "").split("/").pop() || "home");
   var KEY = "seatools-install-hidden-" + app;
   function hidden() { try { return Date.now() - Number(localStorage.getItem(KEY) || 0) < 30 * 864e5; } catch (e) { return false; } }
@@ -50,19 +55,19 @@
     document.head.appendChild(s);
   }
   function close() { if (card) { card.remove(); card = null; } }
-  function show(mode) {            // mode: "prompt" (real install button) | "steps" (instructions only)
+  function show(mode, msg) {       // mode: "prompt" (real install button) | "steps" (instructions only) | "info" (a message with OK)
     if (card) return;
     css();
     card = document.createElement("div"); card.className = "sti"; card.setAttribute("role", "dialog");
     var name = meta.name || document.title || "";
     card.setAttribute("aria-label", T.title + name);
-    var body = mode === "prompt" ? T.via.replace("%b", browser) : (isMacSafari ? T.mac : T.ios);
+    var body = mode === "info" ? msg : mode === "prompt" ? T.via.replace("%b", browser) : (isMacSafari ? T.mac : T.ios);
     card.innerHTML = (meta.icon ? '<img alt="" src="' + meta.icon + '">' : "<span></span>") + "<b></b><p></p>" +
       '<div class="acts"><button class="no" type="button"></button>' + (mode === "prompt" ? '<button class="go" type="button"></button>' : "") + "</div>";
     card.querySelector("b").textContent = T.title + name;
     card.querySelector("p").textContent = body;
     card.querySelector(".no").textContent = mode === "prompt" ? T.later : T.ok;
-    card.querySelector(".no").onclick = function () { hide30(); close(); };
+    card.querySelector(".no").onclick = function () { if (mode !== "info") hide30(); close(); };
     var go = card.querySelector(".go");
     if (go) { go.textContent = T.install; go.onclick = run; }
     document.body.appendChild(card);
@@ -73,12 +78,20 @@
   }
   window.SeaInstall = { run: run, canInstall: function () { return !!evt || isIOS || isMacSafari; }, browser: browser };
 
+  var noneTimer = null;
   addEventListener("beforeinstallprompt", function (e) {
-    e.preventDefault(); evt = e;
-    if (!hidden()) loadMeta().then(function () { setTimeout(function () { if (evt) show("prompt"); }, 2500); });
+    e.preventDefault(); evt = e; clearTimeout(noneTimer);
+    if (explicit) loadMeta().then(function () { if (evt) show("prompt"); });
+    else if (!hidden()) loadMeta().then(function () { setTimeout(function () { if (evt) show("prompt"); }, 2500); });
   });
   addEventListener("appinstalled", function () { evt = null; close(); });
-  if ((isIOS || isMacSafari) && !hidden()) {
-    addEventListener("load", function () { loadMeta().then(function () { setTimeout(function () { show("steps"); }, 4000); }); });
+  if ((isIOS || isMacSafari) && (explicit || !hidden())) {
+    addEventListener("load", function () { loadMeta().then(function () { setTimeout(function () { show("steps"); }, explicit ? 300 : 4000); }); });
+  }
+  if (explicit) {                  // the user asked to install: never leave them without an answer
+    addEventListener("load", function () {
+      if (!canHere) { loadMeta().then(function () { show("info", T.unsupported); }); }
+      else if (!isIOS && !isMacSafari) { noneTimer = setTimeout(function () { if (!evt && !card) loadMeta().then(function () { show("info", T.none); }); }, 3500); }
+    });
   }
 })();
