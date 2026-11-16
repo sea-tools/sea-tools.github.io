@@ -11,6 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}))}</script>
 <script src="../assets/stats.js" defer></script>
+<script src="../assets/install.js" defer></script>
 <style>
 :root{
   --bg:#eef1f4; --card:#fff; --ink:#14232d; --muted:#5d6c77; --line:#d3dae0; --fill:#eef1f4;
@@ -413,6 +414,8 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
       <h4>Logo inside the logbook</h4>
       <p>Settings → Logo → “Choose image…” (PNG or SVG) or “Generic ship icon”. It shows at the top and on printouts and is saved in the backup file. This is separate from the app icon on your home screen.</p>
       <h4>App icon on the home screen</h4>
+      <div class="btns" style="margin:6px 0 8px"><button class="b" id="helpInstall" hidden>Install this app…</button></div>
+      <p id="helpInstallNote" hidden></p>
       <p>The icon is taken from the app when you add it to the home screen, so to change it, remove the icon and add the app again.</p>
       <ul>
         <li><b>iPad / iPhone:</b> in Safari tap Share → “Add to Home Screen”. For your own picture on this device only: open the Shortcuts app → + → “Open URL” (the app's address) → “Add to Home Screen”, then tap the small icon and choose your photo.</li>
@@ -1104,7 +1107,11 @@ tzSel.innerHTML = '<option value="device">This device\'s local time</option>' +
   [-12,-11,-10,-9.5,-9,-8,-7,-6,-5,-4,-3.5,-3,-2,-1,0,1,2,3,3.5,4,4.5,5,5.5,5.75,6,6.5,7,8,8.75,9,9.5,10,10.5,11,12,12.75,13,14]
     .map((v) => { const s = S.tz; S.tz = String(v); const l = tzLabel(); S.tz = s; return '<option value="' + v + '">' + l + "</option>"; }).join("");
 
+$("helpInstall").onclick = () => { if (window.SeaInstall) SeaInstall.run(); };
 $("setBtn").onclick = () => {
+  const can = !!(window.SeaInstall && SeaInstall.canInstall());
+  $("helpInstall").hidden = !can; $("helpInstallNote").hidden = !can;
+  if (can) $("helpInstallNote").textContent = "Installs in " + SeaInstall.browser + " on this device only. To use the app on another browser or device, install it there too.";
   $("sVessel").value = S.vessel; $("sCompany").value = S.company; showLogoPrev(); tzSel.value = S.tz; $("sEvents").value = S.events.join("\n");
   $("setDlg").showModal();
 };
