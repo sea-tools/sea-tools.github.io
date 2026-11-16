@@ -295,7 +295,7 @@ details summary{font-weight:650}
 </div>
 
 <dialog id="dlg"><form method="dialog" class="dl" id="dlgBody"></form></dialog>
-<dialog id="listDlg"><div class="dl"><h2 style="margin:0">Saved plots</h2><div id="listBody"></div><div class="hint">Plots are kept in this browser on this device only.</div><button id="listClose" class="pri">Close</button></div></dialog>
+<dialog id="listDlg"><div class="dl"><h2 style="margin:0">Saved plots</h2><div id="listBody"></div><div class="hint" id="shHint">Plots are kept in this browser on this device only.</div><div class="row" style="margin:8px 0"><button id="shBtn" type="button">Shared file…</button></div><button id="listClose" class="pri">Close</button></div></dialog>
 <div id="toast" hidden></div>
 
 <script>
@@ -327,7 +327,7 @@ function locStr(x){const dm=(d,m,h,n)=>d==null&&m==null?'':String(d==null?0:d).p
   return [dm(x.latD,x.latM,x.latH||'N',2),dm(x.lonD,x.lonM,x.lonH||'E',3),x.site||x.location||''].filter(Boolean).join(' ');}
 function num4(n){return String(+(+n).toFixed(4))}
 function lsGet(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
-function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}if(k===KEYS&&window.SeaShared)SeaShared.changed()}
 
 let S=(()=>{const c=lsGet(KEY);return c?merge(c):example()})();
 let mode='set',drag=null;
@@ -497,6 +497,19 @@ $('#listClose').onclick=()=>$('#listDlg').close();
 $('#listBody').addEventListener('click',e=>{const l=e.target.closest('[data-load]'),d=e.target.closest('[data-del]');
   if(l){const x=(lsGet(KEYS)||[]).find(x=>x.id===l.dataset.load);if(x){S=merge(x);mode='set';$('#listDlg').close();render();}}
   if(d){if(d.dataset.sure){lsSet(KEYS,(lsGet(KEYS)||[]).filter(x=>x.id!==d.dataset.del));drawList();}else{d.dataset.sure='1';d.textContent='Sure?';}}});
+/* ---------- shared file (optional, see assets/shared.js): the list of saved plots ---------- */
+function sharedSnapshot(){const o={};(lsGet(KEYS)||[]).forEach(x=>{if(x&&x.id)o['p:'+x.id]=x});return o}
+function sharedApply(ch){const a=lsGet(KEYS)||[];
+  for(const id of Object.keys(ch)){const rid=id.slice(2),rec=ch[id],i=a.findIndex(x=>x.id===rid);
+    if(!rec){if(i>=0)a.splice(i,1)}else if(i>=0)a[i]=rec;else a.unshift(rec)}
+  a.sort((x,y)=>(y.savedAt||0)-(x.savedAt||0));lsSet(KEYS,a);if($('#listDlg').open)drawList()}
+let sharedAsked=false;
+function sharedUi(i){$('#shBtn').textContent=i.linked?'Shared file: '+i.text.replace(/^Shared – /,''):'Shared file…';
+  $('#listBtn').textContent=i.linked?'Saved plots ⇄':'Saved plots';
+  $('#shHint').textContent=i.linked?'Saved plots are kept on this device and in the shared file.':'Plots are kept in this browser on this device only.';
+  if(i.state==='perm'&&!sharedAsked){sharedAsked=true;toast('Shared file: open “Saved plots” and click Shared file to reconnect')}}
+$('#shBtn').onclick=()=>{if(window.SeaShared)SeaShared.open()};
+addEventListener('DOMContentLoaded',()=>{if(!window.SeaShared)return;SeaShared.init({app:'dp-footprint',title:'DP Footprint Plot',snapshot:sharedSnapshot,apply:sharedApply});SeaShared.onState(sharedUi);sharedUi(SeaShared.info())});
 try{if(window.self===window.top){$('#printBtn').hidden=false;$('#printBtn').onclick=()=>{const t=document.title;
   document.title=['DP Footprint',S.date,(S.time||'').replace(':',''),S.vessel].filter(Boolean).join(' ').replace(/[\/\\:*?"<>|]/g,'-');
   window.print();setTimeout(()=>{document.title=t},1500);};}}catch(e){}
@@ -529,4 +542,5 @@ render();
 </script>
 <script src="../assets/stats.js" defer></script>
 <script src="../assets/install.js" defer></script>
+<script src="../assets/shared.js" defer></script>
 </body></html>

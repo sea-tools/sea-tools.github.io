@@ -12,6 +12,7 @@
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}))}</script>
 <script src="../assets/stats.js" defer></script>
 <script src="../assets/install.js" defer></script>
+<script src="../assets/shared.js" defer></script>
 <style id="pageStyle"></style>
 <style>
 :root{
@@ -194,6 +195,14 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
   body.rot #printRoot .sheet.land>.page{transform:translateX(595.27pt) rotate(90deg)}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+.shpill{display:block;width:calc(100% - 4px);margin:0 2px 8px;border:0;border-radius:9px;padding:7px 10px;font-size:12px;font-weight:600;text-align:left;background:var(--fill);color:var(--muted)}
+.shpill.ok{background:rgba(26,138,60,.16);color:#1a8a3c}.shpill.bad{background:rgba(183,121,31,.2);color:#b7791f}
+#doneBtn.on{background:rgba(26,138,60,.16);color:#1a8a3c}
+#doneBar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 20px;background:rgba(26,138,60,.14);color:var(--ink);font-size:14px;border-bottom:1px solid var(--line)}
+#doneBar[hidden]{display:none}#doneBar span{flex:1;min-width:200px}
+.rq{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}.rq input{flex:1;min-width:180px;border:0;background:var(--fill);border-radius:9px;padding:9px 11px;font-size:14px}.rq select{border:0;background:var(--fill);border-radius:9px;padding:9px 10px;font-size:14px}
+.rchips{display:flex;gap:6px;margin-bottom:6px}.rchips button{border:0;background:var(--fill);border-radius:980px;padding:5px 13px;font-size:13px;font-weight:500}.rchips button.on{background:var(--accent);color:var(--accent-ink)}
+#recList .li{flex-wrap:wrap}#recList .li .tt{flex:1 1 100%}#recList .li .tt b{white-space:normal}.shpill[hidden]{display:none}.badge{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px;margin-right:6px;background:var(--fill);color:var(--muted)}.badge.done{background:#1a8a3c;color:#fff}
 </style>
 </head>
 <body>
@@ -203,6 +212,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
     <button id="recBtn" title="Saved clearances"><span id="recTitle"></span>
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5 7 2.5l3 3M4 8.5l3 3 3-3"/></svg></button>
     <nav id="nav"></nav>
+    <button id="shBtn" class="shpill" hidden type="button"></button>
     <div class="sidefoot"><button id="backupBtn">Backup</button><button id="setBtn">Settings</button></div>
   </aside>
   <div id="scrim"></div>
@@ -212,8 +222,10 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
       <h1 id="title"></h1>
       <span id="saved">Saved on this device</span>
       <span id="tools" class="row"></span>
+      <button class="btn" id="doneBtn" type="button">Mark as done</button>
       <button class="btn pri" id="printBtn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4.5 6V2h7v4M4.5 11.5H2.5v-5h11v5h-2M4.5 9.5h7V14h-7z"/></svg>Print</button>
     </div>
+    <div id="doneBar" hidden><span>✓ This clearance is marked <b>Done</b> and locked, so it is not changed by mistake.</span><button class="btn" data-reopen type="button">Reopen as draft</button></div>
     <div id="view"></div>
   </main>
 </div>
@@ -311,8 +323,28 @@ function openRec(id){REC=store.records.find(r=>r.id===id)||store.records[0];stor
 openRec(store.cur);
 let saveT;
 function touch(){REC.updated=Date.now();clearTimeout(saveT);saveT=setTimeout(save,350);$('#saved').textContent='Saving…';badges()}
-function save(){try{localStorage.setItem(LS,JSON.stringify(store));$('#saved').textContent='Saved on this device'}catch(e){$('#saved').textContent='Could not save – storage full'}}
+function save(){try{localStorage.setItem(LS,JSON.stringify(store));$('#saved').textContent='Saved on this device'}catch(e){$('#saved').textContent='Could not save – storage full'}
+  if(window.SeaShared)SeaShared.changed()}
 addEventListener('pagehide',save);
+/* ---------- shared file (optional, see assets/shared.js) ---------- */
+const isBlankRec=r=>JSON.stringify(merge(blank(),JSON.parse(JSON.stringify(r.data||{}))))===JSON.stringify(blank());
+function sharedSnapshot(){const o={};store.records.forEach(r=>{if(!isBlankRec(r))o['r:'+r.id]={updated:r.updated,status:r.status||'',data:r.data}});return o}
+let shPending=false,sharedAsked=false;
+function sharedApply(ch){let reopen=false;
+  for(const id of Object.keys(ch)){const rid=id.slice(2),rec=ch[id],i=store.records.findIndex(r=>r.id===rid);
+    if(!rec){if(i>=0){store.records.splice(i,1);if(REC.id===rid)reopen=true}}
+    else{const n={id:rid,updated:rec.updated,status:rec.status||'',data:merge(blank(),rec.data||{})};if(i>=0){store.records[i]=n;if(REC.id===rid)reopen=true}else store.records.push(n)}}
+  if(!store.records.length)store.records.push({id:uid(),updated:Date.now(),data:blank()});
+  if(reopen){const keep=store.records.some(r=>r.id===REC.id)?REC.id:store.records[0].id;openRec(keep)}
+  save();$('#saved').textContent='Updated from the shared file';
+  if(reopen){const a=document.activeElement;if(a&&a.closest&&a.closest('#view')&&a.matches('input,textarea,[contenteditable]'))shPending=true;else go(cur)}else nav();
+  if(dlg.open&&$('#recList'))drawRecs()}
+document.addEventListener('focusout',()=>setTimeout(()=>{const a=document.activeElement;if(shPending&&!(a&&a.closest&&a.closest('#view'))){shPending=false;go(cur)}},250));
+function sharedUi(i){const b=$('#shBtn');b.hidden=!i.linked;b.className='shpill'+(i.state==='ok'?' ok':i.state==='perm'||i.state==='error'?' bad':'');
+  b.textContent=i.state==='ok'?'⇄ Shared file · synced':i.state==='perm'?'⇄ Shared file · reconnect':i.state==='error'?'⇄ Shared file · drive offline':'⇄ Shared file · syncing…';b.title=i.text;
+  if(i.state==='perm'&&!sharedAsked){sharedAsked=true;$('#saved').textContent='Shared file: click “Shared file” in the sidebar to reconnect'}}
+$('#shBtn').onclick=()=>{if(window.SeaShared)SeaShared.open()};
+addEventListener('DOMContentLoaded',()=>{if(!window.SeaShared)return;SeaShared.init({app:'port-clearance',title:'Port Clearance',snapshot:sharedSnapshot,apply:sharedApply});SeaShared.onState(sharedUi);sharedUi(SeaShared.info())});
 
 function gp(o,p){for(const k of p.split('.')){if(o==null)return'';o=o[k]}return o??''}
 function sp(o,p,v){const ks=p.split('.');for(let i=0;i<ks.length-1;i++){const k=ks[i];
@@ -445,7 +477,8 @@ $('#nav').onclick=e=>{const b=e.target.closest('button[data-v]');if(b)go(b.datas
 $('#menuBtn').onclick=()=>document.body.classList.toggle('menu');
 $('#scrim').onclick=()=>document.body.classList.remove('menu');
 
-function render(){const isDoc=!!SPEC[cur],tools=$('#tools');tools.innerHTML='';
+function render(){render0();lockUi()}
+function render0(){const isDoc=!!SPEC[cur],tools=$('#tools');tools.innerHTML='';
   $('#title').textContent=isDoc?SPEC[cur].no.replace('MDH','')+(SPEC[cur].no==='MDH'?'':' · ')+SPEC[cur].name:SECTIONS.find(s=>s[0]===cur)[1];
   $('#printBtn').lastChild.textContent=isDoc?'Print':'Print…';
   if(isDoc){
@@ -577,16 +610,41 @@ const EDIT={
 const dlg=$('#dlg');
 function sheetDlg(title,body,foot){dlg.innerHTML=`<div class="dh"><h2>${title}</h2><button class="btn" data-close>Done</button></div><div class="db">${body}</div>${foot?`<div class="df">${foot}</div>`:''}`;if(!dlg.open)dlg.showModal()}
 dlg.addEventListener('click',e=>{if(e.target===dlg||e.target.closest('[data-close]'))dlg.close()});
-function records(){const rs=[...store.records].sort((a,b)=>b.updated-a.updated);
-  sheetDlg('Saved clearances',rs.map(r=>`<div class="li${r.id===REC.id?' cur':''}"><div class="tt"><b>${esc(recTitle(r))}</b><small>${count(r.data.crew)} crew · edited ${new Date(r.updated).toLocaleString([], {dateStyle:'medium',timeStyle:'short'})}</small></div>${r.id===REC.id?'':`<button class="x" data-open="${r.id}">Open</button>`}<button class="x" data-dup="${r.id}">Duplicate</button><button class="x" data-rm="${r.id}" style="color:var(--danger)">Delete</button></div>`).join(''),
-  `<button class="btn" data-new="blank">New, empty</button><button class="btn pri" data-new="keep">New clearance for this ship</button>`)}
+const RQ={q:'',sort:'edited',st:'all'};
+const isDone=r=>r.status==='done';
+const recDate=r=>r.data.voy.date||'';
+function recHay(r){const d=r.data;return[recTitle(r),d.voy.port,d.voy.lastPort,d.voy.nextPort,d.voy.voyageNo,d.voy.date,fmt(d.voy.date),d.ship.name,isDone(r)?'done':'draft'].join(' ').toLowerCase()}
+function recRows(){let rs=store.records.filter(r=>RQ.st==='all'||(RQ.st==='done')===isDone(r));
+  const w=RQ.q.toLowerCase().split(/\s+/).filter(Boolean);if(w.length)rs=rs.filter(r=>{const h=recHay(r);return w.every(x=>h.includes(x))});
+  const port=r=>(r.data.voy.port||'').toLowerCase()||'￿';
+  const by={edited:(a,b)=>b.updated-a.updated,
+    date:(a,b)=>recDate(b).localeCompare(recDate(a))||b.updated-a.updated,
+    dateAsc:(a,b)=>(recDate(a)||'9999').localeCompare(recDate(b)||'9999')||b.updated-a.updated,
+    port:(a,b)=>port(a).localeCompare(port(b))||recDate(b).localeCompare(recDate(a))};
+  return rs.sort(by[RQ.sort]||by.edited)}
+function drawRecs(){const box=$('#recList');if(!box)return;const rs=recRows();
+  box.innerHTML=rs.length?rs.map(r=>`<div class="li${r.id===REC.id?' cur':''}"><div class="tt"><b>${esc(recTitle(r))}</b><small><span class="badge${isDone(r)?' done':''}">${isDone(r)?'Done':'Draft'}</span>${count(r.data.crew)} crew · edited ${new Date(r.updated).toLocaleString([], {dateStyle:'medium',timeStyle:'short'})}</small></div>${r.id===REC.id?'':`<button class="x" data-open="${r.id}">Open</button>`}<button class="x" data-print="${r.id}">Print</button><button class="x" data-dup="${r.id}">Duplicate</button><button class="x" data-done="${r.id}">${isDone(r)?'Reopen':'Mark done'}</button><button class="x" data-rm="${r.id}" style="color:var(--danger)">Delete</button></div>`).join(''):'<p class="note" style="margin:14px 0">No clearances match.</p>';
+  const n=st=>store.records.filter(r=>st==='all'||(st==='done')===isDone(r)).length,lab={all:'All',draft:'Draft',done:'Done'};
+  $$('.rchips button',dlg).forEach(b=>{b.classList.toggle('on',b.dataset.rst===RQ.st);b.textContent=lab[b.dataset.rst]+' ('+n(b.dataset.rst)+')'})}
+function records(){const n=st=>store.records.filter(r=>st==='all'||(st==='done')===isDone(r)).length;
+  sheetDlg('Saved clearances',`<div class="rq"><input id="recQ" type="search" placeholder="Search port, ship, voyage, date…" value="${esc(RQ.q)}" autocomplete="off"><select id="recSort"><option value="edited">Newest edited</option><option value="date">Port call date – newest first</option><option value="dateAsc">Port call date – oldest first</option><option value="port">Port A–Z</option></select></div>
+    <div class="rchips"><button data-rst="all">All (${n('all')})</button><button data-rst="draft">Draft (${n('draft')})</button><button data-rst="done">Done (${n('done')})</button></div><div id="recList"></div>`,
+  `<button class="btn" data-new="blank">New, empty</button><button class="btn pri" data-new="keep">New clearance for this ship</button>`);
+  $('#recSort').value=RQ.sort;drawRecs()}
 $('#recBtn').onclick=records;
+dlg.addEventListener('input',e=>{if(e.target.id==='recQ'){RQ.q=e.target.value;drawRecs()}});
+dlg.addEventListener('change',e=>{if(e.target.id==='recSort'){RQ.sort=e.target.value;drawRecs()}});
+function lockUi(){const lk=isDone(REC);[...$('#view').children].forEach(c=>c.inert=lk);$('#tools').inert=lk;$('#doneBar').hidden=!lk;
+  const b=$('#doneBtn');b.textContent=lk?'✓ Done':'Mark as done';b.classList.toggle('on',lk);b.title=lk?'Marked as done and locked. Click to reopen it as a draft.':'Mark this clearance as finished'}
+function setDone(on){REC.status=on?'done':'';REC.updated=Date.now();save();lockUi();$('#saved').textContent=on?'Marked as done':'Reopened as draft'}
+$('#doneBtn').onclick=()=>setDone(!isDone(REC));
+$('#doneBar').addEventListener('click',e=>{if(e.target.closest('[data-reopen]'))setDone(false)});
 dlg.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;const d=t.dataset;
   if(d.open){save();openRec(d.open);dlg.close();go(cur)}
   else if(d.dup){const r=store.records.find(x=>x.id===d.dup),n={id:uid(),updated:Date.now(),data:JSON.parse(JSON.stringify(r.data))};store.records.push(n);openRec(n.id);save();dlg.close();go(cur)}
   else if(d.rm){const r=store.records.find(x=>x.id===d.rm);if(!confirm('Delete “'+recTitle(r)+'”? This cannot be undone.'))return;
     store.records=store.records.filter(x=>x.id!==d.rm);if(!store.records.length)store.records.push({id:uid(),updated:Date.now(),data:blank()});
-    if(REC.id===d.rm){openRec(store.records[0].id);go(cur)}save();records()}
+    if(REC.id===d.rm){openRec(store.records[0].id);go(cur)}save();drawRecs()}
   else if(d.new){const b=blank();if(d.new==='keep'){const c=x=>JSON.parse(JSON.stringify(x));b.ship=c(D.ship);b.crew=c(D.crew);b.stores=c(D.stores);b.dgx=c(D.dgx);
       if(D.voy.mode==='arrival')Object.assign(b.voy,{mode:'departure',port:D.voy.port,agent:D.voy.agent,lastPort:D.voy.lastPort,nextPort:D.voy.nextPort,voyageNo:D.voy.voyageNo});
       else Object.assign(b.voy,{mode:'arrival',port:D.voy.nextPort,lastPort:D.voy.port,voyageNo:D.voy.voyageNo})}
@@ -597,9 +655,14 @@ dlg.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return
       if(j.settings&&j.settings.sig&&!store.settings.sig)store.settings.sig=j.settings.sig;if(last){openRec(last.id);save();dlg.close();go(cur)}}).catch(()=>alert('This file is not a Port Clearance backup.'));f.value=''};f.click()}
   else if(d.sigadd){const f=$('#file');f.accept='image/*';f.onchange=()=>{const fl=f.files[0];if(!fl)return;const im=new Image();im.onload=()=>{const s=Math.min(1,700/im.width),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);store.settings.sig=c.toDataURL('image/png');save();settings();render()};im.src=URL.createObjectURL(fl);f.value=''};f.click()}
   else if(d.sigrm){store.settings.sig='';save();settings();render()}
+  else if(d.rst){RQ.st=d.rst;drawRecs()}
+  else if(d.done){const r=store.records.find(x=>x.id===d.done);if(!r)return;r.status=isDone(r)?'':'done';r.updated=Date.now();save();if(r.id===REC.id)lockUi();drawRecs()}
+  else if(d.print){save();openRec(d.print);dlg.close();go('ship');setTimeout(()=>$('#printBtn').click(),80)}
+  else if(d.shared){if(window.SeaShared)SeaShared.open()}
   else if(d.doprint){const ids=$$('#dlg input[data-doc]:checked').map(i=>i.dataset.doc);if(!ids.length)return;const rot=$('#rot').checked;dlg.close();doPrint(ids,rot)}});
 function download(obj,name){const a=el('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(obj,null,1)],{type:'application/json'}));a.download=name+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
 $('#backupBtn').onclick=()=>sheetDlg('Backup',`<p class="note" style="font-size:13.500px;margin:0 0 12px">Everything is saved automatically in this browser on this device. Export a file to keep a copy, or to move your clearances to another computer or iPad.</p>
+  <div class="li"><div class="tt"><b>Shared database file</b><small>Keep all clearances in one file on a shared network drive, so other computers use them too</small></div><button class="x" data-shared="1">Set up…</button></div>
   <div class="li"><div class="tt"><b>This clearance</b><small>${esc(recTitle(REC))}</small></div><button class="x" data-exp="one">Export file</button></div>
   <div class="li"><div class="tt"><b>All clearances</b><small>${store.records.length} saved, with settings</small></div><button class="x" data-exp="all">Export file</button></div>
   <div class="li"><div class="tt"><b>Import</b><small>Adds the clearances from a backup file</small></div><button class="x" data-imp="1">Choose file…</button></div>`);
