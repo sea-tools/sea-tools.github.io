@@ -119,6 +119,7 @@ details.adv .grid{margin-top:8px}
 .wph{padding:0 0 6px;font-size:12px;font-weight:600;color:var(--dim)}
 .wp{padding:5px 0;border-top:1px solid var(--line)}
 .wp .no{font:700 14px var(--round);color:var(--dim);text-align:center}
+.wp.chk{background:var(--warnbg);border-radius:10px}.wp.chk .ca,.wp.chk .cb{box-shadow:0 0 0 2px var(--warn)}.chkb{color:var(--warn);font-weight:700}
 .wp input{height:42px;font-size:15px}
 .wp .ca,.wp .cb{font-family:var(--mono);font-size:14px;letter-spacing:-.2px}
 .lg{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums;line-height:1.25}
@@ -408,10 +409,11 @@ function gridLine(s,o,hint){
   const re=/(^|[^\d.])(\d{5,8}(?:\.\d+)?)(?!\d)/g,f=[];let m;
   while((m=re.exec(s)))f.push({v:+m[2],i:m.index+m[1].length,e:m.index+m[0].length});
   if(f.length<2)return null;const A=f[0],B=f[1];
-  const lab=x=>{const pre=s.slice(Math.max(0,x.i-10),x.i).match(/(easting|east|northing|north|[EXNY])\s*[:=]?\s*$/i);
-    let l=pre&&pre[1];if(!l){const post=s.slice(x.e,x.e+12).match(/^\s*m?\s*([EN])(?![A-Za-z])/);l=post&&post[1]}
-    if(!l)return null;l=l[0].toUpperCase();return l==="X"||l==="E"?"E":"N"};
-  const la=lab(A),lb=lab(B);let order;
+  const lab=x=>{const hs=s.slice(Math.max(0,x.i-10),x.i),pre=hs.match(/(?:^|[^A-Za-z0-9])(easting|east|northing|north|[EXNY])\s*[:=]?\s*$/i);
+    if(pre){const l=pre[1][0].toUpperCase(),lead=/^[^A-Za-z]/.test(pre[0])?1:0;return{l:l==="X"||l==="E"?"E":"N",from:x.i-pre[0].length+lead,to:x.e}}
+    const post=s.slice(x.e,x.e+12).match(/^\s*m?\s*([EN])(?![A-Za-z])/);
+    if(post)return{l:post[1],from:x.i,to:x.e+post[0].length};return{l:null,from:x.i,to:x.e}};
+  const LA=lab(A),LB=lab(B),la=LA.l,lb=LB.l;let order;
   if(la&&lb&&la!==lb)order=la==="E"?"en":"ne";
   else if(o.enOrder&&o.enOrder!=="auto")order=o.enOrder;
   else if(hint.en)order=hint.en;
@@ -421,7 +423,9 @@ function gridLine(s,o,hint){
     if(z&&+z[2]>=1&&+z[2]<=60){g.zone=+z[2];g.south=z[3]<"N"}}
   let ll;try{ll=gridToLatLon(E,N,g)}catch(e){return null}
   if(!isFinite(ll[0])||!isFinite(ll[1])||Math.abs(ll[0])>90)return null;
-  const rest=(s.slice(0,Math.min(A.i,B.i))+" "+s.slice(Math.max(A.e,B.e))).replace(/\b\d{1,2}\s?[C-HJ-NP-X]\b/g," ").replace(/\b[EN]\b\s*[:=]?/g," ");
+  const cut=[[LA.from,LA.to],[LB.from,LB.to]].sort((x,y)=>x[0]-y[0]);let rest="",pos=0;
+  for(const[f,e]of cut){rest+=s.slice(pos,f)+" ";pos=Math.max(pos,e)}rest+=s.slice(pos);
+  rest=rest.replace(/\b\d{1,2}\s?[C-HJ-NP-X]\b/g," ").replace(/\*+\s*[A-Z]{3,}[A-Z0-9 ]*$/,"");
   return{pts:[{name:cleanName(rest),lat:ll[0],lon:ll[1]}],grid:true}}
 
 function orderFix(a,b,o,hint,flags){
@@ -576,9 +580,9 @@ undo:"Undo",
 log_ok:(n,s)=>`Added ${n} waypoint${n===1?"":"s"} from ${s}.`,log_none:"No coordinates found.",log_bad:n=>`${n} line${n===1?"":"s"} looked like coordinates but could not be read:`,
 log_grid:(n,g)=>`${n} point${n===1?"":"s"} read as Easting / Northing in ${g}. Check the grid in Reading options.`,
 log_swap:n=>`${n} line${n===1?"":"s"} had Lat and Lon the wrong way round; fixed.`,
-ocr_load:"Preparing text recognition… (the first time it loads about 3 MB)",ocr_work:p=>`Reading text from the picture… ${p}%`,ocr_note:"Text was read from a picture. Text recognition can misread digits, so check every number against the original.",ocr_none:"No coordinates were found in this picture. Try a sharper or larger picture.",ocr_text:"Recognised text",err_imgfail:"This picture could not be opened. Save it as JPG or PNG and try again.",err_heic:"This browser cannot open HEIC pictures. Export it as JPG or PNG.",err_ocr_load:"Could not load the text recognition files. Connect to the internet (needed the first time) and try again.",err_bin:"This file does not look like text, so it was not read. Use Word, Excel, a PDF with text, or plain text.",err_file:(f,e)=>`${f}: ${e}`,err_old:"This file type is not supported. Save it as .docx, .xlsx or PDF, or copy and paste the text.",
+ocr_load:"Preparing text recognition… (the first time it loads about 3 MB)",ocr_work:(k,n)=>`Reading text from the picture… reading ${k} of ${n}`,ocr_note:"Text was read from a picture. Text recognition can misread digits, so check every number against the original.",ocr_none:"No coordinates were found in this picture. Try a sharper or larger picture.",ocr_text:"Recognised text",chk:"check",ocr_chk:r=>`Rows ${r} were not read the same way every time. Check their numbers against the picture (marked in the list).`,err_imgfail:"This picture could not be opened. Save it as JPG or PNG and try again.",err_heic:"This browser cannot open HEIC pictures. Export it as JPG or PNG.",err_ocr_load:"Could not load the text recognition files. Connect to the internet (needed the first time) and try again.",err_bin:"This file does not look like text, so it was not read. Use Word, Excel, a PDF with text, or plain text.",err_file:(f,e)=>`${f}: ${e}`,err_old:"This file type is not supported. Save it as .docx, .xlsx or PDF, or copy and paste the text.",
 err_pdf:"No text found in this PDF (a scan?). Copy the coordinates and paste them here instead.",err_zip:"This browser is too old to open Word and Excel files. Paste the text instead.",
-err_clip:"The clipboard could not be read. Paste into the box above (Ctrl+V or long-press → Paste).",
+err_clip:"The browser did not allow reading the clipboard. Click in the box above and press Ctrl+V (or long-press → Paste).",clip_empty:"The clipboard is empty or holds something that is not text or a picture.",
 t_total:(n,d,g)=>`<span><b>${n}</b> waypoint${n===1?"":"s"}</span><span>${g}: <b>${d}</b> NM</span>`,
 empty:"No waypoints yet. Add some in step 1.",
 w_few:"A route needs at least 2 waypoints.",w_empty:n=>`${n} waypoint${n===1?" has":"s have"} no valid position and will be left out of the file.`,
@@ -621,9 +625,9 @@ undo:"Cofnij",
 log_ok:(n,s)=>`Dodano punktów: ${n} (${s}).`,log_none:"Nie znaleziono współrzędnych.",log_bad:n=>`Wierszy wyglądających jak współrzędne, których nie udało się odczytać: ${n}:`,
 log_grid:(n,g)=>`Punkty odczytane jako Easting / Northing w siatce ${g}: ${n}. Sprawdź siatkę w Opcjach wczytywania.`,
 log_swap:n=>`Wiersze z zamienioną szerokością i długością (poprawione): ${n}.`,
-ocr_load:"Przygotowuję rozpoznawanie tekstu… (przy pierwszym użyciu pobiera ok. 3 MB)",ocr_work:p=>`Odczytuję tekst z obrazu… ${p}%`,ocr_note:"Tekst odczytano z obrazu. Rozpoznawanie tekstu może przekręcić cyfry, więc sprawdź każdą liczbę z oryginałem.",ocr_none:"Nie znaleziono współrzędnych na tym obrazie. Spróbuj ostrzejszego lub większego obrazu.",ocr_text:"Rozpoznany tekst",err_imgfail:"Nie można otworzyć tego obrazu. Zapisz go jako JPG lub PNG i spróbuj ponownie.",err_heic:"Ta przeglądarka nie otwiera obrazów HEIC. Wyeksportuj go jako JPG lub PNG.",err_ocr_load:"Nie udało się wczytać plików rozpoznawania tekstu. Połącz się z internetem (potrzebne za pierwszym razem) i spróbuj ponownie.",err_bin:"Ten plik nie wygląda na tekst, więc go nie wczytano. Użyj Worda, Excela, PDF z tekstem albo zwykłego tekstu.",err_file:(f,e)=>`${f}: ${e}`,err_old:"Ten typ pliku nie jest obsługiwany. Zapisz go jako .docx, .xlsx lub PDF albo skopiuj i wklej tekst.",
+ocr_load:"Przygotowuję rozpoznawanie tekstu… (przy pierwszym użyciu pobiera ok. 3 MB)",ocr_work:(k,n)=>`Odczytuję tekst z obrazu… odczyt ${k} z ${n}`,ocr_note:"Tekst odczytano z obrazu. Rozpoznawanie tekstu może przekręcić cyfry, więc sprawdź każdą liczbę z oryginałem.",ocr_none:"Nie znaleziono współrzędnych na tym obrazie. Spróbuj ostrzejszego lub większego obrazu.",ocr_text:"Rozpoznany tekst",chk:"sprawdź",ocr_chk:r=>`Wiersze ${r} nie były odczytane za każdym razem tak samo. Sprawdź ich liczby z obrazem (zaznaczone na liście).`,err_imgfail:"Nie można otworzyć tego obrazu. Zapisz go jako JPG lub PNG i spróbuj ponownie.",err_heic:"Ta przeglądarka nie otwiera obrazów HEIC. Wyeksportuj go jako JPG lub PNG.",err_ocr_load:"Nie udało się wczytać plików rozpoznawania tekstu. Połącz się z internetem (potrzebne za pierwszym razem) i spróbuj ponownie.",err_bin:"Ten plik nie wygląda na tekst, więc go nie wczytano. Użyj Worda, Excela, PDF z tekstem albo zwykłego tekstu.",err_file:(f,e)=>`${f}: ${e}`,err_old:"Ten typ pliku nie jest obsługiwany. Zapisz go jako .docx, .xlsx lub PDF albo skopiuj i wklej tekst.",
 err_pdf:"W tym PDF-ie nie ma tekstu (skan?). Skopiuj współrzędne i wklej je tutaj.",err_zip:"Ta przeglądarka jest za stara, by otwierać pliki Word i Excel. Wklej tekst.",
-err_clip:"Nie można odczytać schowka. Wklej do pola powyżej (Ctrl+V lub przytrzymaj → Wklej).",
+err_clip:"Przeglądarka nie pozwoliła odczytać schowka. Kliknij w pole powyżej i naciśnij Ctrl+V (lub przytrzymaj → Wklej).",clip_empty:"Schowek jest pusty albo zawiera coś, co nie jest tekstem ani obrazem.",
 t_total:(n,d,g)=>`<span>Punktów: <b>${n}</b></span><span>${g}: <b>${d}</b> NM</span>`,
 empty:"Brak punktów. Dodaj je w kroku 1.",
 w_few:"Trasa potrzebuje co najmniej 2 punktów.",w_empty:n=>`Punkty bez poprawnej pozycji (${n}) nie trafią do pliku.`,
@@ -697,7 +701,7 @@ function renderList(){
   $("#hA").textContent=colA();$("#hB").textContent=colB();
   const gi=$("#gridInfo");gi.hidden=S.view!=="en";gi.textContent=gridLabel(S.grid);
   if(!S.wps.length){$("#list").innerHTML=`<div class="empty">${t("empty")}</div>`;refreshDerived();return}
-  $("#list").innerHTML=S.wps.map((w,i)=>`<div class="wp" data-id="${w.id}">
+  $("#list").innerHTML=S.wps.map((w,i)=>`<div class="wp${w.chk?" chk":""}" data-id="${w.id}">
     <span class="no">${i+1}</span>
     <input class="nm" type="text" value="${esc(w.name||"")}" placeholder="WP ${i+1}" aria-label="${t("c_name")} ${i+1}" autocomplete="off" autocapitalize="characters">
     <input class="ca" type="text" value="${esc(cellTxt(w,0))}" aria-label="${esc(colA())} ${i+1}" autocomplete="off" spellcheck="false">
@@ -708,7 +712,7 @@ function renderList(){
 function legs(){const v=valid(),out=new Map();for(let i=1;i<v.length;i++)out.set(v[i].id,legCalc(v[i-1],v[i],S.gc));return out}
 function refreshDerived(){
   const L=legs();let tot=0;L.forEach(x=>tot+=x.d);
-  $$("#list .wp").forEach(r=>{const x=L.get(r.dataset.id);r.querySelector(".lg").innerHTML=x?`<b>${String(Math.round(x.b)%360).padStart(3,"0")}°</b><br>${nf(x.d,2)} NM`:""});
+  $$("#list .wp").forEach(r=>{const x=L.get(r.dataset.id);const w0=S.wps.find(q=>q.id===r.dataset.id);r.querySelector(".lg").innerHTML=(x?`<b>${String(Math.round(x.b)%360).padStart(3,"0")}°</b><br>${nf(x.d,2)} NM`:"")+(w0&&w0.chk?`${x?"<br>":""}<span class="chkb">${t("chk")}</span>`:"")});
   $("#total").innerHTML=S.wps.length?t("t_total")(S.wps.length,nf(tot,2),S.gc?t("gc"):t("rhumb")):"";
   drawMap();renderWarn(L);renderRtz();save()}
 
@@ -773,11 +777,12 @@ function ingest(res,src){
   const ocrBox=res.ocr!==undefined?`<div class="note warn">${esc(t("ocr_note"))}<details><summary>${esc(t("ocr_text"))}</summary><pre style="white-space:pre-wrap;margin:6px 0 0;font:12px/1.4 var(--mono)">${esc(res.ocr.trim()||"—")}</pre></details></div>`:"";
   if(!res.pts.length){log.innerHTML=`<div class="note warn">${esc(res.ocr!==undefined?t("ocr_none"):t("log_none"))}${res.bad.length?badList(res.bad):""}</div>`+ocrBox;return}
   snapshot();
-  res.pts.forEach(p=>{const n=S.wps.length+1;S.wps.push({id:uid(),name:p.name||"WP "+n,lat:p.lat,lon:p.lon})});
+  const chkRows=[];res.pts.forEach(p=>{const n=S.wps.length+1;S.wps.push({id:uid(),name:p.name||"WP "+n,lat:p.lat,lon:p.lon,chk:p.chk?1:undefined});if(p.chk)chkRows.push(n)});
   let h=`<div class="note ok">${esc(t("log_ok")(res.pts.length,src))} <button class="btn sm" id="bUndo">${t("undo")}</button></div>`;
   if(res.notes&&res.notes.grid)h+=`<div class="note warn">${esc(t("log_grid")(res.notes.grid,gridLabel(S.grid)))}</div>`;
   if(res.notes&&res.notes.swapped)h+=`<div class="note warn">${esc(t("log_swap")(res.notes.swapped))}</div>`;
   if(res.bad.length)h+=`<div class="note warn">${badList(res.bad)}</div>`;
+  if(chkRows.length)h+=`<div class="note bad">${esc(t("ocr_chk")(chkRows.join(", ")))}</div>`;
   h+=ocrBox;log.innerHTML=h;renderList();
   const u=$("#bUndo");if(u)u.onclick=()=>{if(UNDO){S.wps=UNDO;UNDO=null;$("#log").innerHTML="";renderList()}};
   $("#c2").scrollIntoView({behavior:"smooth",block:"start"})}
@@ -899,29 +904,63 @@ async function decodeImage(f,buf,ext){
   if(!bmp){for(const c of jpegCandidates(buf)){try{bmp=await createImageBitmap(new Blob([buf.slice(c.off,c.off+c.len)],{type:"image/jpeg"}));break}catch(e){}}}
   if(!bmp)throw new Error(t(/^(heic|heif)$/.test(ext)?"err_heic":"err_imgfail"));
   return bmp}
-// grey scale, contrast stretch, dark screens inverted, small pictures enlarged, big photos reduced
-function prepCanvas(bmp){
-  const long=Math.max(bmp.width,bmp.height);let sc=1;
-  if(long>2800)sc=2800/long;else if(bmp.width<1300)sc=Math.min(3,1300/bmp.width);
-  const w=Math.max(1,Math.round(bmp.width*sc)),h=Math.max(1,Math.round(bmp.height*sc)),c=document.createElement("canvas");c.width=w;c.height=h;
+// one prepared copy of the picture: grey, contrast stretched, dark screens inverted, optionally black and white
+function renderVariant(bmp,targetW,mode){
+  const sc=Math.min(6,targetW/bmp.width),w=Math.max(1,Math.round(bmp.width*sc)),h=Math.max(1,Math.round(bmp.height*sc)),c=document.createElement("canvas");c.width=w;c.height=h;
   const x=c.getContext("2d",{willReadFrequently:true});x.imageSmoothingQuality="high";x.fillStyle="#fff";x.fillRect(0,0,w,h);x.drawImage(bmp,0,0,w,h);
-  if(bmp.close)bmp.close();
   const d=x.getImageData(0,0,w,h),p=d.data,n=w*h,g=new Uint8ClampedArray(n),hist=new Uint32Array(256);let sum=0;
   for(let i=0,j=0;i<n;i++,j+=4){const v=(p[j]*299+p[j+1]*587+p[j+2]*114)/1000;g[i]=v;sum+=v;hist[g[i]]++}
   const dark=sum/n<110;let lo=0,hi=255,a=0;
   while(lo<255&&a+hist[lo]<n*0.02){a+=hist[lo];lo++}a=0;while(hi>0&&a+hist[hi]<n*0.02){a+=hist[hi];hi--}
   if(hi-lo<30){lo=0;hi=255}
-  for(let i=0,j=0;i<n;i++,j+=4){let v=(g[i]-lo)*255/(hi-lo);v=v<0?0:v>255?255:v;if(dark)v=255-v;p[j]=p[j+1]=p[j+2]=v;p[j+3]=255}
+  for(let i=0;i<n;i++){let v=(g[i]-lo)*255/(hi-lo);v=v<0?0:v>255?255:v;g[i]=dark?255-v:v}
+  let th=128;
+  if(mode==="bin"){const hh=new Uint32Array(256);for(let i=0;i<n;i++)hh[g[i]|0]++;let tot=0,sm=0;for(let k=0;k<256;k++){tot+=hh[k];sm+=k*hh[k]}
+    let wb=0,sb=0,best=-1;for(let k=0;k<256;k++){wb+=hh[k];if(!wb)continue;const wf=tot-wb;if(!wf)break;sb+=k*hh[k];const mb=sb/wb,mf=(sm-sb)/wf,v=wb*wf*(mb-mf)*(mb-mf);if(v>best){best=v;th=k}}}
+  for(let i=0,j=0;i<n;i++,j+=4){const v=mode==="bin"?(g[i]>th?255:0):g[i];p[j]=p[j+1]=p[j+2]=v;p[j+3]=255}
   x.putImageData(d,0,0);return c}
-const fixOcr=s=>String(s).replace(/(\d)\s?[oO*](?=\s?\d{1,2}[.'′ ]\d)/g,"$1°");
+function variantsFor(w){ // [target width, mode, page segmentation mode]
+  const T=w<1000?[880,1320,1760,2650]:w<2500?[1500,2000,2600]:[2000,2800],v=[];
+  v.push([T[0],"raw","6"],[T[0],"raw","4"]);for(const t0 of T.slice(w<1000?1:0))v.push([t0,"bin","6"],[t0,"bin","4"]);return v}
+// several readings of the same picture; for every row the reading seen most often wins, rows that differ are marked
+function consensus(rs){
+  const lens={};rs.forEach(r=>{const n=r.pts.length;if(n)lens[n]=(lens[n]||0)+1});
+  const R=+Object.keys(lens).sort((a,b)=>lens[b]-lens[a]||b-a)[0];if(!R)return{pts:[],best:rs[0]};
+  const use=rs.filter(r=>r.pts.length===R),total=use.reduce((s0,r)=>s0+r.w,0),rows=[];
+  for(let i=0;i<R;i++){
+    const votes=new Map();
+    for(const r of use){const p=r.pts[i],k=p.lat.toFixed(6)+","+p.lon.toFixed(6),e=votes.get(k)||{n:0,names:[],p};e.n+=r.w;e.names.push([p.name||"",r.w]);votes.set(k,e)}
+    rows.push([...votes.values()].sort((a,b)=>b.n-a.n))}
+  // candidates far away from all the other rows are most likely misread digits
+  const med=a=>{const x=[...a].sort((p,q)=>p-q);return x[Math.floor(x.length/2)]},tops=rows.map(r=>r[0].p),
+        mla=med(tops.map(p=>p.lat)),mlo=med(tops.map(p=>p.lon)),dd=p=>Math.max(Math.abs(p.lat-mla),Math.abs(p.lon-mlo)*Math.cos(mla*D2R)),spread=Math.max(1.5,3*med(tops.map(dd)));
+  const pts=rows.map(r=>{const near=r.filter(e=>dd(e.p)<=spread),c=(near.length?near:r),top=c[0],nm=new Map();
+    top.names.forEach(([x,wt])=>{x=x.replace(/\s+(?:[EN£€]|NS|EN|NE|SN)$/,"").trim();nm.set(x,(nm.get(x)||0)+wt)});
+    const name=[...nm.entries()].sort((a,b)=>b[1]-a[1])[0][0];
+    return{name,lat:top.p.lat,lon:top.p.lon,agree:top.n,of:total,chk:top.n/total<0.99||c!==r&&false}});
+  pts.forEach((p,i)=>{if(!rows[i].some(e=>e.p.lat===p.lat&&e.p.lon===p.lon&&e.n/total>=0.99))p.chk=true});
+  const score=r=>pts.reduce((s0,p,i)=>s0+(r.pts[i].lat===p.lat&&r.pts[i].lon===p.lon?1:0),0);
+  return{pts,best:use.slice().sort((a,b)=>score(b)-score(a))[0]}}
+const fixOcr=x=>String(x)
+  .replace(/[£€]+E?(?=\d)/g,"E")                                   // E read as £ or €
+  .replace(/\b([EN])([\dOoSsBIl]{5,8})\b/g,(m,l,d)=>l+d.replace(/[Oo]/g,"0").replace(/[Ss]/g,"5").replace(/B/g,"8").replace(/[Il]/g,"1")) // letters that stand for digits inside an Easting/Northing
+  .replace(/(\d)[oO*](?=\s?\d{1,2}[.'′ ]\d)/g,"$1°")                // degree sign read as o
+  .replace(/\b([A-Z]{2,})O(0\d{2,})\b/g,"$1$2");                  // codes like TNWO034 -> TNW034
 async function readImage(f,buf,ext){
   const show=m=>{$("#log").innerHTML=`<div class="note">${esc(m)}</div>`};
   show(t("ocr_load"));
-  const bmp=await decodeImage(f,buf,ext),cv=prepCanvas(bmp);let w;
-  try{ocrProgress=m=>{if(m.status==="recognizing text")show(t("ocr_work")(Math.round(m.progress*100)))};w=await getOcr()}catch(e){ocrProgress=null;throw new Error(t("err_ocr_load"))}
-  show(t("ocr_work")(0));
-  let r;try{r=await w.recognize(cv)}finally{ocrProgress=null}
-  const text=fixOcr(r.data.text||""),res=parseText(text,rOpts());res.ocr=text;return res}
+  const bmp=await decodeImage(f,buf,ext);let w;
+  try{ocrProgress=null;w=await getOcr()}catch(e){throw new Error(t("err_ocr_load"))}
+  const V=variantsFor(bmp.width),rs=[],texts=[];
+  for(let k=0;k<V.length;k++){
+    show(t("ocr_work")(k+1,V.length));
+    await w.setParameters({tessedit_pageseg_mode:V[k][2],preserve_interword_spaces:"1"});
+    const r=await w.recognize(renderVariant(bmp,V[k][0],V[k][1])),text=fixOcr(r.data.text||"");
+    texts.push(text);{const pr=parseText(text,rOpts());pr.w=V[k][2]==="6"?1.25:1;rs.push(pr)}
+    await new Promise(r0=>setTimeout(r0,0))}
+  if(bmp.close)bmp.close();
+  const c=consensus(rs),bi=rs.indexOf(c.best);
+  const res={pts:c.pts,bad:[],notes:{grid:(c.best&&c.best.notes&&c.best.notes.grid)||0},ocr:texts[bi>=0?bi:0]};return res}
 async function handleFiles(files){
   for(const f of files){try{const r=await readFile(f);ingest(r,f.name)}catch(e){$("#log").innerHTML=`<div class="note bad">${esc(t("err_file")(f.name,e.message||e))}</div>`}}}
 
@@ -929,7 +968,19 @@ async function handleFiles(files){
 $("#file").onchange=e=>{handleFiles([...e.target.files]);e.target.value=""};
 $("#bRead").onclick=()=>{const v=$("#paste").value;if(v.trim()){ingestText(v,"text");$("#paste").value=""}};
 $("#paste").addEventListener("paste",e=>{const f=e.clipboardData&&e.clipboardData.files;if(f&&f.length){e.preventDefault();handleFiles([...f]);return}setTimeout(()=>$("#bRead").click(),0)});
-$("#bClip").onclick=async()=>{try{const v=await navigator.clipboard.readText();if(v.trim())ingestText(v,"clipboard")}catch(e){toast(t("err_clip"));$("#paste").focus()}};
+$("#bClip").onclick=async()=>{
+  try{
+    if(navigator.clipboard&&navigator.clipboard.read){
+      const items=await navigator.clipboard.read(),files=[];let text="";
+      for(const it of items){const im=it.types.find(x=>x.startsWith("image/"));
+        if(im){const bl=await it.getType(im);files.push(new File([bl],"clipboard."+(im.split("/")[1]||"png"),{type:im}))}
+        else if(it.types.includes("text/plain")&&!text)text=await(await it.getType("text/plain")).text()}
+      if(files.length){handleFiles(files);return}
+      if(text.trim()){ingestText(text,"clipboard");return}
+      toast(t("clip_empty"));return}
+    const v=await navigator.clipboard.readText();if(v.trim()){ingestText(v,"clipboard");return}
+    toast(t("clip_empty"))
+  }catch(e){toast(t("err_clip"));$("#paste").focus()}};
 $("#bAddMan").onclick=()=>addRow(true);
 document.addEventListener("paste",e=>{const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;
   const f=e.clipboardData&&e.clipboardData.files;if(f&&f.length){e.preventDefault();handleFiles([...f]);return}
@@ -957,7 +1008,7 @@ $("#list").addEventListener("click",e=>{const b=e.target.closest("button");if(!b
 $("#list").addEventListener("change",e=>{
   const el=e.target,row=el.closest(".wp");if(!row)return;const w=S.wps.find(x=>x.id===row.dataset.id);if(!w)return;
   if(el.classList.contains("nm")){w.name=el.value.trim();save();refreshDerived();return}
-  const k=el.classList.contains("ca")?0:1,txt=el.value.trim();el.classList.remove("bad");
+  const k=el.classList.contains("ca")?0:1,txt=el.value.trim();el.classList.remove("bad");if(w.chk){delete w.chk;row.classList.remove("chk")}
   const redraw=()=>{row.querySelector(".ca").value=cellTxt(w,0);row.querySelector(".cb").value=cellTxt(w,1);$$("input",row).forEach(i=>i.classList.remove("bad"));refreshDerived()};
   if(S.view==="ll"){
     if(!txt){if(k===0)w.lat=null;else w.lon=null;redraw();return}
