@@ -1,0 +1,4 @@
+Text recognition files used by Plot to Route (all Apache License 2.0):
+- tesseract.js 5.1.1 (tesseract.min.js, worker.min.js)
+- tesseract.js-core 5.1.1 (tesseract-core-*.wasm.js), built from Tesseract OCR
+- tessdata_best English model (eng.traineddata.gz)
