@@ -171,9 +171,9 @@ pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);f
     <h2><span class="step">1</span><span data-i="h1">Add coordinates</span></h2>
     <label class="drop" id="drop" for="file">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
-      <b data-i="drop">Drop a file here</b><span data-i="dropsub">Word, Excel, PDF, text, CSV, RTZ or GPX</span>
+      <b data-i="drop">Drop a file here</b><span data-i="dropsub">Word, Excel, PDF, text, CSV, RTZ, GPX or a picture (JPG, PNG, DNG)</span>
     </label>
-    <input type="file" id="file" hidden multiple accept=".txt,.csv,.tsv,.docx,.xlsx,.pdf,.rtz,.xml,.gpx,.log,.asc,text/plain">
+    <input type="file" id="file" hidden multiple accept=".txt,.csv,.tsv,.docx,.xlsx,.pdf,.rtz,.xml,.gpx,.log,.asc,text/plain,image/*,.dng,.cr2,.nef,.arw,.heic">
     <textarea id="paste" spellcheck="false" autocomplete="off" data-ip="ph"></textarea>
     <div class="btns">
       <button class="btn pri" id="bRead" data-i="read">Read coordinates</button>
@@ -552,7 +552,7 @@ const TX={
 en:{
 eyebrow:"Bridge · ECDIS",
 desc:"Turn coordinates into a route file for ECDIS. Type them, paste them or drop a Word, Excel, PDF or text file. Latitude / Longitude in any format, or Easting / Northing.",
-h1:"Add coordinates",drop:"Drop a file here",dropsub:"Word, Excel, PDF, text, CSV, RTZ or GPX",
+h1:"Add coordinates",drop:"Drop a file here",dropsub:"Word, Excel, PDF, text, CSV, RTZ, GPX or a picture (JPG, PNG, DNG)",
 ph:"…or paste text with coordinates here (from Word, Excel, PDF, e-mail). One waypoint per line, a name in front is optional.",
 read:"Read coordinates",clip:"Paste from clipboard",addman:"Type them in manually",opts:"Reading options",
 o_type:"Coordinates in the source",o_order:"Order of the pair",o_grid:"Grid (for Easting / Northing)",o_zone:"UTM zone",o_hem:"Hemisphere",o_eno:"Easting / Northing order",
@@ -576,7 +576,7 @@ undo:"Undo",
 log_ok:(n,s)=>`Added ${n} waypoint${n===1?"":"s"} from ${s}.`,log_none:"No coordinates found.",log_bad:n=>`${n} line${n===1?"":"s"} looked like coordinates but could not be read:`,
 log_grid:(n,g)=>`${n} point${n===1?"":"s"} read as Easting / Northing in ${g}. Check the grid in Reading options.`,
 log_swap:n=>`${n} line${n===1?"":"s"} had Lat and Lon the wrong way round; fixed.`,
-err_img:"This is a picture. Plot to Route cannot read text from pictures. Copy the coordinates as text (or retype them) and paste them here, or use a PDF that contains text.",err_bin:"This file does not look like text, so it was not read. Use Word, Excel, a PDF with text, or plain text.",err_file:(f,e)=>`${f}: ${e}`,err_old:"This file type is not supported. Save it as .docx, .xlsx or PDF, or copy and paste the text.",
+ocr_load:"Preparing text recognition… (the first time it loads about 3 MB)",ocr_work:p=>`Reading text from the picture… ${p}%`,ocr_note:"Text was read from a picture. Text recognition can misread digits, so check every number against the original.",ocr_none:"No coordinates were found in this picture. Try a sharper or larger picture.",ocr_text:"Recognised text",err_imgfail:"This picture could not be opened. Save it as JPG or PNG and try again.",err_heic:"This browser cannot open HEIC pictures. Export it as JPG or PNG.",err_ocr_load:"Could not load the text recognition files. Connect to the internet (needed the first time) and try again.",err_bin:"This file does not look like text, so it was not read. Use Word, Excel, a PDF with text, or plain text.",err_file:(f,e)=>`${f}: ${e}`,err_old:"This file type is not supported. Save it as .docx, .xlsx or PDF, or copy and paste the text.",
 err_pdf:"No text found in this PDF (a scan?). Copy the coordinates and paste them here instead.",err_zip:"This browser is too old to open Word and Excel files. Paste the text instead.",
 err_clip:"The clipboard could not be read. Paste into the box above (Ctrl+V or long-press → Paste).",
 t_total:(n,d,g)=>`<span><b>${n}</b> waypoint${n===1?"":"s"}</span><span>${g}: <b>${d}</b> NM</span>`,
@@ -589,7 +589,7 @@ w_zone:"Easting / Northing is shown for the grid chosen in step 1. Make sure the
 cleared:"Cleared",copied:"Copied",rev_ok:"Route reversed",saved:"File ready",
 ask_clear:"Remove all waypoints?",
 hlp:`<h3>How it works</h3><ol><li><b>Add coordinates:</b> drop a file, paste text or type them in. The app finds the positions itself.</li><li><b>Check the list and the plot.</b> Fix names or positions, change the order, choose how the coordinates are shown.</li><li><b>Download the RTZ</b> and import it in the ECDIS.</li></ol>
-<h3>What it understands</h3><ul><li><code>54°07.404'N 018°38.502'E</code>, <code>54 07.404 N 018 38.502 E</code>, <code>N 54 07.404 E 018 38.502</code></li><li><code>54°07'24.2"N 018°38'30.1"E</code>, <code>5407.404N 01838.502E</code> (NMEA style), <code>540724N 0183830E</code></li><li><code>54.12345 18.54321</code>, <code>54,12345; 18,54321</code>, <code>-3.5 55.2</code></li><li>Easting / Northing: <code>512345.5 5712345.2</code>, <code>E 512345 N 5712345</code>, <code>31U 512345 5712345</code></li><li>A name in front of the position: <code>WP3 54°07.4'N 018°38.5'E</code>. Several waypoints on one line, and a latitude and a longitude on two lines, also work.</li><li>Files: Word (.docx, text and tables), Excel (.xlsx), PDF with text, text and CSV, RTZ and GPX.</li></ul>
+<h3>What it understands</h3><ul><li><code>54°07.404'N 018°38.502'E</code>, <code>54 07.404 N 018 38.502 E</code>, <code>N 54 07.404 E 018 38.502</code></li><li><code>54°07'24.2"N 018°38'30.1"E</code>, <code>5407.404N 01838.502E</code> (NMEA style), <code>540724N 0183830E</code></li><li><code>54.12345 18.54321</code>, <code>54,12345; 18,54321</code>, <code>-3.5 55.2</code></li><li>Easting / Northing: <code>512345.5 5712345.2</code>, <code>E 512345 N 5712345</code>, <code>31U 512345 5712345</code></li><li>A name in front of the position: <code>WP3 54°07.4'N 018°38.5'E</code>. Several waypoints on one line, and a latitude and a longitude on two lines, also work.</li><li>Files: Word (.docx, text and tables), Excel (.xlsx), PDF with text, text and CSV, RTZ and GPX.</li><li>Pictures: screenshots and photos (JPG, PNG, WebP, DNG). You can also paste a screenshot with Ctrl+V. Text is read in your browser with text recognition, which can misread digits, so always check the numbers. It works best with a sharp, straight picture.</li></ul>
 <h3>Easting / Northing</h3><p>Choose the grid in <b>Reading options</b>: UTM (WGS84 / ETRS89 is the same for this purpose), UTM ED50 or British National Grid, and the zone. Easting / Northing is converted to WGS84 Lat / Lon. The RTZ file always holds WGS84 positions. ED50 is approximate (a few metres).</p>
 <h3>Importing in the ECDIS</h3><p>Copy the .rtz file to a USB stick or the ECDIS import folder, then use the route import function of the route manager. After the import compare the route with the plot here.</p><h3>If your ECDIS refuses the file</h3><ol><li>Import a short test route first (2–3 waypoints).</li><li>Try another <b>RTZ version</b>: 1.0 first, then 1.1 or 1.2.</li><li>Keep <b>Waypoint names</b> on Simplified. Some systems reject accents and long names.</li><li>Do not rename the file. Its name has to equal the route name, and the app sets that for you.</li><li>As a last resort use <b>Print list</b> and enter the waypoints by hand.</li></ol><p>The file follows the official RTZ schema (checked against versions 1.0, 1.1 and 1.2). It has not been tested on every ECDIS.</p>
 <h3>Your data</h3><p>Files are read in this browser only and nothing is sent anywhere. The list is kept on this device until you clear it.</p>`
@@ -597,7 +597,7 @@ hlp:`<h3>How it works</h3><ol><li><b>Add coordinates:</b> drop a file, paste tex
 pl:{
 eyebrow:"Mostek · ECDIS",
 desc:"Zamień współrzędne w plik trasy dla ECDIS. Wpisz je, wklej albo upuść plik Word, Excel, PDF lub tekstowy. Szerokość / długość w dowolnym formacie albo Easting / Northing.",
-h1:"Dodaj współrzędne",drop:"Upuść plik tutaj",dropsub:"Word, Excel, PDF, tekst, CSV, RTZ lub GPX",
+h1:"Dodaj współrzędne",drop:"Upuść plik tutaj",dropsub:"Word, Excel, PDF, tekst, CSV, RTZ, GPX lub obraz (JPG, PNG, DNG)",
 ph:"…albo wklej tutaj tekst ze współrzędnymi (z Worda, Excela, PDF-a, e-maila). Jeden punkt w wierszu, nazwa z przodu jest opcjonalna.",
 read:"Wczytaj współrzędne",clip:"Wklej ze schowka",addman:"Wpisz ręcznie",opts:"Opcje wczytywania",
 o_type:"Współrzędne w źródle",o_order:"Kolejność pary",o_grid:"Siatka (dla Easting / Northing)",o_zone:"Strefa UTM",o_hem:"Półkula",o_eno:"Kolejność Easting / Northing",
@@ -621,7 +621,7 @@ undo:"Cofnij",
 log_ok:(n,s)=>`Dodano punktów: ${n} (${s}).`,log_none:"Nie znaleziono współrzędnych.",log_bad:n=>`Wierszy wyglądających jak współrzędne, których nie udało się odczytać: ${n}:`,
 log_grid:(n,g)=>`Punkty odczytane jako Easting / Northing w siatce ${g}: ${n}. Sprawdź siatkę w Opcjach wczytywania.`,
 log_swap:n=>`Wiersze z zamienioną szerokością i długością (poprawione): ${n}.`,
-err_img:"To jest obraz. Plot to Route nie czyta tekstu z obrazów. Skopiuj współrzędne jako tekst (lub przepisz je) i wklej tutaj albo użyj PDF z tekstem.",err_bin:"Ten plik nie wygląda na tekst, więc go nie wczytano. Użyj Worda, Excela, PDF z tekstem albo zwykłego tekstu.",err_file:(f,e)=>`${f}: ${e}`,err_old:"Ten typ pliku nie jest obsługiwany. Zapisz go jako .docx, .xlsx lub PDF albo skopiuj i wklej tekst.",
+ocr_load:"Przygotowuję rozpoznawanie tekstu… (przy pierwszym użyciu pobiera ok. 3 MB)",ocr_work:p=>`Odczytuję tekst z obrazu… ${p}%`,ocr_note:"Tekst odczytano z obrazu. Rozpoznawanie tekstu może przekręcić cyfry, więc sprawdź każdą liczbę z oryginałem.",ocr_none:"Nie znaleziono współrzędnych na tym obrazie. Spróbuj ostrzejszego lub większego obrazu.",ocr_text:"Rozpoznany tekst",err_imgfail:"Nie można otworzyć tego obrazu. Zapisz go jako JPG lub PNG i spróbuj ponownie.",err_heic:"Ta przeglądarka nie otwiera obrazów HEIC. Wyeksportuj go jako JPG lub PNG.",err_ocr_load:"Nie udało się wczytać plików rozpoznawania tekstu. Połącz się z internetem (potrzebne za pierwszym razem) i spróbuj ponownie.",err_bin:"Ten plik nie wygląda na tekst, więc go nie wczytano. Użyj Worda, Excela, PDF z tekstem albo zwykłego tekstu.",err_file:(f,e)=>`${f}: ${e}`,err_old:"Ten typ pliku nie jest obsługiwany. Zapisz go jako .docx, .xlsx lub PDF albo skopiuj i wklej tekst.",
 err_pdf:"W tym PDF-ie nie ma tekstu (skan?). Skopiuj współrzędne i wklej je tutaj.",err_zip:"Ta przeglądarka jest za stara, by otwierać pliki Word i Excel. Wklej tekst.",
 err_clip:"Nie można odczytać schowka. Wklej do pola powyżej (Ctrl+V lub przytrzymaj → Wklej).",
 t_total:(n,d,g)=>`<span>Punktów: <b>${n}</b></span><span>${g}: <b>${d}</b> NM</span>`,
@@ -634,7 +634,7 @@ w_zone:"Easting / Northing pokazano dla siatki wybranej w kroku 1. Upewnij się,
 cleared:"Wyczyszczono",copied:"Skopiowano",rev_ok:"Trasa odwrócona",saved:"Plik gotowy",
 ask_clear:"Usunąć wszystkie punkty?",
 hlp:`<h3>Jak to działa</h3><ol><li><b>Dodaj współrzędne:</b> upuść plik, wklej tekst albo wpisz je. Aplikacja sama znajdzie pozycje.</li><li><b>Sprawdź listę i wykres.</b> Popraw nazwy lub pozycje, zmień kolejność, wybierz sposób wyświetlania współrzędnych.</li><li><b>Pobierz plik RTZ</b> i zaimportuj go w ECDIS.</li></ol>
-<h3>Co rozumie</h3><ul><li><code>54°07.404'N 018°38.502'E</code>, <code>54 07.404 N 018 38.502 E</code>, <code>N 54 07.404 E 018 38.502</code></li><li><code>54°07'24.2"N 018°38'30.1"E</code>, <code>5407.404N 01838.502E</code> (styl NMEA), <code>540724N 0183830E</code></li><li><code>54.12345 18.54321</code>, <code>54,12345; 18,54321</code>, <code>-3.5 55.2</code></li><li>Easting / Northing: <code>512345.5 5712345.2</code>, <code>E 512345 N 5712345</code>, <code>31U 512345 5712345</code></li><li>Nazwa przed pozycją: <code>WP3 54°07.4'N 018°38.5'E</code>. Działa też kilka punktów w jednym wierszu oraz szerokość i długość w dwóch kolejnych wierszach.</li><li>Pliki: Word (.docx, tekst i tabele), Excel (.xlsx), PDF z tekstem, tekst i CSV, RTZ i GPX.</li></ul>
+<h3>Co rozumie</h3><ul><li><code>54°07.404'N 018°38.502'E</code>, <code>54 07.404 N 018 38.502 E</code>, <code>N 54 07.404 E 018 38.502</code></li><li><code>54°07'24.2"N 018°38'30.1"E</code>, <code>5407.404N 01838.502E</code> (styl NMEA), <code>540724N 0183830E</code></li><li><code>54.12345 18.54321</code>, <code>54,12345; 18,54321</code>, <code>-3.5 55.2</code></li><li>Easting / Northing: <code>512345.5 5712345.2</code>, <code>E 512345 N 5712345</code>, <code>31U 512345 5712345</code></li><li>Nazwa przed pozycją: <code>WP3 54°07.4'N 018°38.5'E</code>. Działa też kilka punktów w jednym wierszu oraz szerokość i długość w dwóch kolejnych wierszach.</li><li>Pliki: Word (.docx, tekst i tabele), Excel (.xlsx), PDF z tekstem, tekst i CSV, RTZ i GPX.</li><li>Obrazy: zrzuty ekranu i zdjęcia (JPG, PNG, WebP, DNG). Zrzut ekranu możesz też wkleić przez Ctrl+V. Tekst jest odczytywany w przeglądarce, a rozpoznawanie może przekręcić cyfry, więc zawsze sprawdź liczby. Najlepiej działa na ostrym, prostym obrazie.</li></ul>
 <h3>Easting / Northing</h3><p>Wybierz siatkę w <b>Opcjach wczytywania</b>: UTM (WGS84 / ETRS89 to tu to samo), UTM ED50 lub brytyjska BNG oraz strefę. Easting / Northing jest zamieniany na szerokość i długość WGS84. Plik RTZ zawsze zawiera pozycje WGS84. ED50 jest przybliżone (kilka metrów).</p>
 <h3>Import do ECDIS</h3><p>Skopiuj plik .rtz na pendrive lub do folderu importu ECDIS i użyj funkcji importu tras w menedżerze tras. Po imporcie porównaj trasę z wykresem tutaj.</p><h3>Jeśli ECDIS odrzuci plik</h3><ol><li>Najpierw zaimportuj krótką trasę próbną (2–3 punkty).</li><li>Spróbuj innej <b>wersji RTZ</b>: najpierw 1.0, potem 1.1 lub 1.2.</li><li>Zostaw <b>Nazwy punktów</b> na Uproszczonych. Niektóre systemy odrzucają polskie znaki i długie nazwy.</li><li>Nie zmieniaj nazwy pliku. Musi być równa nazwie trasy, a aplikacja ustawia to za Ciebie.</li><li>W ostateczności użyj <b>Drukuj listę</b> i wpisz punkty ręcznie.</li></ol><p>Plik jest zgodny z oficjalnym schematem RTZ (sprawdzony względem wersji 1.0, 1.1 i 1.2). Nie był testowany na każdym ECDIS.</p>
 <h3>Twoje dane</h3><p>Pliki są czytane tylko w tej przeglądarce i nic nie jest nigdzie wysyłane. Lista zostaje na tym urządzeniu, dopóki jej nie wyczyścisz.</p>`
@@ -770,14 +770,15 @@ const rtzFile=()=>({name:fileBase()+".rtz",data:buildRTZ(valid(),routeInfo(),rtz
 function snapshot(){UNDO=S.wps.map(w=>Object.assign({},w))}
 function ingest(res,src){
   const log=$("#log");
-  if(!res.pts.length){log.innerHTML=`<div class="note warn">${esc(t("log_none"))}${res.bad.length?badList(res.bad):""}</div>`;return}
+  const ocrBox=res.ocr!==undefined?`<div class="note warn">${esc(t("ocr_note"))}<details><summary>${esc(t("ocr_text"))}</summary><pre style="white-space:pre-wrap;margin:6px 0 0;font:12px/1.4 var(--mono)">${esc(res.ocr.trim()||"—")}</pre></details></div>`:"";
+  if(!res.pts.length){log.innerHTML=`<div class="note warn">${esc(res.ocr!==undefined?t("ocr_none"):t("log_none"))}${res.bad.length?badList(res.bad):""}</div>`+ocrBox;return}
   snapshot();
   res.pts.forEach(p=>{const n=S.wps.length+1;S.wps.push({id:uid(),name:p.name||"WP "+n,lat:p.lat,lon:p.lon})});
   let h=`<div class="note ok">${esc(t("log_ok")(res.pts.length,src))} <button class="btn sm" id="bUndo">${t("undo")}</button></div>`;
   if(res.notes&&res.notes.grid)h+=`<div class="note warn">${esc(t("log_grid")(res.notes.grid,gridLabel(S.grid)))}</div>`;
   if(res.notes&&res.notes.swapped)h+=`<div class="note warn">${esc(t("log_swap")(res.notes.swapped))}</div>`;
   if(res.bad.length)h+=`<div class="note warn">${badList(res.bad)}</div>`;
-  log.innerHTML=h;renderList();
+  h+=ocrBox;log.innerHTML=h;renderList();
   const u=$("#bUndo");if(u)u.onclick=()=>{if(UNDO){S.wps=UNDO;UNDO=null;$("#log").innerHTML="";renderList()}};
   $("#c2").scrollIntoView({behavior:"smooth",block:"start"})}
 const badList=b=>`${esc(t("log_bad")(b.length))}<ul>${b.slice(0,12).map(x=>`<li><code>${esc(x)}</code></li>`).join("")}</ul>`;
@@ -846,14 +847,14 @@ function routeXml(text){ // RTZ or GPX
   const info=d.getElementsByTagName("routeInfo")[0]||d.getElementsByTagName("rte")[0];
   return{pts:pts.filter(p=>isFinite(p.lat)&&isFinite(p.lon)&&Math.abs(p.lat)<=90&&Math.abs(p.lon)<=180),bad:[],notes:{},info}}
 function sniff(buf){const u=new Uint8Array(buf.slice(0,16)),a=(...b)=>b.every((x,i)=>u[i]===x),str=(o,x)=>[...x].every((c,i)=>u[o+i]===c.charCodeAt(0));
-  if(a(0x89,0x50,0x4e,0x47)||a(0xff,0xd8,0xff)||str(0,"GIF8")||str(0,"BM")||a(0x49,0x49,0x2a,0)||a(0x4d,0x4d,0,0x2a)||(str(0,"RIFF")&&str(8,"WEBP"))||str(4,"ftyp"))return"image";
+  if(a(0x89,0x50,0x4e,0x47)||a(0xff,0xd8,0xff)||str(0,"GIF8")||(str(0,"BM")&&!u[6]&&!u[7]&&!u[8]&&!u[9])||a(0x49,0x49,0x2a,0)||a(0x4d,0x4d,0,0x2a)||(str(0,"RIFF")&&str(8,"WEBP"))||str(4,"ftyp"))return"image";
   if(str(0,"%PDF"))return"pdf";if(a(0x50,0x4b,3,4))return"zip";return null}
 function looksBinary(buf){const u=new Uint8Array(buf.slice(0,4096));if(!u.length)return false;
   if((u[0]===0xff&&u[1]===0xfe)||(u[0]===0xfe&&u[1]===0xff))return false;
   let bad=0;for(const b of u)if(b===0||(b<9)||(b>13&&b<32))bad++;return bad/u.length>0.005}
 async function readFile(f){
   let ext=(f.name.split(".").pop()||"").toLowerCase();const buf=await f.arrayBuffer(),kind=sniff(buf);
-  if(kind==="image"||/^(png|jpe?g|gif|webp|bmp|tiff?|heic|heif)$/.test(ext))throw new Error(t("err_img"));
+  if(kind==="image"||/^(png|jpe?g|gif|webp|bmp|tiff?|heic|heif|dng|cr2|cr3|nef|arw|orf|rw2|raf|pef|srw)$/.test(ext))return await readImage(f,buf,ext);
   if(kind==="pdf")ext="pdf";
   if(kind==="zip"&&!/^(docx|xlsx|xlsm)$/.test(ext))throw new Error(t("err_old"));
   if(["rtz","gpx","xml"].includes(ext)){const r=routeXml(decodeText(buf));
@@ -864,13 +865,70 @@ async function readFile(f){
   else if(["doc","xls","odt","ods","rtf","pages","numbers"].includes(ext))throw new Error(t("err_old"));
   else{if(looksBinary(buf))throw new Error(t("err_bin"));text=decodeText(buf)}
   return parseText(text,rOpts())}
+/* ---------- pictures: text recognition (OCR), all in this browser ---------- */
+let ocrWorker=null,ocrProgress=null;
+async function getOcr(){
+  if(ocrWorker)return ocrWorker;
+  if(!window.Tesseract)await loadScript("vendor/ocr/tesseract.min.js");
+  const dir=new URL("vendor/ocr/",location.href).href;
+  const w=await Tesseract.createWorker("eng",1,{workerPath:dir+"worker.min.js",corePath:dir,langPath:dir,gzip:true,workerBlobURL:false,logger:m=>{if(ocrProgress)ocrProgress(m)}});
+  await w.setParameters({tessedit_pageseg_mode:"6",preserve_interword_spaces:"1"});
+  return(ocrWorker=w)}
+// JPEG previews inside DNG and other TIFF based RAW files (largest first)
+function jpegCandidates(buf){
+  const u=new Uint8Array(buf),out=[];
+  try{
+    const le=u[0]===0x49&&u[1]===0x49;if(!(le||(u[0]===0x4d&&u[1]===0x4d)))throw 0;
+    const dv=new DataView(buf),g16=o=>dv.getUint16(o,le),g32=o=>dv.getUint32(o,le),seen=new Set(),todo=[g32(4)];
+    while(todo.length&&seen.size<64){const o=todo.pop();if(!o||o+2>u.length||seen.has(o))continue;seen.add(o);
+      const n=g16(o);let comp=0,so=null,sc=null,jo=null,jl=null;
+      for(let i=0;i<n;i++){const e=o+2+i*12;if(e+12>u.length)break;const tag=g16(e),typ=g16(e+2),cnt=g32(e+4),val=typ===3&&cnt===1?g16(e+8):g32(e+8);
+        if(tag===0x103)comp=val;else if(tag===0x111&&cnt===1)so=val;else if(tag===0x117&&cnt===1)sc=val;
+        else if(tag===0x201)jo=val;else if(tag===0x202)jl=val;
+        else if(tag===0x14a){if(cnt===1)todo.push(val);else{const p=g32(e+8);for(let k=0;k<cnt&&k<16&&p+k*4+4<=u.length;k++)todo.push(g32(p+k*4))}}}
+      if(comp===7&&so!=null&&sc)out.push({off:so,len:sc});
+      if(jo!=null&&jl)out.push({off:jo,len:jl});
+      if(o+2+n*12+4<=u.length){const nx=g32(o+2+n*12);if(nx)todo.push(nx)}}
+  }catch(e){}
+  const soi=[];for(let i=0;i<u.length-3&&soi.length<64;i++)if(u[i]===0xff&&u[i+1]===0xd8&&u[i+2]===0xff)soi.push(i);
+  soi.forEach((s0,i)=>out.push({off:s0,len:(i+1<soi.length?soi[i+1]:u.length)-s0}));
+  return out.filter(c=>c.off>0&&c.len>1000&&c.off+c.len<=u.length&&u[c.off]===0xff&&u[c.off+1]===0xd8).sort((a,b)=>b.len-a.len)}
+async function decodeImage(f,buf,ext){
+  let bmp=null;
+  if(!/^(dng|cr2|cr3|nef|arw|orf|rw2|raf|pef|srw)$/.test(ext)){try{bmp=await createImageBitmap(new Blob([buf],{type:f.type||""}))}catch(e){}}
+  if(!bmp){for(const c of jpegCandidates(buf)){try{bmp=await createImageBitmap(new Blob([buf.slice(c.off,c.off+c.len)],{type:"image/jpeg"}));break}catch(e){}}}
+  if(!bmp)throw new Error(t(/^(heic|heif)$/.test(ext)?"err_heic":"err_imgfail"));
+  return bmp}
+// grey scale, contrast stretch, dark screens inverted, small pictures enlarged, big photos reduced
+function prepCanvas(bmp){
+  const long=Math.max(bmp.width,bmp.height);let sc=1;
+  if(long>2800)sc=2800/long;else if(bmp.width<1300)sc=Math.min(3,1300/bmp.width);
+  const w=Math.max(1,Math.round(bmp.width*sc)),h=Math.max(1,Math.round(bmp.height*sc)),c=document.createElement("canvas");c.width=w;c.height=h;
+  const x=c.getContext("2d",{willReadFrequently:true});x.imageSmoothingQuality="high";x.fillStyle="#fff";x.fillRect(0,0,w,h);x.drawImage(bmp,0,0,w,h);
+  if(bmp.close)bmp.close();
+  const d=x.getImageData(0,0,w,h),p=d.data,n=w*h,g=new Uint8ClampedArray(n),hist=new Uint32Array(256);let sum=0;
+  for(let i=0,j=0;i<n;i++,j+=4){const v=(p[j]*299+p[j+1]*587+p[j+2]*114)/1000;g[i]=v;sum+=v;hist[g[i]]++}
+  const dark=sum/n<110;let lo=0,hi=255,a=0;
+  while(lo<255&&a+hist[lo]<n*0.02){a+=hist[lo];lo++}a=0;while(hi>0&&a+hist[hi]<n*0.02){a+=hist[hi];hi--}
+  if(hi-lo<30){lo=0;hi=255}
+  for(let i=0,j=0;i<n;i++,j+=4){let v=(g[i]-lo)*255/(hi-lo);v=v<0?0:v>255?255:v;if(dark)v=255-v;p[j]=p[j+1]=p[j+2]=v;p[j+3]=255}
+  x.putImageData(d,0,0);return c}
+const fixOcr=s=>String(s).replace(/(\d)\s?[oO*](?=\s?\d{1,2}[.'′ ]\d)/g,"$1°");
+async function readImage(f,buf,ext){
+  const show=m=>{$("#log").innerHTML=`<div class="note">${esc(m)}</div>`};
+  show(t("ocr_load"));
+  const bmp=await decodeImage(f,buf,ext),cv=prepCanvas(bmp);let w;
+  try{ocrProgress=m=>{if(m.status==="recognizing text")show(t("ocr_work")(Math.round(m.progress*100)))};w=await getOcr()}catch(e){ocrProgress=null;throw new Error(t("err_ocr_load"))}
+  show(t("ocr_work")(0));
+  let r;try{r=await w.recognize(cv)}finally{ocrProgress=null}
+  const text=fixOcr(r.data.text||""),res=parseText(text,rOpts());res.ocr=text;return res}
 async function handleFiles(files){
   for(const f of files){try{const r=await readFile(f);ingest(r,f.name)}catch(e){$("#log").innerHTML=`<div class="note bad">${esc(t("err_file")(f.name,e.message||e))}</div>`}}}
 
 /* ---------- events ---------- */
 $("#file").onchange=e=>{handleFiles([...e.target.files]);e.target.value=""};
 $("#bRead").onclick=()=>{const v=$("#paste").value;if(v.trim()){ingestText(v,"text");$("#paste").value=""}};
-$("#paste").addEventListener("paste",()=>setTimeout(()=>$("#bRead").click(),0));
+$("#paste").addEventListener("paste",e=>{const f=e.clipboardData&&e.clipboardData.files;if(f&&f.length){e.preventDefault();handleFiles([...f]);return}setTimeout(()=>$("#bRead").click(),0)});
 $("#bClip").onclick=async()=>{try{const v=await navigator.clipboard.readText();if(v.trim())ingestText(v,"clipboard")}catch(e){toast(t("err_clip"));$("#paste").focus()}};
 $("#bAddMan").onclick=()=>addRow(true);
 document.addEventListener("paste",e=>{const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;
