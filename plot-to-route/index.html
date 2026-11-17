@@ -119,7 +119,7 @@ details.adv .grid{margin-top:8px}
 .wph{padding:0 0 6px;font-size:12px;font-weight:600;color:var(--dim)}
 .wp{padding:5px 0;border-top:1px solid var(--line)}
 .wp .no{font:700 14px var(--round);color:var(--dim);text-align:center}
-.wp.chk{background:var(--warnbg);border-radius:10px}.wp.chk .ca,.wp.chk .cb{box-shadow:0 0 0 2px var(--warn)}.chkb{color:var(--warn);font-weight:700}
+.wp.chkrow{background:var(--warnbg);border-radius:10px}.wp.chkrow .ca,.wp.chkrow .cb{box-shadow:0 0 0 2px var(--warn)}.chkb{color:var(--warn);font-weight:700}
 .wp input{height:42px;font-size:15px}
 .wp .ca,.wp .cb{font-family:var(--mono);font-size:14px;letter-spacing:-.2px}
 .lg{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums;line-height:1.25}
@@ -572,7 +572,7 @@ c_name:"Name",c_leg:"Leg",lat:"Latitude",lon:"Longitude",east:"Easting (m)",nort
 add:"+ Add waypoint",rev:"Reverse route",copy:"Copy table",clear:"Clear all",
 h3:"Route check",dist:"Distances and bearings",rhumb:"Rhumb line",gc:"Great circle",map:"Route plot",
 hh:"Help",h4:"Route file for ECDIS (RTZ)",r_name:"Route name",r_vessel:"Vessel name (optional)",r_author:"Author (optional)",opt:"optional",
-r_ver:"RTZ version",names:"Waypoint names in the file",nm_s20:"Simplified: plain letters, max 20 characters (safest)",nm_s12:"Simplified: plain letters, max 12 characters",nm_asis:"As typed",print:"Print list",ph_note:"Positions in WGS84. Prepared with Plot to Route. Check against the chart before use.",fileHint:n=>`File name: ${n}.rtz. It must equal the route name, so it is set for you.`,w_rad:"Turn radius limited to 5 NM (the RTZ maximum).",w_xtd:"XTD limited to 9.99 NM (the RTZ maximum).",w_size:"The file is larger than 400 kB. Some ECDIS refuse that.",w_simpl:n=>`${n} waypoint name${n===1?" was":"s were"} simplified in the file (plain letters, short).`,w_rname:"The route name was cleaned for use as a file name (no \\ / : * ? \" < > | characters).",r_rad:"Turn radius (NM, max 5)",r_xp:"XTD port (NM)",r_xs:"XTD starboard (NM)",r_geom:"Leg type in the file",
+r_ver:"RTZ version",names:"Waypoint names in the file",nm_s20:"Simplified: plain letters, max 20 characters (safest)",nm_s12:"Simplified: plain letters, max 12 characters",nm_asis:"As typed",print:"Print list",ph_note:"Positions in WGS84. Prepared with Plot to Route. Check against the chart before use.",fileHint:n=>`File name: ${n}.rtz. It must equal the route name, so it is set for you.`,w_chk:n=>`${n} waypoint${n===1?" is":"s are"} marked "check" because the picture was not read the same way every time. Verify ${n===1?"it":"them"} against the original before using the file.`,w_rad:"Turn radius limited to 5 NM (the RTZ maximum).",w_xtd:"XTD limited to 9.99 NM (the RTZ maximum).",w_size:"The file is larger than 400 kB. Some ECDIS refuse that.",w_simpl:n=>`${n} waypoint name${n===1?" was":"s were"} simplified in the file (plain letters, short).`,w_rname:"The route name was cleaned for use as a file name (no \\ / : * ? \" < > | characters).",r_rad:"Turn radius (NM, max 5)",r_xp:"XTD port (NM)",r_xs:"XTD starboard (NM)",r_geom:"Leg type in the file",
 o_lox:"Rhumb line (Loxodrome)",o_ort:"Great circle (Orthodrome)",dl_rtz:"Download RTZ",share:"Share…",dl_gpx:"GPX",dl_csv:"CSV",preview:"Show file contents",
 verify:"Always check the imported route in the ECDIS: every waypoint, leg, XTD and the safety contour against the chart. The route must be verified and approved by the navigating officer before use.",
 disc:"An aid only. Always verify results against official publications and charts.",
@@ -589,7 +589,7 @@ w_few:"A route needs at least 2 waypoints.",w_empty:n=>`${n} waypoint${n===1?" h
 w_dup:(a,b)=>`WP ${a} and WP ${b} are at the same position.`,w_long:(a,d)=>`The leg to WP ${a} is ${d} NM long. Check for a typing error.`,
 w_zero:a=>`WP ${a} is at 0° 0°. Check the position.`,w_ed50:"ED50 to WGS84 is approximate (a few metres). For ECDIS prefer WGS84 / ETRS89 coordinates.",
 w_dupn:"Some waypoints have the same name.",w_ok:"No problems found. Still check the plot above.",w_name:a=>`The name of WP ${a} is longer than 20 characters. Some ECDIS cut it or refuse it.`,
-w_zone:"Easting / Northing is shown for the grid chosen in step 1. Make sure the zone is right.",
+w_zonefar:"Some Eastings are outside the normal UTM range (100 000 to 900 000 m), so the zone is probably wrong. Set the zone in Reading options (button: use the zone of the first waypoint).",w_zone:"Easting / Northing is shown for the grid chosen in step 1. Make sure the zone is right.",
 cleared:"Cleared",copied:"Copied",rev_ok:"Route reversed",saved:"File ready",
 ask_clear:"Remove all waypoints?",
 hlp:`<h3>How it works</h3><ol><li><b>Add coordinates:</b> drop a file, paste text or type them in. The app finds the positions itself.</li><li><b>Check the list and the plot.</b> Fix names or positions, change the order, choose how the coordinates are shown.</li><li><b>Download the RTZ</b> and import it in the ECDIS.</li></ol>
@@ -617,7 +617,7 @@ c_name:"Nazwa",c_leg:"Odcinek",lat:"Szerokość",lon:"Długość",east:"Easting 
 add:"+ Dodaj punkt",rev:"Odwróć trasę",copy:"Kopiuj tabelę",clear:"Wyczyść wszystko",
 h3:"Kontrola trasy",dist:"Odległości i kursy",rhumb:"Loksodroma",gc:"Ortodroma",map:"Wykres trasy",
 hh:"Pomoc",h4:"Plik trasy dla ECDIS (RTZ)",r_name:"Nazwa trasy",r_vessel:"Nazwa statku (opcjonalnie)",r_author:"Autor (opcjonalnie)",opt:"opcjonalnie",
-r_ver:"Wersja RTZ",names:"Nazwy punktów w pliku",nm_s20:"Uproszczone: zwykłe litery, maks. 20 znaków (najbezpieczniej)",nm_s12:"Uproszczone: zwykłe litery, maks. 12 znaków",nm_asis:"Tak jak wpisano",print:"Drukuj listę",ph_note:"Pozycje w WGS84. Przygotowano w Plot to Route. Przed użyciem sprawdź na mapie.",fileHint:n=>`Nazwa pliku: ${n}.rtz. Musi być równa nazwie trasy, więc ustawia się sama.`,w_rad:"Promień zwrotu ograniczono do 5 NM (maksimum w RTZ).",w_xtd:"XTD ograniczono do 9,99 NM (maksimum w RTZ).",w_size:"Plik jest większy niż 400 kB. Niektóre ECDIS tego nie przyjmą.",w_simpl:n=>`Uproszczone nazwy punktów w pliku: ${n} (zwykłe litery, krótsze).`,w_rname:"Nazwa trasy została oczyszczona na potrzeby nazwy pliku (bez znaków \\ / : * ? \" < > |).",r_rad:"Promień zwrotu (NM, maks. 5)",r_xp:"XTD lewa burta (NM)",r_xs:"XTD prawa burta (NM)",r_geom:"Rodzaj odcinka w pliku",
+r_ver:"Wersja RTZ",names:"Nazwy punktów w pliku",nm_s20:"Uproszczone: zwykłe litery, maks. 20 znaków (najbezpieczniej)",nm_s12:"Uproszczone: zwykłe litery, maks. 12 znaków",nm_asis:"Tak jak wpisano",print:"Drukuj listę",ph_note:"Pozycje w WGS84. Przygotowano w Plot to Route. Przed użyciem sprawdź na mapie.",fileHint:n=>`Nazwa pliku: ${n}.rtz. Musi być równa nazwie trasy, więc ustawia się sama.`,w_chk:n=>`Punkty oznaczone „sprawdź”: ${n} (obraz nie był odczytany za każdym razem tak samo). Zweryfikuj je z oryginałem przed użyciem pliku.`,w_rad:"Promień zwrotu ograniczono do 5 NM (maksimum w RTZ).",w_xtd:"XTD ograniczono do 9,99 NM (maksimum w RTZ).",w_size:"Plik jest większy niż 400 kB. Niektóre ECDIS tego nie przyjmą.",w_simpl:n=>`Uproszczone nazwy punktów w pliku: ${n} (zwykłe litery, krótsze).`,w_rname:"Nazwa trasy została oczyszczona na potrzeby nazwy pliku (bez znaków \\ / : * ? \" < > |).",r_rad:"Promień zwrotu (NM, maks. 5)",r_xp:"XTD lewa burta (NM)",r_xs:"XTD prawa burta (NM)",r_geom:"Rodzaj odcinka w pliku",
 o_lox:"Loksodroma (Loxodrome)",o_ort:"Ortodroma (Orthodrome)",dl_rtz:"Pobierz RTZ",share:"Udostępnij…",dl_gpx:"GPX",dl_csv:"CSV",preview:"Pokaż zawartość pliku",
 verify:"Zawsze sprawdź zaimportowaną trasę w ECDIS: każdy punkt, odcinek, XTD i izobatę bezpieczeństwa na mapie. Przed użyciem trasa musi być zweryfikowana i zatwierdzona przez oficera nawigacyjnego.",
 disc:"Tylko pomoc. Zawsze weryfikuj wyniki z oficjalnymi publikacjami i mapami.",
@@ -634,7 +634,7 @@ w_few:"Trasa potrzebuje co najmniej 2 punktów.",w_empty:n=>`Punkty bez poprawne
 w_dup:(a,b)=>`WP ${a} i WP ${b} mają tę samą pozycję.`,w_long:(a,d)=>`Odcinek do WP ${a} ma ${d} NM. Sprawdź, czy to nie literówka.`,
 w_zero:a=>`WP ${a} jest w 0° 0°. Sprawdź pozycję.`,w_ed50:"Przeliczenie ED50 na WGS84 jest przybliżone (kilka metrów). Do ECDIS lepiej używać współrzędnych WGS84 / ETRS89.",
 w_dupn:"Niektóre punkty mają taką samą nazwę.",w_ok:"Nie znaleziono problemów. Mimo to sprawdź wykres powyżej.",w_name:a=>`Nazwa WP ${a} ma ponad 20 znaków. Niektóre ECDIS ją skracają lub odrzucają.`,
-w_zone:"Easting / Northing pokazano dla siatki wybranej w kroku 1. Upewnij się, że strefa jest właściwa.",
+w_zonefar:"Część wartości Easting jest poza zwykłym zakresem UTM (100 000 do 900 000 m), więc strefa jest prawdopodobnie zła. Ustaw strefę w Opcjach wczytywania (przycisk: użyj strefy pierwszego punktu).",w_zone:"Easting / Northing pokazano dla siatki wybranej w kroku 1. Upewnij się, że strefa jest właściwa.",
 cleared:"Wyczyszczono",copied:"Skopiowano",rev_ok:"Trasa odwrócona",saved:"Plik gotowy",
 ask_clear:"Usunąć wszystkie punkty?",
 hlp:`<h3>Jak to działa</h3><ol><li><b>Dodaj współrzędne:</b> upuść plik, wklej tekst albo wpisz je. Aplikacja sama znajdzie pozycje.</li><li><b>Sprawdź listę i wykres.</b> Popraw nazwy lub pozycje, zmień kolejność, wybierz sposób wyświetlania współrzędnych.</li><li><b>Pobierz plik RTZ</b> i zaimportuj go w ECDIS.</li></ol>
@@ -701,7 +701,7 @@ function renderList(){
   $("#hA").textContent=colA();$("#hB").textContent=colB();
   const gi=$("#gridInfo");gi.hidden=S.view!=="en";gi.textContent=gridLabel(S.grid);
   if(!S.wps.length){$("#list").innerHTML=`<div class="empty">${t("empty")}</div>`;refreshDerived();return}
-  $("#list").innerHTML=S.wps.map((w,i)=>`<div class="wp${w.chk?" chk":""}" data-id="${w.id}">
+  $("#list").innerHTML=S.wps.map((w,i)=>`<div class="wp${w.chk?" chkrow":""}" data-id="${w.id}">
     <span class="no">${i+1}</span>
     <input class="nm" type="text" value="${esc(w.name||"")}" placeholder="WP ${i+1}" aria-label="${t("c_name")} ${i+1}" autocomplete="off" autocapitalize="characters">
     <input class="ca" type="text" value="${esc(cellTxt(w,0))}" aria-label="${esc(colA())} ${i+1}" autocomplete="off" spellcheck="false">
@@ -748,7 +748,8 @@ function renderWarn(L){
     if((w.name||"").length>20)W.push(["warn",t("w_name")(n)])});
   const nm=v.map((w,i)=>(w.name||"WP "+(S.wps.indexOf(w)+1)).toLowerCase());if(new Set(nm).size<nm.length)W.push(["warn",t("w_dupn")]);
   if(S.grid.type==="utm"&&S.grid.datum==="ed50"&&(S.view==="en"||S.mode==="en"))W.push(["warn",t("w_ed50")]);
-  if(S.view==="en"&&v.length)W.push(["",t("w_zone")]);
+  if(S.view==="en"&&v.length){W.push(["",t("w_zone")]);
+    if(S.grid.type==="utm"&&v.some(w=>{const e=latLonToGrid(w.lat,w.lon,S.grid)[0];return e<100000||e>900000}))W.push(["warn",t("w_zonefar")])}
   if(!W.length&&v.length>1)W.push(["ok",t("w_ok")]);
   $("#warns").innerHTML=W.map(([c,m])=>`<div class="note ${c}">${esc(m)}</div>`).join("")}
 
@@ -763,6 +764,7 @@ function renderRtz(){const v=valid(),ok=v.length>=2,o=rtzOpts(),xml=v.length?bui
   if(o.radius>5)W.push(t("w_rad"));if(o.xtdP>=10||o.xtdS>=10)W.push(t("w_xtd"));
   if(xml.length>400000)W.push(t("w_size"));
   if(v.length&&o.names!=="asis"){const nl=exportNames(v,o),c=nl.filter((n,i)=>n!==wpName(v[i],i)).length;if(c)W.push(t("w_simpl")(c))}
+  {const nc=v.filter(w=>w.chk).length;if(nc)W.push(t("w_chk")(nc))}
   const typed=(S.route.name||"").trim();if(typed&&typed!==routeInfo().name)W.push(t("w_rname"));
   $("#rtzWarn").innerHTML=W.map(m=>`<div class="note warn">${esc(m)}</div>`).join("");
   const rn=routeInfo().name;$("#printHead").innerHTML=`<div style="font:700 18px var(--round)">${esc(rn)}</div><div>${esc([S.route.vessel,new Date().toISOString().slice(0,10),"WGS84"].filter(Boolean).join(" · "))}</div><div style="font-weight:400">${esc(t("ph_note"))}</div>`}
@@ -1008,7 +1010,7 @@ $("#list").addEventListener("click",e=>{const b=e.target.closest("button");if(!b
 $("#list").addEventListener("change",e=>{
   const el=e.target,row=el.closest(".wp");if(!row)return;const w=S.wps.find(x=>x.id===row.dataset.id);if(!w)return;
   if(el.classList.contains("nm")){w.name=el.value.trim();save();refreshDerived();return}
-  const k=el.classList.contains("ca")?0:1,txt=el.value.trim();el.classList.remove("bad");if(w.chk){delete w.chk;row.classList.remove("chk")}
+  const k=el.classList.contains("ca")?0:1,txt=el.value.trim();el.classList.remove("bad");if(w.chk){delete w.chk;row.classList.remove("chkrow")}
   const redraw=()=>{row.querySelector(".ca").value=cellTxt(w,0);row.querySelector(".cb").value=cellTxt(w,1);$$("input",row).forEach(i=>i.classList.remove("bad"));refreshDerived()};
   if(S.view==="ll"){
     if(!txt){if(k===0)w.lat=null;else w.lon=null;redraw();return}
