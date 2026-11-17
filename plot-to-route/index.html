@@ -102,6 +102,7 @@ input.bad{box-shadow:0 0 0 2px var(--bad)}
 .drop span{color:var(--dim);font-size:14px}
 textarea{min-height:92px;padding:12px;font:14px/1.45 var(--mono);resize:vertical}
 details.adv{margin-top:12px}
+.sr{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;padding:10px 0;border-top:1px solid rgba(128,140,150,.3)}.sr small{opacity:.7}
 details.adv summary{cursor:pointer;color:var(--accent);font-weight:600;min-height:36px;display:flex;align-items:center}
 details.adv .grid{margin-top:8px}
 
@@ -140,7 +141,6 @@ details.adv .grid{margin-top:8px}
 
 #map{width:100%;height:auto;display:block;border-radius:14px;background:var(--field)}
 #map text{font:600 11px var(--sans);fill:var(--ink);paint-order:stroke;stroke:var(--surface);stroke-width:3px}
-pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);font:12px/1.45 var(--mono);overflow:auto;max-height:320px;white-space:pre}
 .help h3{margin:16px 0 6px;font:700 16px var(--round)}
 .help p,.help li{font-size:15px;color:var(--dim);margin:0 0 6px}
 .help ul,.help ol{margin:4px 0 8px;padding-left:20px}
@@ -155,6 +155,8 @@ pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);f
 <link rel="manifest" href="manifest.webmanifest">
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}))}</script>
 <script src="../assets/stats.js" defer></script>
+<script src="../assets/install.js" defer></script>
+<script src="../assets/shared.js" defer></script>
 </head>
 <body>
 <div class="wrap">
@@ -255,7 +257,13 @@ pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);f
     </div>
     <div id="rtzWarn"></div>
     <div class="note warn" data-i="verify"></div>
-    <details class="adv"><summary data-i="preview">Show file contents</summary><pre id="xml"></pre></details>
+  </section>
+
+  <section class="card" id="c5">
+    <h2 data-i="sr_h">Saved routes</h2>
+    <p class="sub" data-i="sr_hint"></p>
+    <div class="btns"><button class="btn pri" id="srSave" data-i="sr_save">Save this route</button><button class="btn" id="srShare" type="button">Shared file…</button></div>
+    <div id="srList"></div>
   </section>
 
   <section class="card help" id="help">
@@ -573,7 +581,7 @@ add:"+ Add waypoint",rev:"Reverse route",copy:"Copy table",clear:"Clear all",
 h3:"Route check",dist:"Distances and bearings",rhumb:"Rhumb line",gc:"Great circle",map:"Route plot",
 hh:"Help",h4:"Route file for ECDIS (RTZ)",r_name:"Route name",r_vessel:"Vessel name (optional)",r_author:"Author (optional)",opt:"optional",
 r_ver:"RTZ version",names:"Waypoint names in the file",nm_s20:"Simplified: plain letters, max 20 characters (safest)",nm_s12:"Simplified: plain letters, max 12 characters",nm_asis:"As typed",print:"Print list",ph_note:"Positions in WGS84. Prepared with Plot to Route. Check against the chart before use.",fileHint:n=>`File name: ${n}.rtz. It must equal the route name, so it is set for you.`,w_chk:n=>`${n} waypoint${n===1?" is":"s are"} marked "check" because the picture was not read the same way every time. Verify ${n===1?"it":"them"} against the original before using the file.`,w_rad:"Turn radius limited to 5 NM (the RTZ maximum).",w_xtd:"XTD limited to 9.99 NM (the RTZ maximum).",w_size:"The file is larger than 400 kB. Some ECDIS refuse that.",w_simpl:n=>`${n} waypoint name${n===1?" was":"s were"} simplified in the file (plain letters, short).`,w_rname:"The route name was cleaned for use as a file name (no \\ / : * ? \" < > | characters).",r_rad:"Turn radius (NM, max 5)",r_xp:"XTD port (NM)",r_xs:"XTD starboard (NM)",r_geom:"Leg type in the file",
-o_lox:"Rhumb line (Loxodrome)",o_ort:"Great circle (Orthodrome)",dl_rtz:"Download RTZ",share:"Share…",dl_gpx:"GPX",dl_csv:"CSV",preview:"Show file contents",
+o_lox:"Rhumb line (Loxodrome)",o_ort:"Great circle (Orthodrome)",dl_rtz:"Download RTZ",share:"Share…",dl_gpx:"GPX",dl_csv:"CSV",sr_h:"Saved routes",sr_hint:"Save a route to find it again later. With a shared file linked, the other computers see it too.",sr_save:"Save this route",sr_open:"Open",sr_del:"Delete",sr_none:"No saved routes yet.",sr_saved:"Route saved",sr_ask:"Replace the waypoints on the screen with this route?",sr_delask:"Delete this saved route?",sr_wp:"waypoints",sr_empty:"Add at least one waypoint first.",
 verify:"Always check the imported route in the ECDIS: every waypoint, leg, XTD and the safety contour against the chart. The route must be verified and approved by the navigating officer before use.",
 disc:"An aid only. Always verify results against official publications and charts.",
 undo:"Undo",
@@ -618,7 +626,7 @@ add:"+ Dodaj punkt",rev:"Odwróć trasę",copy:"Kopiuj tabelę",clear:"Wyczyść
 h3:"Kontrola trasy",dist:"Odległości i kursy",rhumb:"Loksodroma",gc:"Ortodroma",map:"Wykres trasy",
 hh:"Pomoc",h4:"Plik trasy dla ECDIS (RTZ)",r_name:"Nazwa trasy",r_vessel:"Nazwa statku (opcjonalnie)",r_author:"Autor (opcjonalnie)",opt:"opcjonalnie",
 r_ver:"Wersja RTZ",names:"Nazwy punktów w pliku",nm_s20:"Uproszczone: zwykłe litery, maks. 20 znaków (najbezpieczniej)",nm_s12:"Uproszczone: zwykłe litery, maks. 12 znaków",nm_asis:"Tak jak wpisano",print:"Drukuj listę",ph_note:"Pozycje w WGS84. Przygotowano w Plot to Route. Przed użyciem sprawdź na mapie.",fileHint:n=>`Nazwa pliku: ${n}.rtz. Musi być równa nazwie trasy, więc ustawia się sama.`,w_chk:n=>`Punkty oznaczone „sprawdź”: ${n} (obraz nie był odczytany za każdym razem tak samo). Zweryfikuj je z oryginałem przed użyciem pliku.`,w_rad:"Promień zwrotu ograniczono do 5 NM (maksimum w RTZ).",w_xtd:"XTD ograniczono do 9,99 NM (maksimum w RTZ).",w_size:"Plik jest większy niż 400 kB. Niektóre ECDIS tego nie przyjmą.",w_simpl:n=>`Uproszczone nazwy punktów w pliku: ${n} (zwykłe litery, krótsze).`,w_rname:"Nazwa trasy została oczyszczona na potrzeby nazwy pliku (bez znaków \\ / : * ? \" < > |).",r_rad:"Promień zwrotu (NM, maks. 5)",r_xp:"XTD lewa burta (NM)",r_xs:"XTD prawa burta (NM)",r_geom:"Rodzaj odcinka w pliku",
-o_lox:"Loksodroma (Loxodrome)",o_ort:"Ortodroma (Orthodrome)",dl_rtz:"Pobierz RTZ",share:"Udostępnij…",dl_gpx:"GPX",dl_csv:"CSV",preview:"Pokaż zawartość pliku",
+o_lox:"Loksodroma (Loxodrome)",o_ort:"Ortodroma (Orthodrome)",dl_rtz:"Pobierz RTZ",share:"Udostępnij…",dl_gpx:"GPX",dl_csv:"CSV",sr_h:"Zapisane trasy",sr_hint:"Zapisz trasę, żeby wrócić do niej później. Przy podłączonym wspólnym pliku widzą ją też inne komputery.",sr_save:"Zapisz tę trasę",sr_open:"Otwórz",sr_del:"Usuń",sr_none:"Nie ma jeszcze zapisanych tras.",sr_saved:"Trasa zapisana",sr_ask:"Zastąpić punkty na ekranie tą trasą?",sr_delask:"Usunąć tę zapisaną trasę?",sr_wp:"punktów",sr_empty:"Najpierw dodaj przynajmniej jeden punkt.",
 verify:"Zawsze sprawdź zaimportowaną trasę w ECDIS: każdy punkt, odcinek, XTD i izobatę bezpieczeństwa na mapie. Przed użyciem trasa musi być zweryfikowana i zatwierdzona przez oficera nawigacyjnego.",
 disc:"Tylko pomoc. Zawsze weryfikuj wyniki z oficjalnymi publikacjami i mapami.",
 undo:"Cofnij",
@@ -687,6 +695,7 @@ function applyStatic(){
   $("#sTheme").innerHTML=th.map(([k,l])=>`<button data-th="${k}" aria-pressed="${S.theme===k}">${l[S.lang]}</button>`).join("");
   if(S.theme==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.dataset.theme=S.theme;
   $("#aboutLink").innerHTML=` · <a href="../about/">About &amp; terms</a>`;
+  try{drawRoutes()}catch(e){}
   renderList();
 }
 const defName=()=>"Route "+new Date().toISOString().slice(0,10);
@@ -758,7 +767,6 @@ const routeInfo=()=>Object.assign({},S.route,{name:safeRouteName(S.route.name.tr
 const rtzOpts=()=>({ver:S.rtz.ver,radius:+S.rtz.radius||0,xtdP:+S.rtz.xtdP||0,xtdS:+S.rtz.xtdS||0,geom:S.rtz.geom,names:S.rtz.names});
 const fileBase=()=>routeInfo().name;
 function renderRtz(){const v=valid(),ok=v.length>=2,o=rtzOpts(),xml=v.length?buildRTZ(v,routeInfo(),o):"",W=[];
-  $("#xml").textContent=xml;
   ["#bRtz","#bGpx","#bCsv","#bShare"].forEach(s=>$(s).disabled=!ok);
   $("#fileHint").textContent=t("fileHint")(fileBase());
   if(o.radius>5)W.push(t("w_rad"));if(o.xtdP>=10||o.xtdS>=10)W.push(t("w_xtd"));
@@ -1041,6 +1049,30 @@ $("#sGc").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.gc=b.dat
 $("#sTheme").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.theme=b.dataset.th;save();applyStatic()};
 $("#sLang").onchange=e=>{S.lang=e.target.value;save();applyStatic()};
 const inp=(id,fn)=>$(id).addEventListener("input",e=>{fn(e.target.value);save();renderRtz()});
+/* ---------- saved routes (also shared through assets/shared.js) ---------- */
+const LSR=LS+".routes";
+const getRoutes=()=>{try{const a=JSON.parse(localStorage.getItem(LSR)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}};
+const setRoutes=a=>{try{localStorage.setItem(LSR,JSON.stringify(a))}catch(e){}if(window.SeaShared)SeaShared.changed()};
+function drawRoutes(){const a=getRoutes().sort((x,y)=>(y.savedAt||0)-(x.savedAt||0));
+  $("#srList").innerHTML=a.length?a.map(r=>`<div class="sr"><div><b>${esc(r.name||"—")}</b><br><small>${(r.wps||[]).length} ${t("sr_wp")} · ${esc(new Date(r.savedAt||0).toLocaleString())}</small></div><div class="btns" style="margin:0"><button class="btn" data-open="${esc(r.id)}">${t("sr_open")}</button><button class="btn" data-del="${esc(r.id)}">${t("sr_del")}</button></div></div>`).join(""):`<p class="sub">${t("sr_none")}</p>`}
+$("#srSave").onclick=()=>{if(!S.wps.length){toast(t("sr_empty"));return}
+  const name=(S.route.name||"").trim()||defName(),a=getRoutes(),i=a.findIndex(r=>(r.name||"")===name);
+  const rec={id:i>=0?a[i].id:uid(),name,savedAt:Date.now(),wps:S.wps.map(w=>Object.assign({},w)),route:Object.assign({},S.route),rtz:Object.assign({},S.rtz),grid:Object.assign({},S.grid)};
+  if(i>=0)a[i]=rec;else a.push(rec);setRoutes(a);drawRoutes();toast(t("sr_saved"))};
+$("#srList").addEventListener("click",e=>{const o=e.target.closest("[data-open]"),d=e.target.closest("[data-del]");
+  if(o){const r=getRoutes().find(x=>x.id===o.dataset.open);if(!r)return;if(S.wps.length&&!confirm(t("sr_ask")))return;snapshot();
+    S.wps=(r.wps||[]).map(w=>Object.assign({},w));S.route=Object.assign({name:"",author:"",vessel:"",imo:"",mmsi:""},r.route);S.rtz=Object.assign({},S.rtz,r.rtz);S.grid=Object.assign({},S.grid,r.grid);save();applyStatic();scrollTo({top:0,behavior:"smooth"})}
+  if(d&&confirm(t("sr_delask"))){setRoutes(getRoutes().filter(x=>x.id!==d.dataset.del));drawRoutes()}});
+function sharedSnapshot(){const o={};getRoutes().forEach(r=>{if(r&&r.id)o["rt:"+r.id]=r});return o}
+function sharedApply(ch){const a=getRoutes();
+  for(const id of Object.keys(ch)){const rid=id.slice(3),rec=ch[id],i=a.findIndex(x=>x.id===rid);
+    if(!rec){if(i>=0)a.splice(i,1)}else if(i>=0)a[i]=rec;else a.push(rec)}
+  setRoutes(a);drawRoutes()}
+let sharedAsked=false;
+function sharedUi(i){$("#srShare").textContent=(S.lang==="pl"?"Wspólny plik":"Shared file")+(i.linked?": "+i.text.replace(/^(Shared|Udostępniane) – /,""):"…");
+  if(i.state==="perm"&&!sharedAsked){sharedAsked=true;toast(S.lang==="pl"?"Wspólny plik: kliknij „Wspólny plik”, aby połączyć ponownie":"Shared file: click “Shared file” to reconnect")}}
+$("#srShare").onclick=()=>{if(window.SeaShared)SeaShared.open()};
+addEventListener("DOMContentLoaded",()=>{drawRoutes();if(!window.SeaShared)return;SeaShared.init({app:"plot-to-route",title:"Plot to Route",snapshot:sharedSnapshot,apply:sharedApply});SeaShared.onState(sharedUi);sharedUi(SeaShared.info())});
 inp("#rName",v=>S.route.name=v);inp("#rVessel",v=>S.route.vessel=v);inp("#rAuthor",v=>S.route.author=v);
 inp("#rImo",v=>S.route.imo=v.replace(/\D/g,""));inp("#rMmsi",v=>S.route.mmsi=v.replace(/\D/g,""));
 inp("#zVer",v=>S.rtz.ver=v);inp("#zRad",v=>S.rtz.radius=v);inp("#zXp",v=>S.rtz.xtdP=v);inp("#zXs",v=>S.rtz.xtdS=v);inp("#zGeom",v=>S.rtz.geom=v);inp("#zNames",v=>S.rtz.names=v);$("#bPrint").onclick=()=>window.print();
