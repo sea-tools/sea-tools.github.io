@@ -102,7 +102,6 @@ input.bad{box-shadow:0 0 0 2px var(--bad)}
 .drop span{color:var(--dim);font-size:14px}
 textarea{min-height:92px;padding:12px;font:14px/1.45 var(--mono);resize:vertical}
 details.adv{margin-top:12px}
-.sr{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;padding:10px 0;border-top:1px solid rgba(128,140,150,.3)}.sr small{opacity:.7}
 details.adv summary{cursor:pointer;color:var(--accent);font-weight:600;min-height:36px;display:flex;align-items:center}
 details.adv .grid{margin-top:8px}
 
@@ -140,6 +139,7 @@ details.adv .grid{margin-top:8px}
 
 #map{width:100%;height:auto;display:block;border-radius:14px;background:var(--field)}
 #map text{font:600 11px var(--sans);fill:var(--ink);paint-order:stroke;stroke:var(--surface);stroke-width:3px}
+pre#xml{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--field);font:12px/1.45 var(--mono);overflow:auto;max-height:320px;white-space:pre}
 .help h3{margin:16px 0 6px;font:700 16px var(--round)}
 .help p,.help li{font-size:15px;color:var(--dim);margin:0 0 6px}
 .help ul,.help ol{margin:4px 0 8px;padding-left:20px}
@@ -154,8 +154,6 @@ details.adv .grid{margin-top:8px}
 <link rel="manifest" href="manifest.webmanifest">
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}))}</script>
 <script src="../assets/stats.js" defer></script>
-<script src="../assets/install.js" defer></script>
-<script src="../assets/shared.js" defer></script>
 </head>
 <body>
 <div class="wrap">
@@ -256,13 +254,7 @@ details.adv .grid{margin-top:8px}
     </div>
     <div id="rtzWarn"></div>
     <div class="note warn" data-i="verify"></div>
-  </section>
-
-  <section class="card" id="c5">
-    <h2 data-i="sr_h">Saved routes</h2>
-    <p class="sub" data-i="sr_hint"></p>
-    <div class="btns"><button class="btn pri" id="srSave" data-i="sr_save">Save this route</button><button class="btn" id="srShare" type="button">Shared file…</button></div>
-    <div id="srList"></div>
+    <details class="adv"><summary data-i="preview">Show file contents</summary><pre id="xml"></pre></details>
   </section>
 
   <section class="card help" id="help">
@@ -383,7 +375,7 @@ function cv(st,max,compact){
   if(m>=60||s>=60)return null;const v=d+m/60+s/3600;return v>max+1e-9?null:v}
 
 function cleanName(t){
-  let s=String(t).replace(/\b(Easting|Northing|East|North|Latitude|Longitude|Lat|Lon|Long|UTM|Zone)\b/gi," ").replace(/["'°′″|;:=]+/g," ").replace(/\s+/g," ").trim();
+  let s=String(t).replace(/[\u0000-\u001f\u007f-\u009f\ufffd]/g," ").replace(/\b(Easting|Northing|East|North|Latitude|Longitude|Lat|Lon|Long|UTM|Zone)\b/gi," ").replace(/["'°′″|;:=]+/g," ").replace(/\s+/g," ").trim();
   s=s.replace(/^[\s,.\-–/()\[\]]+|[\s,.\-–/()\[\]]+$/g,"").trim();
   if(/^\d+$/.test(s))s="WP "+s;
   return s.slice(0,40)}
@@ -491,7 +483,7 @@ function parseText(text,o){
     const sg=opt.mode==="en"?null:scanSingle(normLine(t));
     if(sg){if(pend&&pend.type!==sg.type){const lat=sg.type==="lat"?sg.val:pend.val,lon=sg.type==="lon"?sg.val:pend.val;pts.push({name:"",lat,lon});pend=null}else pend=sg;continue}
     const nn=(normLine(t).match(/\d+(?:\.\d+)?/g)||[]).length;
-    if(nn>=2&&/[°'"NSEW]|\d\.\d|\d{5}/.test(t))bad.push(t.slice(0,120))}
+    if(nn>=2&&!/[\u0000-\u0008\u000e-\u001f\u007f-\u009f\ufffd]/.test(t)&&/[°'"NSEW]|\d\.\d|\d{5}/.test(t))bad.push(t.slice(0,120))}
   return{pts,bad,notes}}
 
 /* --- single coordinate typed into a table cell: returns number or null --- */
@@ -577,14 +569,14 @@ add:"+ Add waypoint",rev:"Reverse route",copy:"Copy table",clear:"Clear all",
 h3:"Route check",dist:"Distances and bearings",rhumb:"Rhumb line",gc:"Great circle",map:"Route plot",
 hh:"Help",h4:"Route file for ECDIS (RTZ)",r_name:"Route name",r_vessel:"Vessel name (optional)",r_author:"Author (optional)",opt:"optional",
 r_ver:"RTZ version",names:"Waypoint names in the file",nm_s20:"Simplified: plain letters, max 20 characters (safest)",nm_s12:"Simplified: plain letters, max 12 characters",nm_asis:"As typed",print:"Print list",ph_note:"Positions in WGS84. Prepared with Plot to Route. Check against the chart before use.",fileHint:n=>`File name: ${n}.rtz. It must equal the route name, so it is set for you.`,w_rad:"Turn radius limited to 5 NM (the RTZ maximum).",w_xtd:"XTD limited to 9.99 NM (the RTZ maximum).",w_size:"The file is larger than 400 kB. Some ECDIS refuse that.",w_simpl:n=>`${n} waypoint name${n===1?" was":"s were"} simplified in the file (plain letters, short).`,w_rname:"The route name was cleaned for use as a file name (no \\ / : * ? \" < > | characters).",r_rad:"Turn radius (NM, max 5)",r_xp:"XTD port (NM)",r_xs:"XTD starboard (NM)",r_geom:"Leg type in the file",
-o_lox:"Rhumb line (Loxodrome)",o_ort:"Great circle (Orthodrome)",dl_rtz:"Download RTZ",share:"Share…",dl_gpx:"GPX",dl_csv:"CSV",sr_h:"Saved routes",sr_hint:"Save a route to find it again later. With a shared file linked, the other computers see it too.",sr_save:"Save this route",sr_open:"Open",sr_del:"Delete",sr_none:"No saved routes yet.",sr_saved:"Route saved",sr_ask:"Replace the waypoints on the screen with this route?",sr_delask:"Delete this saved route?",sr_wp:"waypoints",sr_empty:"Add at least one waypoint first.",
+o_lox:"Rhumb line (Loxodrome)",o_ort:"Great circle (Orthodrome)",dl_rtz:"Download RTZ",share:"Share…",dl_gpx:"GPX",dl_csv:"CSV",preview:"Show file contents",
 verify:"Always check the imported route in the ECDIS: every waypoint, leg, XTD and the safety contour against the chart. The route must be verified and approved by the navigating officer before use.",
 disc:"An aid only. Always verify results against official publications and charts.",
 undo:"Undo",
 log_ok:(n,s)=>`Added ${n} waypoint${n===1?"":"s"} from ${s}.`,log_none:"No coordinates found.",log_bad:n=>`${n} line${n===1?"":"s"} looked like coordinates but could not be read:`,
 log_grid:(n,g)=>`${n} point${n===1?"":"s"} read as Easting / Northing in ${g}. Check the grid in Reading options.`,
 log_swap:n=>`${n} line${n===1?"":"s"} had Lat and Lon the wrong way round; fixed.`,
-err_file:(f,e)=>`${f}: ${e}`,err_old:"This file type is not supported. Save it as .docx, .xlsx or PDF, or copy and paste the text.",
+err_img:"This is a picture. Plot to Route cannot read text from pictures. Copy the coordinates as text (or retype them) and paste them here, or use a PDF that contains text.",err_bin:"This file does not look like text, so it was not read. Use Word, Excel, a PDF with text, or plain text.",err_file:(f,e)=>`${f}: ${e}`,err_old:"This file type is not supported. Save it as .docx, .xlsx or PDF, or copy and paste the text.",
 err_pdf:"No text found in this PDF (a scan?). Copy the coordinates and paste them here instead.",err_zip:"This browser is too old to open Word and Excel files. Paste the text instead.",
 err_clip:"The clipboard could not be read. Paste into the box above (Ctrl+V or long-press → Paste).",
 t_total:(n,d,g)=>`<span><b>${n}</b> waypoint${n===1?"":"s"}</span><span>${g}: <b>${d}</b> NM</span>`,
@@ -622,14 +614,14 @@ add:"+ Dodaj punkt",rev:"Odwróć trasę",copy:"Kopiuj tabelę",clear:"Wyczyść
 h3:"Kontrola trasy",dist:"Odległości i kursy",rhumb:"Loksodroma",gc:"Ortodroma",map:"Wykres trasy",
 hh:"Pomoc",h4:"Plik trasy dla ECDIS (RTZ)",r_name:"Nazwa trasy",r_vessel:"Nazwa statku (opcjonalnie)",r_author:"Autor (opcjonalnie)",opt:"opcjonalnie",
 r_ver:"Wersja RTZ",names:"Nazwy punktów w pliku",nm_s20:"Uproszczone: zwykłe litery, maks. 20 znaków (najbezpieczniej)",nm_s12:"Uproszczone: zwykłe litery, maks. 12 znaków",nm_asis:"Tak jak wpisano",print:"Drukuj listę",ph_note:"Pozycje w WGS84. Przygotowano w Plot to Route. Przed użyciem sprawdź na mapie.",fileHint:n=>`Nazwa pliku: ${n}.rtz. Musi być równa nazwie trasy, więc ustawia się sama.`,w_rad:"Promień zwrotu ograniczono do 5 NM (maksimum w RTZ).",w_xtd:"XTD ograniczono do 9,99 NM (maksimum w RTZ).",w_size:"Plik jest większy niż 400 kB. Niektóre ECDIS tego nie przyjmą.",w_simpl:n=>`Uproszczone nazwy punktów w pliku: ${n} (zwykłe litery, krótsze).`,w_rname:"Nazwa trasy została oczyszczona na potrzeby nazwy pliku (bez znaków \\ / : * ? \" < > |).",r_rad:"Promień zwrotu (NM, maks. 5)",r_xp:"XTD lewa burta (NM)",r_xs:"XTD prawa burta (NM)",r_geom:"Rodzaj odcinka w pliku",
-o_lox:"Loksodroma (Loxodrome)",o_ort:"Ortodroma (Orthodrome)",dl_rtz:"Pobierz RTZ",share:"Udostępnij…",dl_gpx:"GPX",dl_csv:"CSV",sr_h:"Zapisane trasy",sr_hint:"Zapisz trasę, żeby wrócić do niej później. Przy podłączonym wspólnym pliku widzą ją też inne komputery.",sr_save:"Zapisz tę trasę",sr_open:"Otwórz",sr_del:"Usuń",sr_none:"Nie ma jeszcze zapisanych tras.",sr_saved:"Trasa zapisana",sr_ask:"Zastąpić punkty na ekranie tą trasą?",sr_delask:"Usunąć tę zapisaną trasę?",sr_wp:"punktów",sr_empty:"Najpierw dodaj przynajmniej jeden punkt.",
+o_lox:"Loksodroma (Loxodrome)",o_ort:"Ortodroma (Orthodrome)",dl_rtz:"Pobierz RTZ",share:"Udostępnij…",dl_gpx:"GPX",dl_csv:"CSV",preview:"Pokaż zawartość pliku",
 verify:"Zawsze sprawdź zaimportowaną trasę w ECDIS: każdy punkt, odcinek, XTD i izobatę bezpieczeństwa na mapie. Przed użyciem trasa musi być zweryfikowana i zatwierdzona przez oficera nawigacyjnego.",
 disc:"Tylko pomoc. Zawsze weryfikuj wyniki z oficjalnymi publikacjami i mapami.",
 undo:"Cofnij",
 log_ok:(n,s)=>`Dodano punktów: ${n} (${s}).`,log_none:"Nie znaleziono współrzędnych.",log_bad:n=>`Wierszy wyglądających jak współrzędne, których nie udało się odczytać: ${n}:`,
 log_grid:(n,g)=>`Punkty odczytane jako Easting / Northing w siatce ${g}: ${n}. Sprawdź siatkę w Opcjach wczytywania.`,
 log_swap:n=>`Wiersze z zamienioną szerokością i długością (poprawione): ${n}.`,
-err_file:(f,e)=>`${f}: ${e}`,err_old:"Ten typ pliku nie jest obsługiwany. Zapisz go jako .docx, .xlsx lub PDF albo skopiuj i wklej tekst.",
+err_img:"To jest obraz. Plot to Route nie czyta tekstu z obrazów. Skopiuj współrzędne jako tekst (lub przepisz je) i wklej tutaj albo użyj PDF z tekstem.",err_bin:"Ten plik nie wygląda na tekst, więc go nie wczytano. Użyj Worda, Excela, PDF z tekstem albo zwykłego tekstu.",err_file:(f,e)=>`${f}: ${e}`,err_old:"Ten typ pliku nie jest obsługiwany. Zapisz go jako .docx, .xlsx lub PDF albo skopiuj i wklej tekst.",
 err_pdf:"W tym PDF-ie nie ma tekstu (skan?). Skopiuj współrzędne i wklej je tutaj.",err_zip:"Ta przeglądarka jest za stara, by otwierać pliki Word i Excel. Wklej tekst.",
 err_clip:"Nie można odczytać schowka. Wklej do pola powyżej (Ctrl+V lub przytrzymaj → Wklej).",
 t_total:(n,d,g)=>`<span>Punktów: <b>${n}</b></span><span>${g}: <b>${d}</b> NM</span>`,
@@ -691,7 +683,6 @@ function applyStatic(){
   $("#sTheme").innerHTML=th.map(([k,l])=>`<button data-th="${k}" aria-pressed="${S.theme===k}">${l[S.lang]}</button>`).join("");
   if(S.theme==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.dataset.theme=S.theme;
   $("#aboutLink").innerHTML=` · <a href="../about/">About &amp; terms</a>`;
-  try{drawRoutes()}catch(e){}
   renderList();
 }
 const defName=()=>"Route "+new Date().toISOString().slice(0,10);
@@ -762,6 +753,7 @@ const routeInfo=()=>Object.assign({},S.route,{name:safeRouteName(S.route.name.tr
 const rtzOpts=()=>({ver:S.rtz.ver,radius:+S.rtz.radius||0,xtdP:+S.rtz.xtdP||0,xtdS:+S.rtz.xtdS||0,geom:S.rtz.geom,names:S.rtz.names});
 const fileBase=()=>routeInfo().name;
 function renderRtz(){const v=valid(),ok=v.length>=2,o=rtzOpts(),xml=v.length?buildRTZ(v,routeInfo(),o):"",W=[];
+  $("#xml").textContent=xml;
   ["#bRtz","#bGpx","#bCsv","#bShare"].forEach(s=>$(s).disabled=!ok);
   $("#fileHint").textContent=t("fileHint")(fileBase());
   if(o.radius>5)W.push(t("w_rad"));if(o.xtdP>=10||o.xtdS>=10)W.push(t("w_xtd"));
@@ -853,15 +845,24 @@ function routeXml(text){ // RTZ or GPX
     for(const w of l){const nm=w.getElementsByTagName("name")[0];pts.push({name:nm?nm.textContent.trim():"",lat:+w.getAttribute("lat"),lon:+w.getAttribute("lon")})}}
   const info=d.getElementsByTagName("routeInfo")[0]||d.getElementsByTagName("rte")[0];
   return{pts:pts.filter(p=>isFinite(p.lat)&&isFinite(p.lon)&&Math.abs(p.lat)<=90&&Math.abs(p.lon)<=180),bad:[],notes:{},info}}
+function sniff(buf){const u=new Uint8Array(buf.slice(0,16)),a=(...b)=>b.every((x,i)=>u[i]===x),str=(o,x)=>[...x].every((c,i)=>u[o+i]===c.charCodeAt(0));
+  if(a(0x89,0x50,0x4e,0x47)||a(0xff,0xd8,0xff)||str(0,"GIF8")||str(0,"BM")||a(0x49,0x49,0x2a,0)||a(0x4d,0x4d,0,0x2a)||(str(0,"RIFF")&&str(8,"WEBP"))||str(4,"ftyp"))return"image";
+  if(str(0,"%PDF"))return"pdf";if(a(0x50,0x4b,3,4))return"zip";return null}
+function looksBinary(buf){const u=new Uint8Array(buf.slice(0,4096));if(!u.length)return false;
+  if((u[0]===0xff&&u[1]===0xfe)||(u[0]===0xfe&&u[1]===0xff))return false;
+  let bad=0;for(const b of u)if(b===0||(b<9)||(b>13&&b<32))bad++;return bad/u.length>0.005}
 async function readFile(f){
-  const ext=(f.name.split(".").pop()||"").toLowerCase(),buf=await f.arrayBuffer();
+  let ext=(f.name.split(".").pop()||"").toLowerCase();const buf=await f.arrayBuffer(),kind=sniff(buf);
+  if(kind==="image"||/^(png|jpe?g|gif|webp|bmp|tiff?|heic|heif)$/.test(ext))throw new Error(t("err_img"));
+  if(kind==="pdf")ext="pdf";
+  if(kind==="zip"&&!/^(docx|xlsx|xlsm)$/.test(ext))throw new Error(t("err_old"));
   if(["rtz","gpx","xml"].includes(ext)){const r=routeXml(decodeText(buf));
     if(r.info&&!S.route.name){const n=r.info.getAttribute("routeName")||(r.info.getElementsByTagName("name")[0]||{}).textContent;if(n){S.route.name=n.trim();$("#rName").value=S.route.name}}return r}
   let text;
   if(ext==="docx")text=await docxText(buf);else if(ext==="xlsx"||ext==="xlsm")text=await xlsxText(buf);
   else if(ext==="pdf"){text=await pdfText(buf);if(!text.trim())throw new Error(t("err_pdf"))}
   else if(["doc","xls","odt","ods","rtf","pages","numbers"].includes(ext))throw new Error(t("err_old"));
-  else text=decodeText(buf);
+  else{if(looksBinary(buf))throw new Error(t("err_bin"));text=decodeText(buf)}
   return parseText(text,rOpts())}
 async function handleFiles(files){
   for(const f of files){try{const r=await readFile(f);ingest(r,f.name)}catch(e){$("#log").innerHTML=`<div class="note bad">${esc(t("err_file")(f.name,e.message||e))}</div>`}}}
@@ -929,30 +930,6 @@ $("#sGc").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.gc=b.dat
 $("#sTheme").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.theme=b.dataset.th;save();applyStatic()};
 $("#sLang").onchange=e=>{S.lang=e.target.value;save();applyStatic()};
 const inp=(id,fn)=>$(id).addEventListener("input",e=>{fn(e.target.value);save();renderRtz()});
-/* ---------- saved routes (also shared through assets/shared.js) ---------- */
-const LSR=LS+".routes";
-const getRoutes=()=>{try{const a=JSON.parse(localStorage.getItem(LSR)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}};
-const setRoutes=a=>{try{localStorage.setItem(LSR,JSON.stringify(a))}catch(e){}if(window.SeaShared)SeaShared.changed()};
-function drawRoutes(){const a=getRoutes().sort((x,y)=>(y.savedAt||0)-(x.savedAt||0));
-  $("#srList").innerHTML=a.length?a.map(r=>`<div class="sr"><div><b>${esc(r.name||"—")}</b><br><small>${(r.wps||[]).length} ${t("sr_wp")} · ${esc(new Date(r.savedAt||0).toLocaleString())}</small></div><div class="btns" style="margin:0"><button class="btn" data-open="${esc(r.id)}">${t("sr_open")}</button><button class="btn" data-del="${esc(r.id)}">${t("sr_del")}</button></div></div>`).join(""):`<p class="sub">${t("sr_none")}</p>`}
-$("#srSave").onclick=()=>{if(!S.wps.length){toast(t("sr_empty"));return}
-  const name=(S.route.name||"").trim()||defName(),a=getRoutes(),i=a.findIndex(r=>(r.name||"")===name);
-  const rec={id:i>=0?a[i].id:uid(),name,savedAt:Date.now(),wps:S.wps.map(w=>Object.assign({},w)),route:Object.assign({},S.route),rtz:Object.assign({},S.rtz),grid:Object.assign({},S.grid)};
-  if(i>=0)a[i]=rec;else a.push(rec);setRoutes(a);drawRoutes();toast(t("sr_saved"))};
-$("#srList").addEventListener("click",e=>{const o=e.target.closest("[data-open]"),d=e.target.closest("[data-del]");
-  if(o){const r=getRoutes().find(x=>x.id===o.dataset.open);if(!r)return;if(S.wps.length&&!confirm(t("sr_ask")))return;snapshot();
-    S.wps=(r.wps||[]).map(w=>Object.assign({},w));S.route=Object.assign({name:"",author:"",vessel:"",imo:"",mmsi:""},r.route);S.rtz=Object.assign({},S.rtz,r.rtz);S.grid=Object.assign({},S.grid,r.grid);save();applyStatic();scrollTo({top:0,behavior:"smooth"})}
-  if(d&&confirm(t("sr_delask"))){setRoutes(getRoutes().filter(x=>x.id!==d.dataset.del));drawRoutes()}});
-function sharedSnapshot(){const o={};getRoutes().forEach(r=>{if(r&&r.id)o["rt:"+r.id]=r});return o}
-function sharedApply(ch){const a=getRoutes();
-  for(const id of Object.keys(ch)){const rid=id.slice(3),rec=ch[id],i=a.findIndex(x=>x.id===rid);
-    if(!rec){if(i>=0)a.splice(i,1)}else if(i>=0)a[i]=rec;else a.push(rec)}
-  setRoutes(a);drawRoutes()}
-let sharedAsked=false;
-function sharedUi(i){$("#srShare").textContent=(S.lang==="pl"?"Wspólny plik":"Shared file")+(i.linked?": "+i.text.replace(/^(Shared|Udostępniane) – /,""):"…");
-  if(i.state==="perm"&&!sharedAsked){sharedAsked=true;toast(S.lang==="pl"?"Wspólny plik: kliknij „Wspólny plik”, aby połączyć ponownie":"Shared file: click “Shared file” to reconnect")}}
-$("#srShare").onclick=()=>{if(window.SeaShared)SeaShared.open()};
-addEventListener("DOMContentLoaded",()=>{drawRoutes();if(!window.SeaShared)return;SeaShared.init({app:"plot-to-route",title:"Plot to Route",snapshot:sharedSnapshot,apply:sharedApply});SeaShared.onState(sharedUi);sharedUi(SeaShared.info())});
 inp("#rName",v=>S.route.name=v);inp("#rVessel",v=>S.route.vessel=v);inp("#rAuthor",v=>S.route.author=v);
 inp("#rImo",v=>S.route.imo=v.replace(/\D/g,""));inp("#rMmsi",v=>S.route.mmsi=v.replace(/\D/g,""));
 inp("#zVer",v=>S.rtz.ver=v);inp("#zRad",v=>S.rtz.radius=v);inp("#zXp",v=>S.rtz.xtdP=v);inp("#zXs",v=>S.rtz.xtdS=v);inp("#zGeom",v=>S.rtz.geom=v);inp("#zNames",v=>S.rtz.names=v);$("#bPrint").onclick=()=>window.print();
