@@ -227,6 +227,14 @@ main.enter > :nth-child(4) { animation-delay: .12s; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 <link rel="manifest" href="manifest.webmanifest">
+<script>/* Installed app: runs in its own window and cannot go back to the SeaTools home page */
+(function(){var sa=function(){return matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true};
+if(sa())document.documentElement.classList.add('installed');
+document.addEventListener('click',function(e){if(!sa())return;var a=e.target.closest&&e.target.closest('a[href]');if(!a||a.hasAttribute('download')||a.target==='_blank')return;
+  var u=new URL(a.href,location.href);if(u.protocol!=='http:'&&u.protocol!=='https:')return;if(u.origin!==location.origin)return;
+  if(u.href.indexOf(new URL('./',location.href).href)===0)return;
+  e.preventDefault();if(u.pathname.indexOf('/about/')>=0)window.open(u.href,'_blank','noopener');},true);})();</script>
+<style>html.installed a.back,html.installed a[href="../"]{display:none!important}</style>
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}))}</script>
 <script src="../assets/stats.js" defer></script>
 <script src="../assets/install.js" defer></script>
