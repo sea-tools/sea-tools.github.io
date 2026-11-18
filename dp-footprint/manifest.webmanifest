@@ -3,7 +3,7 @@
   "short_name": "DP Footprint",
   "start_url": "./",
   "scope": "./",
-  "id": "./",
+  "id": "/dp-footprint/",
   "display": "standalone",
   "background_color": "#14232d",
   "theme_color": "#14232d",

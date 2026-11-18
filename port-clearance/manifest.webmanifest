@@ -3,7 +3,7 @@
   "short_name": "Clearance",
   "start_url": "./",
   "scope": "./",
-  "id": "./",
+  "id": "/port-clearance/",
   "display": "standalone",
   "background_color": "#14232d",
   "theme_color": "#14232d",
