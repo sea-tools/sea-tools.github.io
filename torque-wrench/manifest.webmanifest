@@ -3,7 +3,7 @@
   "short_name": "Tight & Right",
   "start_url": "./",
   "scope": "./",
-  "id": "./",
+  "id": "/torque-wrench/",
   "display": "standalone",
   "background_color": "#14232d",
   "theme_color": "#14232d",

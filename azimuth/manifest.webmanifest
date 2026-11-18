@@ -3,7 +3,7 @@
   "short_name": "Azimuth",
   "start_url": "./",
   "scope": "./",
-  "id": "./",
+  "id": "/azimuth/",
   "display": "standalone",
   "background_color": "#0a84ff",
   "theme_color": "#0a84ff",
