@@ -164,6 +164,7 @@ document.addEventListener('click',function(e){if(!sa())return;var a=e.target.clo
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}))}</script>
 <script src="../assets/stats.js" defer></script>
 <script src="../assets/install.js" defer></script>
+<script src="../assets/print.js" defer></script>
 <script src="../assets/shared.js" defer></script>
 </head>
 <body>
@@ -1083,7 +1084,7 @@ $("#srShare").onclick=()=>{if(window.SeaShared)SeaShared.open()};
 addEventListener("DOMContentLoaded",()=>{drawRoutes();if(!window.SeaShared)return;SeaShared.init({app:"plot-to-route",title:"Plot to Route",snapshot:sharedSnapshot,apply:sharedApply});SeaShared.onState(sharedUi);sharedUi(SeaShared.info())});
 inp("#rName",v=>S.route.name=v);inp("#rVessel",v=>S.route.vessel=v);inp("#rAuthor",v=>S.route.author=v);
 inp("#rImo",v=>S.route.imo=v.replace(/\D/g,""));inp("#rMmsi",v=>S.route.mmsi=v.replace(/\D/g,""));
-inp("#zVer",v=>S.rtz.ver=v);inp("#zRad",v=>S.rtz.radius=v);inp("#zXp",v=>S.rtz.xtdP=v);inp("#zXs",v=>S.rtz.xtdS=v);inp("#zGeom",v=>S.rtz.geom=v);inp("#zNames",v=>S.rtz.names=v);$("#bPrint").onclick=()=>window.print();
+inp("#zVer",v=>S.rtz.ver=v);inp("#zRad",v=>S.rtz.radius=v);inp("#zXp",v=>S.rtz.xtdP=v);inp("#zXs",v=>S.rtz.xtdS=v);inp("#zGeom",v=>S.rtz.geom=v);inp("#zNames",v=>S.rtz.names=v);$("#bPrint").onclick=()=>window.SeaPrint?SeaPrint.print({margin:10}):window.print();
 $("#bRtz").onclick=()=>{const f=rtzFile();download(f.name,f.data);toast(t("saved"))};
 $("#bGpx").onclick=()=>download(fileBase()+".gpx",buildGPX(valid(),routeInfo(),exportNames(valid(),rtzOpts())));
 $("#bCsv").onclick=()=>download(fileBase()+".csv","﻿"+buildCSV(valid(),fo(),S.grid,exportNames(valid(),rtzOpts())),"text/csv");
