@@ -523,7 +523,7 @@ $('#shBtn').onclick=()=>{if(window.SeaShared)SeaShared.open()};
 addEventListener('DOMContentLoaded',()=>{if(!window.SeaShared)return;SeaShared.init({app:'dp-footprint',title:'DP Footprint Plot',snapshot:sharedSnapshot,apply:sharedApply});SeaShared.onState(sharedUi);sharedUi(SeaShared.info())});
 try{if(window.self===window.top){$('#printBtn').hidden=false;$('#printBtn').onclick=()=>{const t=document.title;
   document.title=['DP Footprint',S.date,(S.time||'').replace(':',''),S.vessel].filter(Boolean).join(' ').replace(/[\/\\:*?"<>|]/g,'-');
-  window.print();setTimeout(()=>{document.title=t},1500);};}}catch(e){}
+  (window.SeaPrint?SeaPrint.print({margin:9}):window.print());setTimeout(()=>{document.title=t},1500);};}}catch(e){}
 render();
 })();
 </script>
@@ -553,5 +553,6 @@ render();
 </script>
 <script src="../assets/stats.js" defer></script>
 <script src="../assets/install.js" defer></script>
+<script src="../assets/print.js" defer></script>
 <script src="../assets/shared.js" defer></script>
 </body></html>

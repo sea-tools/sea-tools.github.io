@@ -21,6 +21,7 @@ document.addEventListener('click',function(e){if(!sa())return;var a=e.target.clo
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}))}</script>
 <script src="../assets/stats.js" defer></script>
 <script src="../assets/install.js" defer></script>
+<script src="../assets/print.js" defer></script>
 <script src="../assets/shared.js" defer></script>
 <script src="../assets/docread.js" defer></script>
 <script src="import.js" defer></script>
@@ -861,7 +862,7 @@ function doPrint(ids,rot){const root=$('#printRoot');root.innerHTML='';const kee
   $('#pageStyle').textContent=(rot||none)?'@page{size:A4 portrait;margin:0}':all?'@page{size:A4 landscape;margin:0}':'@page{size:A4 portrait;margin:0}@page land{size:A4 landscape;margin:0}';
   const t=document.title;document.title=(recTitle(REC)+' '+(ids.length===1?SPEC[ids[0]].no:'port clearance')).replace(/[·\/]/g,'-');
   const done=()=>{document.title=t;removeEventListener('afterprint',done)};addEventListener('afterprint',done);
-  const go=()=>setTimeout(()=>window.print(),80);
+  const go=()=>setTimeout(()=>window.SeaPrint?SeaPrint.print({pages:'#printRoot .sheet',prep:d=>d.body.classList.remove('rot')}):window.print(),80);
   const imgs=$$('img',root).filter(i=>!i.complete);if(imgs.length)Promise.all(imgs.map(i=>new Promise(r=>{i.onload=i.onerror=r}))).then(go);else go()}
 window.__print=doPrint;
 

@@ -2,7 +2,7 @@
 // Strategy: try the network first (so updates show up straight away),
 // fall back to the saved copy when there is no connection.
 // When you add a new app, add its files to PRECACHE and bump VERSION.
-const VERSION = "v39";
+const VERSION = "v40";
 const CACHE = "marine-apps-" + VERSION;
 const PRECACHE = [
   "./",
@@ -16,6 +16,8 @@ const PRECACHE = [
   "assets/install.js",
   "assets/shared.js",
   "assets/docread.js",
+  "assets/print.js",
+  "assets/vendor/html2canvas.min.js",
   "about/",
   "dp-footprint/",
   "dp-footprint/icon.png",

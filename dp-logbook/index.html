@@ -21,6 +21,7 @@ document.addEventListener('click',function(e){if(!sa())return;var a=e.target.clo
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}))}</script>
 <script src="../assets/stats.js" defer></script>
 <script src="../assets/install.js" defer></script>
+<script src="../assets/print.js" defer></script>
 <script src="../assets/shared.js" defer></script>
 <style>
 :root{
@@ -172,6 +173,7 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
 #dayList p{padding:24px 16px;margin:0;color:var(--muted);text-align:center}
 
 #print{display:none}
+#cfRank[hidden]{display:none!important}
 @media print{
   @page{size:A4;margin:14mm}
   body{background:#fff;color:#000;font:11pt/1.35 Arial,Helvetica,sans-serif}
@@ -365,9 +367,9 @@ dialog::backdrop{background:rgba(8,14,18,.55)}
     <input type="text" id="cfName" autocomplete="off" placeholder="First name Surname">
     <label for="cfGroup">Group</label>
     <select id="cfGroup"><option value="dpo">DP operator</option><option value="eng">Engineer</option><option value="oth">Other</option></select>
-    <label for="cfRank">Rank</label>
-    <input type="text" id="cfRank" list="rankList" autocomplete="off" placeholder="Pick from the list or type your own">
-    <datalist id="rankList"></datalist>
+    <label for="cfRankSel">Rank</label>
+    <select id="cfRankSel"></select>
+    <input type="text" id="cfRank" autocomplete="off" placeholder="Type the rank" hidden style="margin-top:6px">
     <label for="cfPattern">Watch pattern</label>
     <select id="cfPattern"></select>
     <div id="cfCustomBox" hidden>
@@ -1002,7 +1004,7 @@ $("dpPrint").onclick = () => {
     fmtDate(r.a) + " – " + fmtDate(r.b) + "<br>" + sub + "</div></div>" + cards +
     '<table id="dpTbl" class="' + (all ? "crewtbl" : "") + '">' + $("dpTbl").innerHTML + "</table>" +
     '<div class="ps"><div>Master (name / signature)</div></div></section>';
-  $("dpDlg").close(); setTimeout(() => print(), 50);
+  $("dpDlg").close(); setTimeout(() => (window.SeaPrint ? SeaPrint.print({ margin: 14 }) : print()), 50);
 };
 
 /* ---------- suggestions ---------- */
@@ -1169,7 +1171,7 @@ function printDays(dates, t1, t2) {   // t1 limits the first day, t2 the last da
     (one ? fmtDate(a, true) : fmtDate(a) + (t1 ? " " + t1 : "") + " – " + fmtDate(b) + (t2 ? " " + t2 : "") + "<br>Times: " + tz) + "</div></div>" + body +
     '<div class="ps"><div>Master (name / signature)</div></div></section>';
   if (document.activeElement) document.activeElement.blur();
-  setTimeout(() => print(), 50);
+  setTimeout(() => (window.SeaPrint ? SeaPrint.print({ margin: 14 }) : print()), 50);
   return true;
 }
 function printSel() {            // what the print dialog currently selects
@@ -1325,13 +1327,21 @@ $("crewbar").onkeydown = (ev) => { if (ev.key === "Enter" || ev.key === " ") { e
 $("crewShow").onchange = (ev) => { S.showCrew = ev.target.checked; save(); renderCrewBar(); };
 $("crewDlg").addEventListener("close", () => { renderCrewBar(); });
 $("cfPattern").innerHTML = PATTERNS.map((x) => '<option value="' + x[0] + '">' + x[1] + "</option>").join("") + '<option value="custom">Other hours…</option>';
-function fillRanks() { $("rankList").innerHTML = RANKS[$("cfGroup").value].map((r) => '<option value="' + r + '">').join(""); }
-$("cfGroup").onchange = () => { fillRanks(); };
+function fillRanks() {             // a real list (works on iPad too); "Other" opens a box to type any rank
+  const list = RANKS[$("cfGroup").value] || [], v = $("cfRank").value.trim(), i = list.findIndex((x) => x === v || (x.match(/\(([^)]+)\)/) || [])[1] === v);
+  $("cfRankSel").innerHTML = '<option value="">Choose…</option>' + list.map((r, k) => '<option value="' + k + '">' + esc(r) + "</option>").join("") + '<option value="other">Other (type your own)…</option>';
+  $("cfRankSel").value = !v ? "" : i >= 0 ? String(i) : "other";
+  $("cfRank").hidden = $("cfRankSel").value !== "other";
+}
+$("cfRankSel").onchange = () => { const s = $("cfRankSel").value, list = RANKS[$("cfGroup").value] || [];
+  if (s === "other") { $("cfRank").hidden = false; $("cfRank").value = ""; $("cfRank").focus(); }
+  else { $("cfRank").hidden = true; $("cfRank").value = s === "" ? "" : list[+s]; } };
+$("cfGroup").onchange = () => { if ($("cfRankSel").value !== "other") $("cfRank").value = ""; fillRanks(); };
 $("cfPattern").onchange = () => { $("cfCustomBox").hidden = $("cfPattern").value !== "custom"; };
 let editId = null;
 function openForm(id) {
   editId = id; const p = S.crew.find((x) => x.id === id) || { name: "", group: "dpo", rank: "", watch: "", from: "", to: "" };
-  $("cfName").value = p.name; $("cfGroup").value = p.group; fillRanks(); $("cfRank").value = p.rank;
+  $("cfName").value = p.name; $("cfGroup").value = p.group; $("cfRank").value = p.rank; fillRanks();
   $("cfPattern").value = p.watch; if ($("cfPattern").value !== p.watch) { $("cfPattern").value = "custom"; $("cfCustom").value = p.watch.replace(/-/g, "–"); } else $("cfCustom").value = "";
   $("cfCustomBox").hidden = $("cfPattern").value !== "custom"; $("cfFrom").value = p.from; $("cfTo").value = p.to; $("cfDelete").hidden = !id;
   $("crewMain").hidden = true; $("crewForm").hidden = false; $("crewDlg").scrollTop = 0; $("cfName").focus();
