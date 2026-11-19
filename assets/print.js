@@ -71,6 +71,30 @@
       im.src = url;
     });
   }
+  // Form fields become plain text boxes of the same size, so their text is drawn exactly where the page shows it
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function flatFields(doc) {
+    var win = doc.defaultView, els = [].slice.call(doc.querySelectorAll("input,select,textarea"));
+    els.forEach(function (el) {
+      var type = (el.getAttribute("type") || "").toLowerCase(), tag = el.tagName;
+      if (tag === "INPUT" && /^(checkbox|radio|range|file|color|button|submit|reset|hidden|image)$/.test(type)) return;
+      var cs = win.getComputedStyle(el); if (cs.display === "none") return;
+      var r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return;
+      var txt = tag === "SELECT" ? (el.selectedOptions && el.selectedOptions[0] ? el.selectedOptions[0].textContent : "") : (el.value || "");
+      var m = type === "date" && /^(\d{4})-(\d\d)-(\d\d)$/.exec(txt); if (m) txt = m[3] + " " + MON[+m[2] - 1] + " " + m[1];
+      var d = doc.createElement("div"), multi = tag === "TEXTAREA", css = "";
+      ["font-family", "font-size", "font-weight", "font-style", "letter-spacing", "color", "text-align", "text-transform", "padding-top", "padding-right", "padding-bottom", "padding-left",
+        "border-top-width", "border-right-width", "border-bottom-width", "border-left-width", "border-top-style", "border-right-style", "border-bottom-style", "border-left-style",
+        "border-top-color", "border-right-color", "border-bottom-color", "border-left-color", "border-radius", "background-color", "margin-top", "margin-right", "margin-bottom", "margin-left",
+        "vertical-align", "grid-column-start", "grid-column-end", "grid-row-start", "grid-row-end", "flex-grow", "flex-shrink", "flex-basis", "align-self", "justify-self", "position", "left", "top", "right", "bottom", "float"]
+        .forEach(function (p) { var v = cs.getPropertyValue(p); if (v) css += p + ":" + v + ";"; });
+      var inner = r.height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth);
+      css += "box-sizing:border-box;width:" + r.width + "px;" + (multi ? "min-height:" + r.height + "px;white-space:pre-wrap;line-height:" + cs.lineHeight + ";" : "height:" + r.height + "px;white-space:nowrap;line-height:" + Math.max(inner, 1) + "px;") + "overflow:hidden;";
+      css += "display:" + (/^inline/.test(cs.display) ? "inline-block" : "block") + ";";
+      d.setAttribute("style", css); d.textContent = txt;
+      if (el.parentNode) el.parentNode.replaceChild(d, el);
+    });
+  }
   function prepDoc(doc, opts, scale) {
     printMedia(doc);
     // html2canvas writes the on-screen look into every drawing of its copy; put back what the page itself says, so the print rules apply
@@ -85,6 +109,7 @@
     doc.head.appendChild(st);
     var ph = doc.querySelectorAll("[placeholder]"); for (var i = 0; i < ph.length; i++) ph[i].removeAttribute("placeholder");
     if (opts.prep) { try { opts.prep(doc); } catch (e) {} }
+    flatFields(doc);
     var svgs = [].slice.call(doc.querySelectorAll("svg")).filter(function (v) { return !(v.parentNode && v.parentNode.closest && v.parentNode.closest("svg")); }), chain = Promise.resolve();
     svgs.forEach(function (v) { chain = chain.then(function () { var cs = doc.defaultView.getComputedStyle(v); if (cs.display === "none") return; return svgToImg(doc, v, scale || 2.2); }); });
     return chain;
@@ -93,12 +118,13 @@
   // Where a flowing document may be cut into pages
   function measure(doc, pageH) {
     var win = doc.defaultView, total = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, Math.ceil(doc.body.getBoundingClientRect().bottom));
-    var atoms = [], forced = [], all = doc.body.querySelectorAll("*");
+    var atoms = [], forced = [], tables = [], all = doc.body.querySelectorAll("*");
     for (var i = 0; i < all.length; i++) {
       var el = all[i], cs = win.getComputedStyle(el);
       if (cs.display === "none" || cs.visibility === "hidden") continue;
       var r = el.getBoundingClientRect(); if (!r.height || !r.width) continue;
       var top = r.top + win.scrollY, bot = r.bottom + win.scrollY, tag = el.tagName;
+      if (tag === "THEAD" && el.parentNode && el.parentNode.tagName === "TABLE") { var tr = el.parentNode.getBoundingClientRect(); if (bot - top < pageH / 3) tables.push({ top: tr.top + win.scrollY, bottom: tr.bottom + win.scrollY, hTop: top, hBot: bot }); }
       var ba = cs.breakAfter || cs.pageBreakAfter, bb = cs.breakBefore || cs.pageBreakBefore, bi = cs.breakInside || cs.pageBreakInside;
       if (ba === "page" || ba === "always") forced.push(bot);
       if (bb === "page" || bb === "always") forced.push(top);
@@ -106,17 +132,18 @@
       if ((tag === "TR" || tag === "IMG" || tag === "svg" || tag === "CANVAS" || bi === "avoid" || leaf) && bot - top < pageH - 2) atoms.push([top, bot]);
     }
     forced = forced.filter(function (y) { return y > 4 && y < total - 4; }).sort(function (a, b) { return a - b; });
-    var cuts = [0], y0 = 0, guard = 0;
+    var pages = [], y0 = 0, guard = 0;
     while (y0 < total - 1 && guard++ < 2000) {
-      var y1 = y0 + pageH, f = null;
+      var head = null;                                   // a table that started on an earlier page: its header row is repeated
+      for (var t = 0; t < tables.length; t++) if (y0 > tables[t].hBot + 1 && y0 < tables[t].bottom - 2) { head = tables[t]; break; }
+      var room = pageH - (head ? head.hBot - head.hTop : 0), y1 = y0 + room, f = null;
       for (var k = 0; k < forced.length; k++) if (forced[k] > y0 + 2 && forced[k] <= y1 + 0.5) { f = forced[k]; break; }
       if (f !== null) y1 = f;
       else if (y1 >= total) y1 = total;
       else { var moved = true, n = 0; while (moved && n++ < 50) { moved = false; for (var a = 0; a < atoms.length; a++) if (atoms[a][0] < y1 - 0.5 && atoms[a][1] > y1 + 0.5 && atoms[a][0] > y0 + 2) { y1 = atoms[a][0]; moved = true; } } }
-      cuts.push(y1); y0 = y1;
+      pages.push({ y0: y0, y1: y1, head: head }); y0 = y1;
     }
-    // drop empty tail pages (nothing but white space after a forced break)
-    return { cuts: cuts, total: total };
+    return { pages: pages, total: total };
   }
 
   function toJpeg(canvas) { return new Promise(function (res, rej) { canvas.toBlob(function (b) { if (!b) return rej(new Error("the page picture could not be made")); b.arrayBuffer().then(function (ab) { res(new Uint8Array(ab)); }, rej); }, "image/jpeg", 0.92); }); }
@@ -152,7 +179,12 @@
     d.innerHTML = '<div style="background:#fff;color:#111;border-radius:16px;max-width:430px;width:100%;padding:20px 20px 16px;box-shadow:0 12px 40px rgba(0,0,0,.35)"><div id="seaPrintT" style="font-weight:700;font-size:18px;margin-bottom:6px"></div><div id="seaPrintM" style="color:#444;font-size:15px"></div><div id="seaPrintB" style="display:flex;flex-direction:column;gap:9px;margin-top:16px"></div></div>';
     document.body.appendChild(d); return d;
   }
-  function btn(label, primary) { var b = document.createElement("button"); b.type = "button"; b.textContent = label; b.style.cssText = "appearance:none;border:0;border-radius:11px;padding:13px 14px;font:600 16px/1.2 inherit;cursor:pointer;text-align:center;text-decoration:none;display:block;" + (primary ? "background:#0b6bcb;color:#fff" : "background:#e9edf1;color:#111"); return b; }
+  function btn(label, primary) {             // colours are forced: an app's own button style must not hide the label
+    var b = document.createElement("button"); b.type = "button"; b.textContent = label;
+    b.style.cssText = "appearance:none;border:0;border-radius:11px;padding:13px 14px;font:600 16px/1.2 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;cursor:pointer;text-align:center;text-decoration:none;display:block;width:100%;min-height:0;box-shadow:none";
+    b.style.setProperty("background", primary ? "#0b6bcb" : "#e9edf1", "important"); b.style.setProperty("color", primary ? "#fff" : "#111", "important");
+    return b;
+  }
 
   function makePdf(opts) {
     var name = (opts.name || document.title || "document").replace(/[\/\\:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim() || "document";
@@ -177,14 +209,21 @@
       var land = !!opts.landscape, mm = opts.margin == null ? 12 : opts.margin, PWmm = land ? 297 : 210, PHmm = land ? 210 : 297;
       var W = Math.round((PWmm - 2 * mm) * PX), pageH = Math.floor((PHmm - 2 * mm) * PX), info = null;
       return html2canvas(document.body, Object.assign({}, common, { scale: 1, windowWidth: W, windowHeight: pageH, x: 0, y: 0, width: W, height: 2, onclone: function (doc) { return prepDoc(doc, opts, 1).then(function () { info = measure(doc, pageH); }); } })).then(function () {
-        if (!info || info.cuts.length < 2) throw new Error("there is nothing to print");
-        var n = info.cuts.length - 1, chain = Promise.resolve();
-        for (var i = 0; i < n; i++) (function (i) {
-          var y0 = info.cuts[i], h = Math.max(1, Math.ceil(info.cuts[i + 1] - y0));
+        if (!info || !info.pages.length) throw new Error("there is nothing to print");
+        var n = info.pages.length, chain = Promise.resolve();
+        var shot = function (y, h) { return html2canvas(document.body, Object.assign({}, common, { windowWidth: W, windowHeight: pageH, x: 0, y: Math.floor(y), width: W, height: Math.max(1, Math.ceil(h)), onclone: function (doc) { return prepDoc(doc, opts, scale); } })); };
+        info.pages.forEach(function (pg, i) {
+          var h = Math.max(1, Math.ceil(pg.y1 - pg.y0)), hh = pg.head ? Math.ceil(pg.head.hBot - pg.head.hTop) : 0;
           chain = chain.then(function () { return step(i + 1, n); }).then(function () {
-            return html2canvas(document.body, Object.assign({}, common, { windowWidth: W, windowHeight: pageH, x: 0, y: Math.floor(y0), width: W, height: h, onclone: function (doc) { return prepDoc(doc, opts, scale); } }));
-          }).then(function (cv) { return toJpeg(cv).then(function (jpg) { pages.push({ jpg: jpg, iw: cv.width, ih: cv.height, pw: PWmm * 72 / 25.4, ph: PHmm * 72 / 25.4, x: mm * 72 / 25.4, y: mm * 72 / 25.4, w: W * 0.75, h: h * 0.75 }); }); });
-        })(i);
+            if (!pg.head) return shot(pg.y0, h);
+            if (pg.head.cv) return shot(pg.y0, h).then(function (body) { return [pg.head.cv, body]; });
+            return shot(pg.head.hTop, hh).then(function (hc) { pg.head.cv = hc; return shot(pg.y0, h).then(function (body) { return [hc, body]; }); });
+          }).then(function (res) {
+            var cv = res;
+            if (Array.isArray(res)) { cv = document.createElement("canvas"); cv.width = res[1].width; cv.height = res[0].height + res[1].height; var cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(res[0], 0, 0); cx.drawImage(res[1], 0, res[0].height); }
+            return toJpeg(cv).then(function (jpg) { pages.push({ jpg: jpg, iw: cv.width, ih: cv.height, pw: PWmm * 72 / 25.4, ph: PHmm * 72 / 25.4, x: mm * 72 / 25.4, y: mm * 72 / 25.4, w: W * 0.75, h: cv.height / scale * 0.75 }); });
+          });
+        });
         return chain;
       });
     }).then(function () {

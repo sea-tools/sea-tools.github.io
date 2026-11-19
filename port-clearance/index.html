@@ -203,8 +203,8 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
   #printRoot .sheet{break-after:page;page-break-after:always;break-inside:avoid}
   #printRoot .sheet:last-child{break-after:auto;page-break-after:auto}
   #printRoot .sheet.land{page:land}
-  body.rot #printRoot .sheet.land{page:auto;width:595.27pt !important;height:841.88pt !important}
-  body.rot #printRoot .sheet.land>.page{transform:translateX(595.27pt) rotate(90deg)}
+  body.rot #printRoot .sheet.land{page:auto;width:595.27pt !important;height:841.88pt !important;contain:strict}   /* contain: otherwise the turned form counts as too wide and the browser shrinks every page */
+  body.rot #printRoot .sheet.land>.page{left:0 !important;transform:translateX(595.27pt) rotate(90deg) translateX(var(--dx,0pt))}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 .shpill{display:block;width:calc(100% - 4px);margin:0 2px 8px;border:0;border-radius:9px;padding:7px 10px;font-size:12px;font-weight:600;text-align:left;background:var(--fill);color:var(--muted)}
@@ -479,6 +479,11 @@ function mkField(def,int,page,total){const[x,y,w,h,parts,o={}]=def;
   seps(f);return f}
 function seps(f){$$('.sep',f).forEach(s=>{const a=s.previousElementSibling,b=s.nextElementSibling;s.classList.toggle('off',!(a&&a.textContent&&b&&b.textContent))})}
 function sheet(w,h,land){const s=el('div','sheet'+(land?' land':''));s.style.width=w+'pt';s.style.height=h+'pt';return s}
+const dxCache={};
+function formDx(id){if(id in dxCache)return dxCache[id];const F=FORMS[id];let a=1e9,b=-1e9;      // the official forms sit a little off-centre: shift them so both side margins are equal
+  F.lines.forEach(l=>{a=Math.min(a,l[0],l[2]);b=Math.max(b,l[0],l[2])});
+  F.texts.forEach(([x,y,sz,fl,txt])=>{a=Math.min(a,x);b=Math.max(b,x+tw(txt,sz,fl.includes('b')))});
+  return dxCache[id]=(a<b)?Math.round(((F.w-(a+b))/2)*10)/10:0}
 function renderDoc(id,int){
   if(id==='mdh')return renderMDH(int);
   const S=SPEC[id],F=FORMS[id],n=pagesOf(id),out=[],lay=layoutFor(id);
@@ -488,7 +493,7 @@ function renderDoc(id,int){
     let rh=t?t.rh:0,nr=t?t.n:0,start=t?p*t.n:0,g=null;
     if(G&&G.trim){if(dataPage){rh=G.rh;nr=Math.min(G.per,G.L-p*G.per);start=p*G.per;const nl=nr+(int&&(nr+1)*rh<=t.n*t.rh+.01?1:0);g={rh,nl};nr=nl}   // only the rows that are used (a spare typing row on screen)
       else start=G.L+(p-G.pages)*t.n}
-    pg.style.width=F.w+'pt';pg.style.height=F.h+'pt';pg.innerHTML=svgFor(id,lay,g);
+    pg.style.width=F.w+'pt';pg.style.height=F.h+'pt';pg.style.left=formDx(id)+'pt';pg.style.setProperty('--dx',formDx(id)+'pt');pg.innerHTML=svgFor(id,lay,g);
     for(const m in S.boxes||{}){const[x,y,w,h]=S.boxes[m],b=el('div','box',D.voy.mode===m?'X':'');b.dataset.mode=m;
       b.style.cssText=`left:${x}pt;top:${y}pt;width:${w}pt;height:${h}pt`;pg.append(b)}
     for(const def of S.fields)pg.append(mkField(def,int,p,n));
@@ -523,7 +528,7 @@ function mdhRow(R,y,int,idx){const row=el('div','mrow');row.style.cssText=`left:
   return row}
 function renderMDH(int){const F=FORMS.mdh,sc=A4[0]/F.w,L=mdhLayout(),shift=(L.on-3)*MPITCH,out=[];
   const mk=()=>{const sh=sheet(A4[0],A4[1],0),pg=el('div','page mdh'+(int?' int':''));
-    pg.style.cssText=`width:${F.w}pt;height:${F.h}pt;transform:translate(0,${((A4[1]-F.h*sc)/2).toFixed(2)}pt) scale(${sc.toFixed(5)})`;sh.append(pg);out.push(sh);return pg};
+    pg.style.cssText=`width:${F.w}pt;height:${F.h}pt;transform:translate(-10.5pt,${((A4[1]-F.h*sc)/2).toFixed(2)}pt) scale(${sc.toFixed(5)})`;sh.append(pg);out.push(sh);return pg};
   let pg=mk();
   for(const[x0,y0,x1,y1]of F.rects){const r=el('div');r.style.cssText=`position:absolute;background:#000;left:${x0}pt;top:${y0+(y0>MJ[2].y?shift:0)}pt;width:${x1-x0}pt;height:${Math.max(.4,y1-y0)}pt`;pg.append(r)}
   for(const R of F.rows){if(!R.p.length||MJ.includes(R))continue;pg.append(mdhRow(R,R.y+(R.y>MJ[2].y?shift:0),int))}
@@ -862,7 +867,7 @@ function doPrint(ids,rot){const root=$('#printRoot');root.innerHTML='';const kee
   $('#pageStyle').textContent=(rot||none)?'@page{size:A4 portrait;margin:0}':all?'@page{size:A4 landscape;margin:0}':'@page{size:A4 portrait;margin:0}@page land{size:A4 landscape;margin:0}';
   const t=document.title;document.title=(recTitle(REC)+' '+(ids.length===1?SPEC[ids[0]].no:'port clearance')).replace(/[·\/]/g,'-');
   const done=()=>{document.title=t;removeEventListener('afterprint',done)};addEventListener('afterprint',done);
-  const go=()=>setTimeout(()=>window.SeaPrint?SeaPrint.print({pages:'#printRoot .sheet',prep:d=>d.body.classList.remove('rot')}):window.print(),80);
+  const go=()=>setTimeout(()=>window.SeaPrint?SeaPrint.print({pages:'#printRoot .sheet',prep:d=>{d.body.classList.remove('rot');d.querySelectorAll('.mf:empty,.mf .dt:empty').forEach(e=>{if(e.dataset.dots)e.textContent=e.dataset.dots})}}):window.print(),80);
   const imgs=$$('img',root).filter(i=>!i.complete);if(imgs.length)Promise.all(imgs.map(i=>new Promise(r=>{i.onload=i.onerror=r}))).then(go);else go()}
 window.__print=doPrint;
 

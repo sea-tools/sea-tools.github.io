@@ -61,7 +61,9 @@
       ".sti img{width:44px;height:44px;border-radius:10px;grid-row:1 / span 2;object-fit:cover}.sti b{font-size:15px;align-self:end}.sti p{margin:0;color:#c5d1d9;font-size:13px;grid-column:2}" +
       ".sti .acts{grid-column:1 / -1;display:flex;gap:8px;justify-content:flex-end;margin-top:8px}" +
       ".sti button{min-height:40px;border:0;border-radius:10px;padding:0 16px;font:600 14px inherit;font-family:inherit;cursor:pointer}" +
-      ".sti .go{background:#fff;color:#14232d}.sti .no{background:rgba(255,255,255,.14);color:#fff}@media print{.sti{display:none!important}}";
+      ".sti button.go{background:#fff!important;color:#14232d!important}.sti button.no{background:rgba(255,255,255,.16)!important;color:#fff!important}" +
+      ".sti button{box-shadow:none!important;border:0!important;width:auto!important;text-shadow:none!important;opacity:1!important}.sti b{color:#fff!important}.sti p{color:#c5d1d9!important}" +   // an app's own button colours must not hide the labels
+      "@media print{.sti{display:none!important}}";
     document.head.appendChild(s);
   }
   function close() { if (card) { card.remove(); card = null; } }
